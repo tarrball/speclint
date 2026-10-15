@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"sort"
 
@@ -134,12 +135,23 @@ func sameProject(cfg *config.Config, files []string, base string) error {
 		if err != nil {
 			return err
 		}
-		if other.Root != cfg.Root {
+		if !sameDir(other.Root, cfg.Root) {
 			return fmt.Errorf("%s and %s are in different specval projects; check each project separately",
 				relTo(base, files[0]), relTo(base, f))
 		}
 	}
 	return nil
+}
+
+// sameDir reports whether a and b are the same directory. A symbolic link to
+// a directory is the same directory.
+func sameDir(a, b string) bool {
+	if a == b {
+		return true
+	}
+	ia, errA := os.Stat(a)
+	ib, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(ia, ib)
 }
 
 // relTo returns p relative to base. If that is not possible, it returns p.

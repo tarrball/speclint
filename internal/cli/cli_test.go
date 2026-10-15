@@ -111,6 +111,13 @@ func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
 	if code, _, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "a/sub/specs/z.yaml"); code != exitFindings {
 		t.Errorf("same project: code %d, stderr %q", code, errOut)
 	}
+	// A symbolic link to the same project is the same project.
+	if err := os.Symlink(filepath.Join(dir, "a"), filepath.Join(dir, "alias")); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "alias/specs/x.yaml"); code != exitFindings {
+		t.Errorf("symbolic link: code %d, stderr %q", code, errOut)
+	}
 }
 
 func TestSchema(t *testing.T) {
