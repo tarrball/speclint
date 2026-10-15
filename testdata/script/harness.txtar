@@ -1,0 +1,11 @@
+# Tests for the script commands that the other scripts use.
+
+# jsonexpand escapes each value for use in a JSON string.
+env ODD=a"b\c
+jsonexpand in.json out.json
+cmp out.json want.json
+
+-- in.json --
+{"path": "$ODD/specs/x.yaml"}
+-- want.json --
+{"path": "a\"b\\c/specs/x.yaml"}

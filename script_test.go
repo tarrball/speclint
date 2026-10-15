@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -32,8 +33,8 @@ func TestScripts(t *testing.T) {
 			return nil
 		},
 		Cmds: map[string]func(*testscript.TestScript, bool, []string){
-			"exits":  cmdExits,
-			"expand": cmdExpand,
+			"exits":      cmdExits,
+			"jsonexpand": cmdJSONExpand,
 		},
 		UpdateScripts: os.Getenv("UPDATE_SCRIPTS") == "1",
 	})
@@ -62,12 +63,18 @@ func cmdExits(ts *testscript.TestScript, neg bool, args []string) {
 	}
 }
 
-// cmdExpand implements "expand <src> <dst>". It copies src to dst and replaces
-// each $VAR or ${VAR} with the value of that script variable.
-func cmdExpand(ts *testscript.TestScript, neg bool, args []string) {
+// cmdJSONExpand implements "jsonexpand <src> <dst>". It copies src to dst and
+// replaces each $VAR or ${VAR} with the value of that script variable, escaped
+// for use in a JSON string. Thus a path that contains a quote or a backslash
+// gives valid JSON.
+func cmdJSONExpand(ts *testscript.TestScript, neg bool, args []string) {
 	if neg || len(args) != 2 {
-		ts.Fatalf("usage: expand <src> <dst>")
+		ts.Fatalf("usage: jsonexpand <src> <dst>")
 	}
-	out := os.Expand(ts.ReadFile(args[0]), ts.Getenv)
+	out := os.Expand(ts.ReadFile(args[0]), func(name string) string {
+		b, err := json.Marshal(ts.Getenv(name))
+		ts.Check(err)
+		return string(b[1 : len(b)-1]) // Remove the quotes around the JSON string.
+	})
 	ts.Check(os.WriteFile(ts.MkAbs(args[1]), []byte(out), 0o644))
 }
