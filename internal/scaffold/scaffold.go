@@ -49,21 +49,29 @@ func Init(dir string, w io.Writer) error {
 	if _, err := claude.InspectSettings(settings); err != nil {
 		return err
 	}
-	specsDir := filepath.Join(dir, "specs")
-	if cfg, err := config.Find(dir); err == nil && sameDir(cfg.Root, dir) {
-		specsDir = cfg.Abs(cfg.SpecsDir)
+	// A configuration in dir gives the paths for the other parts. Init does
+	// not use the configuration of a parent directory.
+	cfg := config.Default(dir)
+	if _, err := os.Stat(filepath.Join(dir, config.FileName)); err == nil {
+		if cfg, err = config.Find(dir); err != nil {
+			return err
+		}
 	}
 	files := []struct{ path, content string }{
 		{config.FileName, configTemplate},
-		{".specval/data/services.yaml", servicesTemplate},
-		{".specval/policy/project.rego", projectTemplate},
+		{firstFile(cfg.Data, "services.yaml", ".yaml", ".yml", ".json"), servicesTemplate},
+		{firstFile(cfg.Policy, "project.rego", ".rego"), projectTemplate},
 		{claude.SkillPath, claude.Skill()},
 	}
 	for _, f := range files {
+		if f.path == "" {
+			continue
+		}
 		if err := writeIfMissing(dir, f.path, f.content, w); err != nil {
 			return err
 		}
 	}
+	specsDir := cfg.Abs(cfg.SpecsDir)
 	if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
 	}
@@ -79,8 +87,28 @@ func Init(dir string, w io.Writer) error {
 	return err
 }
 
+// firstFile returns the file that Init writes for the first of paths. If that
+// path has one of exts, it is the file. If not, it is a directory, and the
+// file is name in it. firstFile returns "" if there are no paths.
+func firstFile(paths []string, name string, exts ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	for _, ext := range exts {
+		if strings.HasSuffix(paths[0], ext) {
+			return paths[0]
+		}
+	}
+	return filepath.Join(paths[0], name)
+}
+
+// writeIfMissing writes content to path, relative to dir, if the file does
+// not exist. It writes one line about the file to w.
 func writeIfMissing(dir, path, content string, w io.Writer) error {
-	full := filepath.Join(dir, path)
+	full := path
+	if !filepath.IsAbs(path) {
+		full = filepath.Join(dir, path)
+	}
 	if _, err := os.Stat(full); err == nil {
 		_, err = fmt.Fprintln(w, "exists  ", path)
 		return err
@@ -105,12 +133,6 @@ func quote(s string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(string(b), "\n"), nil
-}
-
-func sameDir(a, b string) bool {
-	a, _ = filepath.Abs(a)
-	b, _ = filepath.Abs(b)
-	return a == b
 }
 
 // ValidID reports whether id can be the ID of a spec.

@@ -59,10 +59,16 @@ func Find(start string) (*Config, error) {
 	}
 }
 
+// Default returns the configuration that a project in root has if its
+// configuration file sets no values.
+func Default(root string) *Config {
+	return &Config{Root: root, SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
+}
+
 // parse reads a configuration. A key that it does not know is an error, so
 // that a typing error such as "spec_dir" does not go unseen.
 func parse(b []byte) (*Config, error) {
-	c := &Config{SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
+	c := Default("")
 	dec := yaml.NewDecoder(bytes.NewReader(b))
 	dec.KnownFields(true)
 	if err := dec.Decode(c); err != nil && !errors.Is(err, io.EOF) { // An empty file gives io.EOF.

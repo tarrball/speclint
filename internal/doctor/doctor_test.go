@@ -238,3 +238,15 @@ func TestOneHookCheckWhenASettingsFileIsNotValid(t *testing.T) {
 		t.Errorf("hook checks = %+v, want one failure", hooks)
 	}
 }
+
+func TestRegistryFixNamesTheConfiguredDataFile(t *testing.T) {
+	f := newFixture(t)
+	f.remove(".specval/data")
+	f.write(".specval.yaml", "data: [registry.yaml]\n")
+	f.write("registry.yaml", "services: {}\n")
+	for _, c := range Run(context.Background(), f.env) {
+		if c.Name == "registry" && !strings.Contains(c.Fix, "registry.yaml") {
+			t.Errorf("registry fix = %q, want it to name registry.yaml", c.Fix)
+		}
+	}
+}

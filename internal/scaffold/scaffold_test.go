@@ -214,3 +214,39 @@ func TestSpecRejectsATitleThatIsNotUTF8(t *testing.T) {
 		t.Errorf("Spec wrote a file: %v", err)
 	}
 }
+
+func TestInitStopsOnAConfigurationThatIsNotValid(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: [unclosed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err == nil {
+		t.Fatalf("Init = nil, want the configuration error; output:\n%s", out.String())
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("Init wrote files: %v", entries)
+	}
+}
+
+func TestInitUsesTheConfiguredDataAndPolicyPaths(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("data: [registry.yaml]\npolicy: [rules]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{"registry.yaml", filepath.Join("rules", "project.rego")} {
+		if _, err := os.Stat(filepath.Join(dir, p)); err != nil {
+			t.Errorf("%s: %v", p, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".specval")); !os.IsNotExist(err) {
+		t.Errorf("Init wrote .specval, which the configuration does not use")
+	}
+	if !strings.Contains(out.String(), "created  registry.yaml\n") {
+		t.Errorf("output:\n%s", out.String())
+	}
+}

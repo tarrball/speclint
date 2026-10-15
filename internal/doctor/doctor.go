@@ -151,7 +151,7 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 		return
 	case len(services) == 0:
 		c.add(StatusWarn, "registry", "no services are registered (data.project.services is empty)",
-			"Add each service and its layer to .specval/data/services.yaml. Until you do, each call fails SV101.")
+			"Add each service and its layer to "+c.registryFile(eng)+". Until you do, each call fails SV101.")
 		return
 	}
 	reg, err := eng.CheckRegistry(ctx)
@@ -179,6 +179,19 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	} else {
 		c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s", len(services), c.rel(eng.DataFile("services"))), "")
 	}
+}
+
+// registryFile returns the data file that holds the registry: the file that
+// defines services, or else the first data path of the configuration. If the
+// configuration has no data path, it describes the file.
+func (c *checker) registryFile(eng *policy.Engine) string {
+	if f := eng.DataFile("services"); f != "" {
+		return c.rel(f)
+	}
+	if len(c.cfg.Data) > 0 {
+		return c.cfg.Data[0]
+	}
+	return "a data file that " + config.FileName + " lists"
 }
 
 // checkSkill makes sure that the project or the user has the specval skill,
