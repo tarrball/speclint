@@ -1,4 +1,4 @@
-module specval
+module github.com/tarrball/specval
 
 go 1.26.0
 
