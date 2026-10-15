@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 specval is a Go CLI. It validates a change spec (a YAML file) against architecture
-rules before code is written. The rules are Rego policies, evaluated by the OPA
-library that is compiled into the binary.
+rules before a developer writes code. The rules are Rego policies. The binary
+contains the OPA library, which evaluates them.
 
 ## Commands
 
@@ -54,4 +54,4 @@ Do not change these without a migration note in the pull request:
   inside the package that embeds them.
 - The opa CLI version in `mise.toml` must agree with the OPA module version in `go.mod`.
 - `specval doctor` runs the `specval` binary on PATH. Its tests must not depend on
-  what is installed on the machine.
+  the software on the machine.

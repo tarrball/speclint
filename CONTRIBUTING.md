@@ -20,9 +20,9 @@
 
 ## Rules for changes
 
-Read [docs/style.md](docs/style.md) before you write code, comments, or documentation.
+Before you write code, comments, or documentation, read [docs/style.md](docs/style.md).
 
-- Each change must keep `mise run check` green.
+- After each change, `mise run check` must pass.
 - A change in behavior must have a test that fails before the change and passes after it.
 - A change to the CLI output, a rule, or a configuration file must also update the documentation.
 - If you change the version of `github.com/open-policy-agent/opa` in `go.mod`,
@@ -32,9 +32,9 @@ Read [docs/style.md](docs/style.md) before you write code, comments, or document
 
 1. Make a branch from `main`. Name it `<type>/<topic>`, for example `fix/hook-relative-path`.
    Use one of these types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
-2. Keep each pull request to one topic. Make it small enough to review in one sitting.
+2. Keep each pull request to one topic. Make it small enough to review in one session.
    If a change is large, divide it into a sequence of pull requests.
 3. In the description, tell why you made the change and how you tested it.
 4. Request a review from Copilot: `gh pr edit --add-reviewer @copilot`.
 5. Read each review comment. Fix the problem, or reply with the reason that you did not.
-6. Squash and merge when the review is complete.
+6. When the review is complete, squash and merge.

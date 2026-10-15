@@ -16,7 +16,8 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 ### Words
 
-- Use one word for one meaning, and use the same word each time.
+- Use one word for one meaning.
+- Use the same word for the same thing each time.
   A *spec* is always a spec, not a "document" in one place and a "file" in another.
 - Use the simplest common word. Write "use", not "utilize". Write "start", not "initiate".
 - Use technical names as they are: `specval check`, `data.project`, `SV101`.
@@ -68,7 +69,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 ### Errors
 
 - Do not ignore an error. If you must ignore one, write a comment that gives the reason.
-- Add context when you return an error: `fmt.Errorf("read %s: %w", path, err)`.
+- When you return an error, add context: `fmt.Errorf("read %s: %w", path, err)`.
 - Start error text with a lowercase letter. Do not end it with a period.
 - Use `errors.Is` and `errors.As`. Do not compare error strings.
 
@@ -77,7 +78,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 - Use a named type and constants for a fixed set of values,
   for example a severity or an exit code. Do not use bare strings or numbers.
 - Do not use package-level variables that change.
-  A compiled `regexp` or an `embed.FS` is permitted.
+  You can use a package-level variable for a compiled `regexp` or for embedded files.
 
 ### Input and output
 
@@ -89,15 +90,15 @@ We apply the rules below. We do not check each word against the STE dictionary.
 ### Comments
 
 - Write a doc comment for each package and each exported name.
-  Start it with the name: `// FindConfig returns ...`.
+  Start it with the name: `// Find returns ...`.
 - Write a comment to tell *why* the code does something.
-  Do not tell *what* the code does if the code shows it clearly.
+  If the code shows clearly *what* it does, do not tell it again in a comment.
 - Write comments in STE (see above). End each sentence with a period.
 
 ### Tests
 
 - Put a test in the same package as the code that it tests.
-- Use table-driven tests when the cases share the same steps.
+- If the cases of a test share the same steps, use a table-driven test.
 - Use `t.TempDir()` for files. Do not write to the repository during a test.
 - Use `testdata/` for fixed input files.
 - Call `t.Helper()` in each test helper.
@@ -109,7 +110,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 A `//nolint` directive must name the linter and give a reason:
 
 ```go
-//nolint:gosec // Running the specval on PATH is the purpose of this check.
+//nolint:gosec // This check must run the specval binary that is on PATH.
 ```
 
 ## Rego
