@@ -37,7 +37,7 @@ test_sr001_layer_that_is_not_a_string if {
 }
 
 test_sr003_registry_must_be_a_mapping if {
-	every services in [[], "x", 5] {
+	every services in [[], ["manager"], [{"layer": "manager"}], "x", 5] {
 		findings := dpl.deny with data.project as {"services": services}
 		{[f.rule, f.path] | some f in findings} == {["SR003", "services"]}
 	}

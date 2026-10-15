@@ -521,3 +521,17 @@ func TestNestedRulePackagesInBracketNotation(t *testing.T) {
 		t.Errorf("one level: err = %v, want a custom.id error", err)
 	}
 }
+
+// A registry finding for a key that is not a string has the line of the key,
+// not the line of its parent.
+func TestRegistryLineForAKeyThatIsNotAString(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  0x1: manager\n"})
+	got, err := newEngine(t, cfg).CheckRegistry(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := got[filepath.Join(cfg.Root, ".specval", "data", "services.yaml")]
+	if len(found) != 1 || found[0].Rule != "SR004" || found[0].Path != "services.1" || found[0].Line != 3 {
+		t.Errorf("got %+v, want one SR004 at services.1, line 3", found)
+	}
+}

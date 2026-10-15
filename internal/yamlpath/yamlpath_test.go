@@ -80,3 +80,14 @@ func TestLineEdgeCases(t *testing.T) {
 		t.Errorf("Line(mapping) = %d, want 8", got)
 	}
 }
+
+// A key that is not a string has the text that specval gives it when it
+// converts the key: 0x1 is "1", and true is "true".
+func TestLineWithKeysThatAreNotStrings(t *testing.T) {
+	n := parse(t, "services:\n  0x1: manager\n  true: engine\n  name: x\n")
+	for path, want := range map[string]int{"services.1": 2, "services.true": 3, "services.name": 4} {
+		if got := Line(n, path); got != want {
+			t.Errorf("Line(%q) = %d, want %d", path, got, want)
+		}
+	}
+}
