@@ -9,12 +9,12 @@ cd $WORK/empty
 exits 0 specval context
 stdout '^## Registered services\n\(none\)$'
 
-# context leaves out a registered service whose layer is not a string.
+# context lists a registered service that has no valid layer on its own line.
 # The registry rules report that service.
 cd $WORK/numberlayer
 exits 0 specval context
 stdout '^- manager: OrderManager$'
-! stdout NumberEngine
+stdout '^- no valid layer: NumberEngine, StringAccessor$'
 
 # Without a .specval.yaml, context exits 2.
 cd $WORK
@@ -27,6 +27,7 @@ stderr '^specval: no .specval.yaml in '
 services:
   OrderManager: { layer: manager }
   NumberEngine: { layer: 7 }
+  StringAccessor: accessor
 -- refund.txt --
 # Spec rules (specval)
 

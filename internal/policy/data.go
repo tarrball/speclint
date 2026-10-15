@@ -33,8 +33,9 @@ func (e *Engine) Architecture() (Architecture, error) {
 }
 
 // Services returns the service registry, by service name. It returns an
-// error only if the registry is not a mapping. An entry without a layer that
-// is a string has an empty Layer; the registry rules report such an entry.
+// error only if the registry is not a mapping. An entry that is not a mapping,
+// or that has no layer that is a string, has an empty Layer. The registry
+// rules SR001 and SR004 report such an entry.
 func (e *Engine) Services() (map[string]Service, error) {
 	project, _ := e.data["project"].(map[string]any)
 	raw, ok := project["services"]

@@ -29,6 +29,7 @@ deny contains f if {
 #   id: SR001
 deny contains f if {
 	some name, s in registry
+	is_object(s)
 	layer := object.get(s, "layer", "")
 	not data.dpl.layers[layer]
 	f := lib.finding(
@@ -54,3 +55,25 @@ deny contains f if {
 		$"Change its name so that it ends in {sfx}, or change its layer.",
 	)
 }
+
+# METADATA
+# title: Each registry entry is a mapping
+# description: Each service in the registry maps to an entry that has a layer.
+# custom:
+#   id: SR004
+deny contains f if {
+	some name, s in registry
+	not is_object(s)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"services.{name}",
+		$"{name} is not a mapping (got {lib.quote(s)})",
+		entry_fix(name, s),
+	)
+}
+
+# entry_fix tells how to write a registry entry. If the entry is the name of
+# a layer, the fix uses it.
+entry_fix(name, s) := $"Write the entry as {name}: \{ layer: {s} }." if data.dpl.layers[s]
+
+else := $"Write the entry as {name}: \{ layer: <layer> }, with one of: {concat(", ", data.dpl.layer_order)}."

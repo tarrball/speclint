@@ -2,6 +2,12 @@
 exits 1 specval check
 cmp stdout check.txt
 
+# A registry entry must be a mapping with a layer, not the name of a layer.
+cd strings
+exits 1 specval check
+cmp stdout $WORK/strings.txt
+cd $WORK
+
 # Two data files that define the same top-level key are an error.
 cp extra.yaml .specval/data/extra.yaml
 exits 2 specval check
@@ -22,6 +28,18 @@ services:
   NoLayerEngine: {}
   MarkupEngine: { layer: "<b>&\u0000" }
 -- specs/.keep --
+-- strings/.specval.yaml --
+-- strings/.specval/data/services.yaml --
+services:
+  OrderManager: manager
+  OrderAccessor: accessor
+-- strings/specs/.keep --
+-- strings.txt --
+.specval/data/services.yaml:2 error SR004 OrderManager is not a mapping (got "manager") (services.OrderManager)
+    fix: Write the entry as OrderManager: { layer: manager }.
+.specval/data/services.yaml:3 error SR004 OrderAccessor is not a mapping (got "accessor") (services.OrderAccessor)
+    fix: Write the entry as OrderAccessor: { layer: accessor }.
+specval checked 0 spec(s) and found 2 error(s) and 0 warning(s).
 -- extra.yaml --
 services: {}
 -- list.yaml --
