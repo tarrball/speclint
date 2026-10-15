@@ -3,14 +3,17 @@ package scaffold
 
 import (
 	_ "embed" // The templates are embedded.
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
+	"unicode/utf8"
 
+	"gopkg.in/yaml.v3"
+
+	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/claude"
 	"github.com/tarrball/specval/internal/config"
 )
@@ -35,6 +38,12 @@ var (
 // except that it adds the hook to an existing settings file. Init writes one
 // line to w for each part.
 func Init(dir string, w io.Writer) error {
+	// Read the settings file first, so that a file that is not valid stops
+	// Init before it writes anything.
+	settings := filepath.Join(dir, claude.SettingsPath)
+	if _, err := claude.InspectSettings(settings); err != nil {
+		return err
+	}
 	specsDir := filepath.Join(dir, "specs")
 	if cfg, err := config.Find(dir); err == nil && sameDir(cfg.Root, dir) {
 		specsDir = cfg.Abs(cfg.SpecsDir)
@@ -53,7 +62,7 @@ func Init(dir string, w io.Writer) error {
 	if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
 	}
-	added, err := claude.AddHook(filepath.Join(dir, claude.SettingsPath))
+	added, err := claude.AddHook(settings)
 	if err != nil {
 		return err
 	}
@@ -81,27 +90,42 @@ func writeIfMissing(dir, path, content string, w io.Writer) error {
 	return err
 }
 
+// quote returns s as a YAML double-quoted string.
+func quote(s string) (string, error) {
+	if !utf8.ValidString(s) {
+		return "", errors.New("the text is not valid UTF-8")
+	}
+	b, err := yaml.Marshal(&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: s, Style: yaml.DoubleQuotedStyle})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(string(b), "\n"), nil
+}
+
 func sameDir(a, b string) bool {
 	a, _ = filepath.Abs(a)
 	b, _ = filepath.Abs(b)
 	return a == b
 }
 
-var idRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
-
 // ValidID reports whether id can be the ID of a spec.
 func ValidID(id string) bool {
-	return idRe.MatchString(id)
+	return baseline.IDPattern().MatchString(id)
 }
 
 // Spec writes a new spec, made from the template, to <specs dir>/<id>.yaml.
-// It returns the path of the spec. It does not overwrite a file.
+// It returns the path of the spec. It does not overwrite a file. The caller
+// must make sure that id is valid and that kind is one of baseline.Kinds.
 func Spec(cfg *config.Config, id, kind, title string) (string, error) {
 	path := filepath.Join(cfg.Abs(cfg.SpecsDir), id+".yaml")
 	if _, err := os.Stat(path); err == nil {
 		return "", fmt.Errorf("%s already exists", path)
 	}
-	out := strings.NewReplacer("{{ID}}", id, "{{KIND}}", kind, "{{TITLE}}", strconv.Quote(title)).Replace(specTemplate)
+	quoted, err := quote(title)
+	if err != nil {
+		return "", fmt.Errorf("title: %w", err)
+	}
+	out := strings.NewReplacer("{{ID}}", id, "{{KIND}}", kind, "{{TITLE}}", quoted).Replace(specTemplate)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", err
 	}

@@ -3,7 +3,10 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
+	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/config"
 	"github.com/tarrball/specval/internal/scaffold"
 )
@@ -18,6 +21,9 @@ func cmdNew(env *Env, args []string) error {
 	}
 	if len(pos) != 1 || !scaffold.ValidID(pos[0]) {
 		return errors.New("usage: specval new <id> (letters, digits, . _ -)")
+	}
+	if kinds := baseline.Kinds(); !slices.Contains(kinds, *kind) {
+		return fmt.Errorf("--kind must be one of: %s", strings.Join(kinds, ", "))
 	}
 	dir, err := env.workDir()
 	if err != nil {

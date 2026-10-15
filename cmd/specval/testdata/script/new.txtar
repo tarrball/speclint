@@ -20,6 +20,11 @@ stderr '^specval: usage: specval new <id>'
 exits 2 specval new A B
 stderr '^specval: usage: specval new <id>'
 
+# The kind must be one of the kinds in the schema.
+exits 2 specval new X-1 --kind epic
+stderr '^specval: --kind must be one of: feature, bugfix, chore$'
+! exists specs/X-1.yaml
+
 # An unknown flag is a usage error.
 exits 2 specval new X --nope
 stderr 'flag provided but not defined: -nope'

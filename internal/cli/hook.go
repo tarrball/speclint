@@ -44,7 +44,7 @@ func cmdHook(ctx context.Context, env *Env) int {
 	if err != nil {
 		return hookPass
 	}
-	if rel, err := filepath.Rel(cfg.Abs(cfg.SpecsDir), fp); err != nil || strings.HasPrefix(rel, "..") {
+	if rel, err := filepath.Rel(cfg.Abs(cfg.SpecsDir), fp); err != nil || !filepath.IsLocal(rel) {
 		return hookPass
 	}
 	base := in.Cwd

@@ -27,6 +27,12 @@ stdin relative.json
 exits 2 specval hook
 stderr '^specs/bad.yaml:'
 
+# A spec whose name starts with ".." is in the specs directory, so the hook checks it.
+jsonexpand events/dotdot.json dotdot.json
+stdin dotdot.json
+exits 2 specval hook
+stderr '^specs/\.\.draft\.yaml:9 error SV102 '
+
 # The hook ignores files that are not specs, and input that it cannot read.
 stdin events/notyaml.json
 exits 0 specval hook
@@ -94,6 +100,16 @@ acceptance:
   - { id: AC1, text: "Given an order, when it is read, then it is returned." }
 calls:
   - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- specs/..draft.yaml --
+specval: 1
+id: DRAFT-1
+kind: feature
+title: Draft
+summary: An accessor calls a manager.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderAccessor, to: OrderManager, op: Notify, covers: [AC1] }
 -- notspec.yaml --
 a: b
 -- other/.keep --
@@ -103,6 +119,8 @@ a: b
 {"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/warn.yaml"}}
 -- events/pass.json --
 {"cwd": "$WORK", "tool_name": "Edit", "tool_input": {"file_path": "$WORK/specs/pass.yaml"}}
+-- events/dotdot.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/..draft.yaml"}}
 -- events/relative.json --
 {"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "specs/bad.yaml"}}
 -- events/notyaml.json --

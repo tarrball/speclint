@@ -175,6 +175,31 @@ func TestClaudeChecks(t *testing.T) {
 	}
 }
 
+func TestUnknownHomeDirectory(t *testing.T) {
+	// With no home directory, doctor must not look in the working directory
+	// of the process for the user-level files.
+	f := newFixture(t)
+	f.remove(claude.SettingsPath)
+	f.remove(claude.SkillPath)
+	f.env.Home = ""
+	cwd := t.TempDir()
+	for path, content := range map[string]string{
+		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`,
+		claude.SkillPath:    claude.Skill(),
+	} {
+		p := filepath.Join(cwd, path)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(cwd)
+	f.want("hook", StatusFail, "no PostToolUse hook runs `specval hook`")
+	f.want("skill", StatusWarn, "is missing")
+}
+
 func TestPathChecks(t *testing.T) {
 	t.Run("not on PATH", func(t *testing.T) {
 		f := newFixture(t)

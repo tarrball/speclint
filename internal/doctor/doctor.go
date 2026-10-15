@@ -38,7 +38,7 @@ type Env struct {
 	// configuration in Dir or in a parent of Dir.
 	Dir string
 	// Home is the home directory of the user. The checks look there for the
-	// user-level skill and settings.
+	// user-level skill and settings. If it is "", they look only in the project.
 	Home string
 	// Executable is the path of the specval binary that runs the checks.
 	Executable string
@@ -130,10 +130,18 @@ func Run(ctx context.Context, env Env) []Check {
 		}
 	}
 
+	// Claude Code reads the skill and the settings from the project, then from
+	// the home directory of the user.
+	skills := []string{filepath.Join(cfg.Root, claude.SkillPath)}
+	settings := []string{filepath.Join(cfg.Root, claude.SettingsPath), filepath.Join(cfg.Root, claude.LocalSettingsPath)}
+	if env.Home != "" {
+		skills = append(skills, filepath.Join(env.Home, claude.SkillPath))
+		settings = append(settings, filepath.Join(env.Home, claude.SettingsPath))
+	}
+
 	// Claude skill (project or user level)
-	home := env.Home
 	skill := ""
-	for _, p := range []string{filepath.Join(cfg.Root, claude.SkillPath), filepath.Join(home, claude.SkillPath)} {
+	for _, p := range skills {
 		if _, err := os.Stat(p); err == nil {
 			skill = p
 			break
@@ -152,11 +160,7 @@ func Run(ctx context.Context, env Env) []Check {
 	var hookFile string
 	var hook claude.HookStatus
 	disabledIn := ""
-	for _, p := range []string{
-		filepath.Join(cfg.Root, claude.SettingsPath),
-		filepath.Join(cfg.Root, claude.LocalSettingsPath),
-		filepath.Join(home, claude.SettingsPath),
-	} {
+	for _, p := range settings {
 		st, err := claude.InspectSettings(p)
 		if err != nil {
 			add(StatusFail, "hook", strings.ReplaceAll(err.Error(), cfg.Root+string(filepath.Separator), ""), "Fix the JSON; Claude Code ignores a settings file it can't parse.")
