@@ -38,6 +38,12 @@ var (
 // except that it adds the hook to an existing settings file. Init writes one
 // line to w for each part.
 func Init(dir string, w io.Writer) error {
+	// Read the settings file first, so that a file that is not valid stops
+	// Init before it writes anything.
+	settings := filepath.Join(dir, claude.SettingsPath)
+	if _, err := claude.InspectSettings(settings); err != nil {
+		return err
+	}
 	specsDir := filepath.Join(dir, "specs")
 	if cfg, err := config.Find(dir); err == nil && sameDir(cfg.Root, dir) {
 		specsDir = cfg.Abs(cfg.SpecsDir)
@@ -56,7 +62,7 @@ func Init(dir string, w io.Writer) error {
 	if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
 	}
-	added, err := claude.AddHook(filepath.Join(dir, claude.SettingsPath))
+	added, err := claude.AddHook(settings)
 	if err != nil {
 		return err
 	}

@@ -88,6 +88,29 @@ func TestInitUsesTheConfiguredSpecsDir(t *testing.T) {
 	}
 }
 
+func TestInitWritesNothingIfTheSettingsAreNotValid(t *testing.T) {
+	dir := t.TempDir()
+	settings := filepath.Join(dir, claude.SettingsPath)
+	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(settings, []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err == nil || !strings.Contains(err.Error(), "is not valid JSON") {
+		t.Fatalf("Init = %v, want an invalid JSON error", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("Init wrote output:\n%s", out.String())
+	}
+	for _, p := range []string{config.FileName, ".specval", "specs", claude.SkillPath} {
+		if _, err := os.Stat(filepath.Join(dir, p)); !os.IsNotExist(err) {
+			t.Errorf("Init made %s", p)
+		}
+	}
+}
+
 func TestValidID(t *testing.T) {
 	for id, want := range map[string]bool{
 		"ORD-142":   true,
