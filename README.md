@@ -103,9 +103,11 @@ hook into an existing `.claude/settings.json` without dropping other settings
 
 ## Dev
 
+The Go version is pinned in `mise.toml`; run `mise install` once to get it.
+
 ```
-mise exec go@1.25.12 -- go test ./...
-mise exec go@1.25.12 -- go build -ldflags "-s -w" -o bin/specval .
+go test ./...
+go build -ldflags "-s -w" -o bin/specval .
 ```
 
 `examples/refund` has one passing spec (ORD-142), one with architecture
