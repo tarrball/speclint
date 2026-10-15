@@ -74,7 +74,7 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 	}
 	for _, m := range mods {
 		if err := e.addModule(m.Name, m.Source); err != nil {
-			return nil, err
+			return nil, newRegoError(err)
 		}
 	}
 	policyFiles, err := cfg.PolicyFiles()
@@ -87,18 +87,42 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 			return nil, err
 		}
 		if err := e.addModule(path, string(b)); err != nil {
-			return nil, err
+			return nil, newRegoError(err)
 		}
 	}
 
 	store := inmem.NewFromObject(data)
 	if e.specQ, err = e.prepare(ctx, specQuery, store); err != nil {
-		return nil, err
+		return nil, newRegoError(err)
 	}
 	if e.regQ, err = e.prepare(ctx, registryQuery, store); err != nil {
-		return nil, err
+		return nil, newRegoError(err)
 	}
 	return e, nil
+}
+
+// regoError is a list of Rego parse or compile errors. Its text has one
+// error on each line, and each error starts with its file and line.
+type regoError struct{ errs ast.Errors }
+
+func (e regoError) Error() string {
+	msgs := make([]string, len(e.errs))
+	for i, err := range e.errs {
+		msgs[i] = err.Error()
+	}
+	return strings.Join(msgs, "\n")
+}
+
+func (e regoError) Unwrap() error { return e.errs }
+
+// newRegoError removes the text that OPA puts around a list of errors, such as
+// "bundle activation failed: 1 error occurred: ".
+func newRegoError(err error) error {
+	var errs ast.Errors
+	if errors.As(err, &errs) && len(errs) > 0 {
+		return regoError{errs}
+	}
+	return err
 }
 
 func (e *Engine) addModule(name, src string) error {

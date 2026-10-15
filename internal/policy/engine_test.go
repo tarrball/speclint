@@ -361,3 +361,35 @@ func TestAnEmptySpecReportsLineOne(t *testing.T) {
 		}
 	}
 }
+
+func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
+	for name, c := range map[string]struct {
+		src   string
+		lines int
+	}{
+		"parse":   {"package specval.spec.a\n\ndeny contains f if {\n", 1},
+		"compile": {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n", 1},
+		"two":     {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n\nz if w\n", 2},
+	} {
+		cfg := project(t, map[string]string{".specval/policy/a.rego": c.src})
+		_, err := New(context.Background(), cfg)
+		if err == nil {
+			t.Errorf("%s: no error", name)
+			continue
+		}
+		file := filepath.Join(cfg.Root, ".specval", "policy", "a.rego") + ":"
+		var errors int
+		for line := range strings.SplitSeq(err.Error(), "\n") {
+			if strings.HasPrefix(line, "\t") {
+				continue // the source line and the marker under it
+			}
+			errors++
+			if !strings.HasPrefix(line, file) {
+				t.Errorf("%s: error line %q does not start with the file and line", name, line)
+			}
+		}
+		if errors != c.lines {
+			t.Errorf("%s: %d errors in %q, want %d", name, errors, err, c.lines)
+		}
+	}
+}
