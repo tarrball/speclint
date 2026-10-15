@@ -1,42 +1,150 @@
 package claude
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestMatcherCovers(t *testing.T) {
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSkillRunsSpecvalContext(t *testing.T) {
+	// doctor uses this text to tell that the skill is the specval skill.
+	if !strings.Contains(Skill(), "specval context") {
+		t.Error("the skill does not tell Claude to run `specval context`")
+	}
+}
+
+func TestInspectSettings(t *testing.T) {
+	dir := t.TempDir()
 	for _, c := range []struct {
-		matcher, tool string
-		want          bool
-	}{{"", "Edit", true}, {"*", "Write", true}, {"Write|Edit|MultiEdit", "Edit", true}, {"Write", "MultiEdit", false}, {"Bash", "Write", false}} {
-		if got := MatcherCovers(c.matcher, c.tool); got != c.want {
-			t.Errorf("MatcherCovers(%q, %q) = %v", c.matcher, c.tool, got)
+		name, content string
+		want          HookStatus
+	}{
+		{"missing.json", "", HookStatus{}},
+		{"empty.json", `{}`, HookStatus{Exists: true}},
+		{"disabled.json", `{"disableAllHooks": true}`, HookStatus{Exists: true, Disabled: true}},
+		{
+			"other.json",
+			`{"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"command": "echo"}]}]}}`,
+			HookStatus{Exists: true},
+		},
+		{
+			"pretooluse.json",
+			`{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`,
+			HookStatus{Exists: true},
+		},
+		{
+			"found.json",
+			`{"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"command": "echo"}]},
+			  {"matcher": "Write|Edit", "hooks": [{"command": "/usr/local/bin/specval hook"}]}]}}`,
+			HookStatus{Exists: true, Found: true, Matcher: "Write|Edit"},
+		},
+	} {
+		path := filepath.Join(dir, c.name)
+		if c.content != "" {
+			writeFile(t, path, c.content)
+		}
+		got, err := InspectSettings(path)
+		if err != nil {
+			t.Errorf("%s: %v", c.name, err)
+		}
+		if got != c.want {
+			t.Errorf("%s: got %+v, want %+v", c.name, got, c.want)
+		}
+	}
+}
+
+func TestInspectSettingsInvalidJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	writeFile(t, path, "{not json")
+	st, err := InspectSettings(path)
+	if err == nil || !strings.Contains(err.Error(), path+" is not valid JSON") {
+		t.Errorf("err = %v, want an invalid JSON error with the path", err)
+	}
+	if !st.Exists {
+		t.Error("Exists = false, want true")
+	}
+}
+
+func TestAddHookCreatesTheFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".claude", "settings.json")
+	if added, err := AddHook(path); err != nil || !added {
+		t.Fatalf("AddHook = %v, %v", added, err)
+	}
+	st, err := InspectSettings(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !st.Found || st.Matcher != "Write|Edit|MultiEdit" {
+		t.Errorf("after AddHook: %+v", st)
+	}
+	for _, tool := range []string{"Write", "Edit", "MultiEdit"} {
+		if !MatcherCovers(st.Matcher, tool) {
+			t.Errorf("the new hook does not fire on %s", tool)
 		}
 	}
 }
 
 func TestAddHookKeepsExistingSettings(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
-	content := `{"model":"opus","hooks":{"PostToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo hi"}]}]}}`
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeFile(t, path, `{"model":"opus","hooks":{"PostToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo hi"}]}],"Stop":[]}}`)
 	if added, err := AddHook(path); err != nil || !added {
 		t.Fatalf("AddHook = %v, %v", added, err)
 	}
-	if added, _ := AddHook(path); added {
-		t.Fatal("second AddHook should be a no-op")
+	if added, err := AddHook(path); err != nil || added {
+		t.Fatalf("second AddHook = %v, %v; want false, nil", added, err)
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`"model": "opus"`, `"echo hi"`, `"specval hook"`} {
-		if !strings.Contains(string(b), want) {
-			t.Errorf("settings lost %s:\n%s", want, b)
+	var s struct {
+		Model string                      `json:"model"`
+		Hooks map[string][]map[string]any `json:"hooks"`
+	}
+	if err := json.Unmarshal(b, &s); err != nil {
+		t.Fatal(err)
+	}
+	if s.Model != "opus" || len(s.Hooks["PostToolUse"]) != 2 || s.Hooks["Stop"] == nil {
+		t.Errorf("settings after AddHook:\n%s", b)
+	}
+}
+
+func TestAddHookInvalidJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	writeFile(t, path, "{not json")
+	if added, err := AddHook(path); err == nil || added {
+		t.Errorf("AddHook = %v, %v; want false and an error", added, err)
+	}
+}
+
+func TestMatcherCovers(t *testing.T) {
+	for _, c := range []struct {
+		matcher, tool string
+		want          bool
+	}{
+		{"", "Edit", true},
+		{"*", "Write", true},
+		{"Write|Edit|MultiEdit", "Edit", true},
+		{"Write|Edit", "MultiEdit", false},
+		{"Write", "MultiEdit", false},
+		{"Bash", "Write", false},
+		{".*Edit", "MultiEdit", true},
+		{"(", "Write", false}, // not a valid regular expression
+	} {
+		if got := MatcherCovers(c.matcher, c.tool); got != c.want {
+			t.Errorf("MatcherCovers(%q, %q) = %v, want %v", c.matcher, c.tool, got, c.want)
 		}
 	}
 }

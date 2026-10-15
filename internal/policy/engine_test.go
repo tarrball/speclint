@@ -8,68 +8,343 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/config"
 )
 
-// writeFile creates path and its parent directories with the given content.
-func writeFile(t *testing.T, path, content string) {
+const registry = `services:
+  OrderManager: { layer: manager }
+  PricingEngine: { layer: engine }
+  OrderAccessor: { layer: accessor }
+`
+
+// project writes a .specval.yaml and the given files to a new directory,
+// and returns the configuration. The map key is a path relative to the
+// project root, and the value is the content.
+func project(t *testing.T, files map[string]string) *config.Config {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := t.TempDir()
+	files[config.FileName] = ""
+	for name, content := range files {
+		p := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg, err := config.Find(dir)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	return cfg
 }
 
-func checkDemo(t *testing.T, spec string) []string {
+func newEngine(t *testing.T, cfg *config.Config) *Engine {
 	t.Helper()
-	ctx := context.Background()
-	cfg, err := config.Find("../../examples/refund")
+	eng, err := New(context.Background(), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	eng, err := New(ctx, cfg)
+	return eng
+}
+
+// check returns the findings for the spec at specs/<name> in cfg.
+func check(t *testing.T, cfg *config.Config, name string) []Finding {
+	t.Helper()
+	found, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	found, err := eng.CheckSpec(ctx, filepath.Join(cfg.Root, "specs", spec))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var ids []string
+	return found
+}
+
+func rules(found []Finding) []string {
+	ids := make([]string, 0, len(found))
 	for _, f := range found {
-		if f.Fix == "" || f.Line == 0 {
-			t.Errorf("%s %s: every finding needs a fix and a line: %+v", spec, f.Rule, f)
-		}
 		ids = append(ids, f.Rule)
 	}
-	slices.Sort(ids)
 	return ids
 }
 
-func TestDemoSpecs(t *testing.T) {
-	cases := map[string][]string{
+func TestExampleSpecs(t *testing.T) {
+	cfg, err := config.Find(filepath.Join("..", "..", "examples", "refund"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	eng := newEngine(t, cfg)
+	for spec, want := range map[string][]string{
 		"ORD-142.yaml": nil,
 		"ORD-143.yaml": {"ORD001", "SV101", "SV102", "SV107", "SV108", "SV109"},
 		"ORD-144.yaml": slices.Repeat([]string{"SV001"}, 6),
-	}
-	for spec, want := range cases {
-		if got := checkDemo(t, spec); !slices.Equal(got, want) {
+	} {
+		found, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, f := range found {
+			if f.Fix == "" || f.Line == 0 {
+				t.Errorf("%s %s: each finding needs a fix and a line: %+v", spec, f.Rule, f)
+			}
+		}
+		got := rules(found)
+		slices.Sort(got)
+		if !slices.Equal(got, want) {
 			t.Errorf("%s: got %v, want %v", spec, got, want)
 		}
 	}
 }
 
-func TestRuleWithoutIDIsRejected(t *testing.T) {
-	dir := t.TempDir()
-	writeFile(t, filepath.Join(dir, config.FileName), "specs_dir: specs\npolicy: [p]\n")
-	writeFile(t, filepath.Join(dir, "p", "x.rego"), "package specval.spec.x\n\ndeny contains \"nope\" if true\n")
-	cfg, err := config.Find(dir)
+// The format that `specval context` shows to an agent must itself be a
+// valid spec.
+func TestFormatExampleIsAValidSpec(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/format.yaml":           baseline.Format(),
+	})
+	if found := check(t, cfg, "format.yaml"); len(found) != 0 {
+		t.Errorf("the format example has findings: %+v", found)
+	}
+}
+
+func TestCheckSpecReportsYAMLSyntaxErrors(t *testing.T) {
+	cfg := project(t, map[string]string{
+		"specs/syntax.yaml":    "specval: 1\nid: a: b\n",
+		"specs/duplicate.yaml": "specval: 1\nid: A\nid: B\n",
+	})
+	for name, line := range map[string]int{"syntax.yaml": 2, "duplicate.yaml": 3} {
+		found := check(t, cfg, name)
+		if len(found) != 1 || found[0].Rule != "SV000" || found[0].Severity != SeverityError || found[0].Line != line {
+			t.Errorf("%s: got %+v, want one SV000 error at line %d", name, found, line)
+		}
+	}
+}
+
+func TestSchemaErrorsHideTheOtherRules(t *testing.T) {
+	// The spec has an unknown field, and also a call to a service that is
+	// not registered (SV101). Only the schema error is reported.
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/a.yaml": `specval: 1
+id: A-1
+kind: feature
+title: T
+summary: S
+acceptance: [{ id: AC1, text: T }]
+calls: [{ from: Nobody, to: OrderAccessor, op: Get, covers: [AC1] }]
+extra: true
+`,
+	})
+	if got := rules(check(t, cfg, "a.yaml")); !slices.Equal(got, []string{"SV001"}) {
+		t.Errorf("got %v, want [SV001]", got)
+	}
+}
+
+func TestCheckSpecSortsFindingsAndSetsSeverity(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/a.yaml": `specval: 1
+id: A-1
+kind: feature
+title: T
+summary: S
+acceptance:
+  - { id: AC1, text: T }
+  - { id: AC2, text: T }
+services:
+  changed: [PricingEngine]
+calls:
+  - { from: OrderAccessor, to: OrderManager, op: Notify, covers: [AC1] }
+`,
+	})
+	found := check(t, cfg, "a.yaml")
+	type key struct {
+		rule string
+		sev  Severity
+		line int
+	}
+	var got []key
+	for _, f := range found {
+		got = append(got, key{f.Rule, f.Severity, f.Line})
+	}
+	want := []key{
+		{"SV107", SeverityError, 8},
+		{"SV201", SeverityWarning, 10},
+		{"SV102", SeverityError, 12},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestCheckSpecMissingFile(t *testing.T) {
+	cfg := project(t, map[string]string{})
+	if _, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "nope.yaml")); !os.IsNotExist(err) {
+		t.Errorf("err = %v, want a not-exist error", err)
+	}
+}
+
+func TestCheckRegistryReportsAgainstTheDataFile(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  PricingThing: { layer: engine }\n",
+		".specval/policy/registry.rego": `package specval.registry.project
+
+import data.specval.lib
+import rego.v1
+
+# METADATA
+# title: Path outside the data
+# custom:
+#   id: PRJ900
+warn contains lib.finding(rego.metadata.rule(), "nowhere.x", "msg", "fix") if true
+`,
+	})
+	got, err := newEngine(t, cfg).CheckRegistry(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := New(context.Background(), cfg); err == nil || !strings.Contains(err.Error(), "custom.id") {
-		t.Fatalf("want custom.id error, got %v", err)
+	services := filepath.Join(cfg.Root, ".specval", "data", "services.yaml")
+	if f := got[services]; len(f) != 1 || f[0].Rule != "SR002" || f[0].Line != 3 || f[0].Severity != SeverityError {
+		t.Errorf("findings for services.yaml = %+v, want one SR002 error at line 3", f)
+	}
+	// A path whose first part is not a data key has no file and no line.
+	if f := got["(data)"]; len(f) != 1 || f[0].Rule != "PRJ900" || f[0].Line != 0 || f[0].Severity != SeverityWarning {
+		t.Errorf("findings for (data) = %+v, want one PRJ900 warning at line 0", f)
+	}
+}
+
+func TestNewErrors(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		files map[string]string
+		want  string
+	}{
+		{
+			"a data key in two files",
+			map[string]string{".specval/data/a.yaml": "services: {}", ".specval/data/b.json": `{"services": {}}`},
+			`data key "services" is defined in both`,
+		},
+		{
+			"a data file that is not a mapping",
+			map[string]string{".specval/data/a.yaml": "- a\n"},
+			"data files must be a mapping",
+		},
+		{
+			"a data file that is not valid YAML",
+			map[string]string{".specval/data/a.yaml": "a: [unclosed\n"},
+			"a.yaml: yaml:",
+		},
+		{
+			"a Rego syntax error",
+			map[string]string{".specval/policy/a.rego": "package specval.spec.a\n\ndeny contains f if {\n"},
+			"rego_parse_error",
+		},
+		{
+			"a warn rule without custom.id",
+			map[string]string{".specval/policy/a.rego": "package specval.registry.a\n\nwarn contains \"x\" if true\n"},
+			"warn rule needs a METADATA block with custom.id",
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := New(context.Background(), project(t, c.files))
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("err = %v, want it to contain %q", err, c.want)
+			}
+		})
+	}
+}
+
+func TestRulesOutsideTheSpecvalPackagesNeedNoID(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/helpers.rego": "package helpers\n\ndeny contains \"x\" if true\n",
+	})
+	if _, err := New(context.Background(), cfg); err != nil {
+		t.Errorf("New = %v, want no error", err)
+	}
+}
+
+func TestAMalformedFindingIsAnError(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/a.rego": `package specval.spec.a
+
+import rego.v1
+
+# METADATA
+# title: Returns a number
+# custom:
+#   id: BAD001
+deny contains 42 if true
+`,
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+	})
+	_, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
+	if err == nil || !strings.Contains(err.Error(), "malformed finding") {
+		t.Errorf("err = %v, want a malformed finding error", err)
+	}
+}
+
+func TestRuleDocs(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/a.rego": `package specval.spec.a
+
+import rego.v1
+
+# METADATA
+# title: A project warning
+# description: It explains the rule.
+# custom:
+#   id: PRJ201
+warn contains "x" if false
+`,
+	})
+	docs := newEngine(t, cfg).RuleDocs()
+	var ids []string
+	for _, d := range docs {
+		ids = append(ids, d.ID)
+	}
+	want := []string{"PRJ201", "SV001", "SV101", "SV102", "SV103", "SV104", "SV105", "SV106", "SV107", "SV108", "SV109", "SV201"}
+	if !slices.Equal(ids, want) {
+		t.Errorf("IDs = %v, want %v (sorted, spec rules only)", ids, want)
+	}
+	want0 := RuleDoc{ID: "PRJ201", Title: "A project warning", Description: "It explains the rule.", Package: "data.specval.spec.a", Severity: SeverityWarning}
+	if docs[0] != want0 {
+		t.Errorf("docs[0] = %+v, want %+v", docs[0], want0)
+	}
+}
+
+func TestArchitectureServicesAndDataFile(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": registry})
+	eng := newEngine(t, cfg)
+
+	arch, err := eng.Architecture()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(arch.LayerOrder, []string{"manager", "engine", "accessor", "resource"}) ||
+		!slices.Equal(arch.Layers["manager"], []string{"engine", "accessor"}) || arch.Suffix["engine"] != "Engine" {
+		t.Errorf("Architecture = %+v", arch)
+	}
+
+	services, err := eng.Services()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(services) != 3 || services["PricingEngine"].Layer != "engine" {
+		t.Errorf("Services = %+v", services)
+	}
+
+	if got, want := eng.DataFile("services"), filepath.Join(cfg.Root, ".specval", "data", "services.yaml"); got != want {
+		t.Errorf("DataFile(services) = %q, want %q", got, want)
+	}
+	if got := eng.DataFile("nope"); got != "" {
+		t.Errorf("DataFile(nope) = %q, want \"\"", got)
+	}
+}
+
+func TestServicesWithNoRegistry(t *testing.T) {
+	services, err := newEngine(t, project(t, map[string]string{})).Services()
+	if err != nil || len(services) != 0 {
+		t.Errorf("Services = %v, %v; want none and no error", services, err)
 	}
 }

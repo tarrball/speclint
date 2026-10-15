@@ -1,0 +1,191 @@
+package doctor
+
+import (
+	"bytes"
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/tarrball/specval/internal/claude"
+	"github.com/tarrball/specval/internal/scaffold"
+)
+
+// fixture is a project that passes each check.
+type fixture struct {
+	env Env
+	t   *testing.T
+}
+
+// newFixture makes a project with scaffold.Init and a registry, a home
+// directory, and a fake specval on PATH. The tests that use it cannot run in
+// parallel, because it sets PATH.
+func newFixture(t *testing.T) *fixture {
+	t.Helper()
+	root := t.TempDir()
+	dir := filepath.Join(root, "project")
+	bin := filepath.Join(root, "bin")
+	f := &fixture{t: t, env: Env{Dir: dir, Home: filepath.Join(root, "home"), Executable: filepath.Join(bin, "specval")}}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := scaffold.Init(dir, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	f.write(".specval/data/services.yaml", "services:\n  OrderManager: { layer: manager }\n")
+	f.writeExecutable(f.env.Executable, "#!/bin/sh\nexit 0\n")
+	t.Setenv("PATH", bin)
+	return f
+}
+
+// write writes a file at a path relative to the project directory.
+func (f *fixture) write(path, content string) {
+	f.t.Helper()
+	p := filepath.Join(f.env.Dir, path)
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		f.t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+		f.t.Fatal(err)
+	}
+}
+
+func (f *fixture) writeExecutable(path, content string) {
+	f.t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		f.t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil { // The fake binary must be executable.
+		f.t.Fatal(err)
+	}
+}
+
+func (f *fixture) remove(path string) {
+	f.t.Helper()
+	if err := os.RemoveAll(filepath.Join(f.env.Dir, path)); err != nil {
+		f.t.Fatal(err)
+	}
+}
+
+// want runs the checks and fails the test unless a check with the given
+// name has the given status and a detail that contains detail.
+func (f *fixture) want(name string, status Status, detail string) {
+	f.t.Helper()
+	checks := Run(context.Background(), f.env)
+	for _, c := range checks {
+		if c.Name == name && c.Status == status && strings.Contains(c.Detail, detail) {
+			return
+		}
+	}
+	f.t.Errorf("no %s check with status %s and detail %q in:\n%+v", name, status, detail, checks)
+}
+
+func TestHealthyProject(t *testing.T) {
+	f := newFixture(t)
+	checks := Run(context.Background(), f.env)
+	var names []string
+	for _, c := range checks {
+		names = append(names, c.Name)
+		if c.Status != StatusOK {
+			t.Errorf("%s: %s %s", c.Name, c.Status, c.Detail)
+		}
+	}
+	if got := strings.Join(names, " "); got != "config specs rules registry skill hook path" {
+		t.Errorf("checks = %s", got)
+	}
+}
+
+func TestNoConfig(t *testing.T) {
+	checks := Run(context.Background(), Env{Dir: t.TempDir()})
+	if len(checks) != 1 || checks[0].Name != "config" || checks[0].Status != StatusFail {
+		t.Errorf("checks = %+v, want only a failed config check", checks)
+	}
+}
+
+func TestProjectChecks(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		change func(f *fixture)
+		check  string
+		status Status
+		detail string
+	}{
+		{"specs directory missing", func(f *fixture) { f.remove("specs") }, "specs", StatusWarn, "specs does not exist"},
+		{"spec count", func(f *fixture) { f.write("specs/A-1.yaml", "") }, "specs", StatusOK, "specs (1 spec(s))"},
+		{"policy directory missing", func(f *fixture) { f.remove(".specval/policy") }, "policy", StatusWarn, ".specval/policy (listed in .specval.yaml) does not exist"},
+		{"rule does not compile", func(f *fixture) {
+			f.write(".specval/policy/x.rego", "package specval.spec.x\n\ndeny contains f if {\n")
+		}, "rules", StatusFail, ".specval/policy/x.rego:"},
+		{"registry not checked", func(f *fixture) {
+			f.write(".specval/policy/x.rego", "package specval.spec.x\n\ndeny contains f if {\n")
+		}, "registry", StatusWarn, "not checked until the rules load"},
+		{"project rule count", func(f *fixture) {
+			f.write(".specval/policy/x.rego", "package specval.spec.x\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
+		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
+		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services registered"},
+		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, ""},
+		{"registry rule fails", func(f *fixture) {
+			f.write(".specval/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
+		}, "registry", StatusFail, ".specval/data/services.yaml:2 PricingThing is in the engine layer"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			f := newFixture(t)
+			c.change(f)
+			f.want(c.check, c.status, c.detail)
+		})
+	}
+}
+
+func TestClaudeChecks(t *testing.T) {
+	narrow := `{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`
+	for _, c := range []struct {
+		name   string
+		change func(f *fixture)
+		check  string
+		status Status
+		detail string
+	}{
+		{"skill missing", func(f *fixture) { f.remove(claude.SkillPath) }, "skill", StatusWarn, "is missing"},
+		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `specval context`"},
+		{"skill in home", func(f *fixture) {
+			f.remove(claude.SkillPath)
+			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill())
+		}, "skill", StatusOK, "home"},
+		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `specval hook`"},
+		{"hook in home", func(f *fixture) {
+			f.remove(claude.SettingsPath)
+			f.write(filepath.Join("..", "home", claude.SettingsPath), narrow)
+		}, "hook", StatusWarn, "home/.claude/settings.json"},
+		{"hook in local settings", func(f *fixture) {
+			f.remove(claude.SettingsPath)
+			f.write(claude.LocalSettingsPath, narrow)
+		}, "hook", StatusWarn, `matcher "Write" in .claude/settings.local.json doesn't fire on Edit, MultiEdit`},
+		{"hooks disabled", func(f *fixture) { f.write(claude.LocalSettingsPath, `{"disableAllHooks": true}`) }, "hook", StatusFail, "turned off by disableAllHooks in .claude/settings.local.json"},
+		{"settings not JSON", func(f *fixture) { f.write(claude.LocalSettingsPath, "{not json") }, "hook", StatusFail, ".claude/settings.local.json is not valid JSON"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			f := newFixture(t)
+			c.change(f)
+			f.want(c.check, c.status, c.detail)
+		})
+	}
+}
+
+func TestPathChecks(t *testing.T) {
+	t.Run("not on PATH", func(t *testing.T) {
+		f := newFixture(t)
+		t.Setenv("PATH", t.TempDir())
+		f.want("path", StatusFail, "specval is not on PATH")
+	})
+	t.Run("does not run", func(t *testing.T) {
+		f := newFixture(t)
+		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho broken\nexit 3\n")
+		f.want("path", StatusFail, "doesn't run: exit status 3 broken")
+	})
+	t.Run("a different binary", func(t *testing.T) {
+		f := newFixture(t)
+		f.env.Executable = filepath.Join(t.TempDir(), "specval")
+		f.want("path", StatusWarn, "the hook will run")
+	})
+}
