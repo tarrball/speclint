@@ -35,7 +35,9 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/specval   # rewrite expected CLI
   [docs/architecture.md](docs/architecture.md), which tells how `check` works.
 
 `cmd/specval` reads the process state (stdio, working directory, home directory)
-into a `cli.Env`. Code in `internal/` gets that state only from its parameters.
+into a `cli.Env`. Code in `internal/` does not read stdio, the working directory,
+or the home directory of the process; it gets them from its parameters. One
+exception: doctor reads PATH, because the hook runs the `specval` on PATH.
 
 ## Rules
 

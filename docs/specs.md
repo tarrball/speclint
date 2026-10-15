@@ -1,8 +1,9 @@
 # Specs
 
 A spec describes one change before anyone writes code for it. It is a YAML
-file in the specs directory (`specs/` if you do not change `specs_dir`). The
-name of the file is the ID of the ticket: `specs/ORD-142.yaml`.
+file in the specs directory (`specs/` if you do not change `specs_dir`). Name
+the file with the ID of the ticket: `specs/ORD-142.yaml`. specval does not
+check the name of the file.
 
 `specval new <id>` makes a spec from the template. `specval schema` prints the
 JSON Schema that each spec must match.

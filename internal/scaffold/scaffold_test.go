@@ -322,3 +322,20 @@ func TestInitLooksAtWhatAConfiguredPathIs(t *testing.T) {
 		t.Errorf("rules.rego/project.rego: %v", err)
 	}
 }
+
+func TestInitWritesTheSpecsDirIntoTheSkill(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: changes\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(dir, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, claude.SkillPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "changes/<ticket-id>.yaml") || strings.Contains(string(b), "specs/<ticket-id>") {
+		t.Errorf("the skill does not use the configured specs_dir:\n%s", b)
+	}
+}

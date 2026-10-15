@@ -158,7 +158,7 @@ func TestClaudeChecks(t *testing.T) {
 		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `specval context`"},
 		{"skill in home", func(f *fixture) {
 			f.remove(claude.SkillPath)
-			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill())
+			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill("specs"))
 		}, "skill", StatusOK, "home"},
 		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `specval hook`"},
 		{"hook in home", func(f *fixture) {
@@ -190,7 +190,7 @@ func TestUnknownHomeDirectory(t *testing.T) {
 	cwd := t.TempDir()
 	for path, content := range map[string]string{
 		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`,
-		claude.SkillPath:    claude.Skill(),
+		claude.SkillPath:    claude.Skill("specs"),
 	} {
 		p := filepath.Join(cwd, path)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {

@@ -44,7 +44,7 @@ var (
 //   - the hook in the Claude Code settings
 //
 // Init does not change a file that exists. The one exception is the settings
-// file, to which it adds the hook. Init writes one line to w for each part.
+// file, to which it adds the hook. Init writes one line to w for each file.
 func Init(dir string, w io.Writer) error {
 	// Read the settings file first, so that a file that is not valid stops
 	// Init before it writes anything.
@@ -78,7 +78,7 @@ func Init(dir string, w io.Writer) error {
 		{config.FileName, configTemplate},
 		{services, servicesContent},
 		{firstFile(cfg, cfg.Policy, "project.rego", ".rego"), projectTemplate},
-		{claude.SkillPath, claude.Skill()},
+		{claude.SkillPath, claude.Skill(cfg.SpecsDir)},
 	}
 	for _, f := range files {
 		switch f.path {

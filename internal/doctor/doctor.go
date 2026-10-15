@@ -97,7 +97,7 @@ func (c *checker) checkSpecs() {
 	if info, err := os.Stat(c.cfg.Abs(c.cfg.SpecsDir)); err != nil || !info.IsDir() {
 		c.add(StatusWarn, "specs", c.cfg.SpecsDir+" does not exist", repair)
 	} else if specs, err := c.cfg.SpecFiles(); err != nil {
-		c.add(StatusFail, "specs", err.Error(), "")
+		c.add(StatusFail, "specs", err.Error(), "Make sure that specval can read each file in "+c.cfg.SpecsDir+".")
 	} else {
 		c.add(StatusOK, "specs", fmt.Sprintf("%s (%d spec(s))", c.cfg.SpecsDir, len(specs)), "")
 	}
@@ -147,7 +147,8 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	services, err := eng.Services()
 	switch {
 	case err != nil:
-		c.add(StatusFail, "registry", err.Error(), "")
+		c.add(StatusFail, "registry", err.Error(),
+			"Write services as a mapping from each service name to its entry, for example OrderManager: { layer: manager }.")
 		return
 	case len(services) == 0:
 		c.add(StatusWarn, "registry", "no services are registered (data.project.services is empty)",
@@ -156,7 +157,7 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	}
 	reg, err := eng.CheckRegistry(ctx)
 	if err != nil {
-		c.add(StatusFail, "registry", err.Error(), "")
+		c.add(StatusFail, "registry", c.relText(err.Error()), "Fix the registry rule in the error.")
 		return
 	}
 	var problems []string

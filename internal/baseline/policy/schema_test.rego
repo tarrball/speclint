@@ -59,7 +59,7 @@ test_wrong_value_fix_uses_the_hint if {
 	spec := object.union(valid, {"acceptance": [{"id": "A1", "text": "T"}]})
 	some f in schema.deny with input as spec
 	f.path == "acceptance[0].id"
-	f.fix == "AC and a number, for example AC1."
+	f.fix == "Correct the value of `acceptance[0].id`. AC and a number, for example AC1."
 }
 
 test_fix_without_a_hint if {

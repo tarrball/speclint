@@ -1,5 +1,5 @@
 [tools]
-go = "1.26"
+go = "1.26.9"
 golangci-lint = "2.14.0"
 opa = "1.21.2" # Keep in step with github.com/open-policy-agent/opa in go.mod.
 regal = "0.43.0"

@@ -36,7 +36,7 @@ Each change needs a spec at specs/<id>.yaml, and the spec must pass before you w
 ## Format
 ```yaml
 specval: 1
-id: ORD-142                # the ticket ID; the file is specs/<id>.yaml
+id: ORD-142                # the ticket ID; name the spec file <id>.yaml
 kind: feature              # feature, bugfix, or chore
 title: Customer can request a refund
 summary: One paragraph that tells the problem and the new behavior.

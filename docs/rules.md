@@ -7,7 +7,8 @@ rules for your project.
 
 | Source | Content | Rego name | Owner |
 |---|---|---|---|
-| Built into specval | The spec schema, the layer rules, and the SV and SR rules | `data.dpl` | specval |
+| Built into specval | The spec schema and the layer data | `data.dpl` | specval |
+| Built into specval | The SV and SR rules | `specval.spec.schema`, `specval.spec.dpl`, `specval.registry.dpl` | specval |
 | `.specval/data/*.yaml`, `*.json` | The service registry and other project data | `data.project.<key>` | The project |
 | `.specval/policy/*.rego` | The project rules | `specval.spec.<name>`, `specval.registry.<name>` | The project |
 

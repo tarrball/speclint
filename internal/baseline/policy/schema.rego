@@ -53,5 +53,6 @@ fix(e) := msg if {
 	permitted := concat(", ", keys[norm(e.field)])
 	msg := $"Remove `{p}`, or correct its name. The permitted fields here are: {permitted}."
 } else := msg if {
-	msg := hints[norm(e.field)]
+	hint := hints[norm(e.field)]
+	msg := $"Correct the value of `{display(e.field)}`. {hint}"
 } else := "Run `specval schema` to see the correct format."

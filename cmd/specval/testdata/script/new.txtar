@@ -14,7 +14,7 @@ stderr '^specval: .*/specs/ORD-1.yaml already exists$'
 
 # The id must be one argument of letters, digits, '.', '_', and '-'.
 exits 2 specval new 'bad id'
-stderr '^specval: usage: specval new <id>; the id can contain letters, digits, ''.'', ''_'', and ''-''$'
+stderr '^specval: usage: specval new <id>; the id starts with a letter or a digit, and contains only letters, digits, ''.'', ''_'', and ''-''$'
 exits 2 specval new
 stderr '^specval: usage: specval new <id>'
 exits 2 specval new A B

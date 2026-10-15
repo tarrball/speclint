@@ -9,7 +9,7 @@
     "id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
-      "description": "The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml."
+      "description": "The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml."
     },
     "kind": { "enum": ["feature", "bugfix", "chore"], "description": "The kind of change: feature, bugfix, or chore." },
     "title": { "type": "string", "minLength": 1, "description": "The title of the change, on one line." },

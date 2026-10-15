@@ -20,7 +20,7 @@ func writeFile(t *testing.T, path, content string) {
 
 func TestSkillRunsSpecvalContext(t *testing.T) {
 	// doctor uses this text to tell that the skill is the specval skill.
-	if !strings.Contains(Skill(), "specval context") {
+	if !strings.Contains(Skill("specs"), "specval context") {
 		t.Error("the skill does not tell Claude to run `specval context`")
 	}
 }
