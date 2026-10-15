@@ -1,0 +1,7 @@
+# specval config. Paths are relative to this file.
+specs_dir: specs
+# Project rules: Rego files whose packages are specval.spec.<name> (per spec)
+# or specval.registry.<name> (once per run, against data only).
+policy: [.specval/policy]
+# Project data: YAML/JSON files; each top-level key is available as data.project.<key>.
+data: [.specval/data]

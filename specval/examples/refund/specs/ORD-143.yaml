@@ -1,0 +1,15 @@
+specval: 1
+id: ORD-143
+kind: feature
+title: Refund flow (first draft)
+summary: Quick draft of the refund flow.
+acceptance:
+  - { id: AC1, text: Refund amount is calculated }
+  - { id: AC2, text: Refund is recorded }
+services:
+  changed: [OrderManager, ShippingManager]
+calls:
+  - { from: OrderManager, to: PricingEngine, op: GetPrice, covers: [AC1] }
+  - { from: PricingEngine, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+  - { from: OrderAccessor, to: PricingEngine, op: Reprice, covers: [AC1] }
+  - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1, AC4] }

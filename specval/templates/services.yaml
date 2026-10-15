@@ -1,0 +1,6 @@
+# Service registry: every service in this system and its layer
+# (manager, engine, accessor, resource). Consider protecting with CODEOWNERS.
+services: {}
+#  OrderManager: { layer: manager }
+#  PricingEngine: { layer: engine }
+#  OrderAccessor: { layer: accessor }

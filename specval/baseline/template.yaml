@@ -1,0 +1,13 @@
+specval: 1
+id: {{ID}}
+kind: {{KIND}}
+title: {{TITLE}}
+summary: ""
+acceptance:
+  - id: AC1
+    text: ""
+services:
+  new: []
+  changed: []
+calls: []
+out_of_scope: []

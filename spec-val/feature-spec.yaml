@@ -1,0 +1,6 @@
+feature: refund-flow
+calls:
+  - { from: OrderManager, to: PricingEngine }    # ok
+  - { from: PricingEngine, to: OrderAccessor }   # ok
+  - { from: OrderAccessor, to: PricingEngine }   # layer violation
+  - { from: OrderManager, to: RefundEngine }     # unregistered service

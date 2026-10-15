@@ -1,0 +1,16 @@
+# DPL baseline architecture (IDesign-style layering). Available to rules as data.dpl.
+layer_order: [manager, engine, accessor, resource]
+
+# caller layer -> layers it may call
+layers:
+  manager: [engine, accessor]
+  engine: [accessor]
+  accessor: [resource]
+  resource: []
+
+# required name suffix per layer
+suffix:
+  manager: Manager
+  engine: Engine
+  accessor: Accessor
+  resource: Resource

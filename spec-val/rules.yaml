@@ -1,0 +1,6 @@
+# Allowed calls: caller layer -> layers it may call
+layers:
+  manager: [engine, accessor]
+  engine: [accessor]
+  accessor: [resource]
+  resource: []
