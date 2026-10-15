@@ -16,18 +16,23 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./...   # rewrite expected CLI output
 
 ## Layout
 
-All Go code is in package `main` at the repository root.
-A later change moves it to `cmd/specval` and `internal/` (see docs/style.md).
-
-- `main.go`: command dispatch, `check`, `context`, `new`, `hook`.
-- `engine.go`: loads data and policies, evaluates specs, maps findings to YAML lines.
-- `setup.go`: `init`, Claude Code settings, `doctor`.
-- `config.go`: finds and reads `.specval.yaml`.
-- `baseline/`: the built-in schema, layer data, and Rego rules (embedded).
-- `templates/`: the files that `specval init` writes (embedded).
+- `cmd/specval/`: the `main` package. `script_test.go` runs the end-to-end tests
+  in `testdata/script/*.txtar` (testscript). Each script holds the commands, the
+  input files, and the expected output.
+- `internal/cli/`: the commands. One file for each command.
+- `internal/config/`: finds and reads `.specval.yaml`, and lists the spec, data,
+  and policy files.
+- `internal/policy/`: the `Engine`. It loads data and Rego rules, evaluates specs
+  and the registry, and returns findings.
+- `internal/baseline/`: the built-in schema, layer data, and Rego rules (embedded).
+- `internal/yamlpath/`: finds the line of a path such as `calls[2].to` in YAML.
+- `internal/claude/`: the Claude Code settings file, hook event, and skill.
+- `internal/scaffold/`: the files that `specval init` and `specval new` write.
+- `internal/doctor/`: the checks that `specval doctor` runs.
 - `examples/refund/`: a sample project. The tests use its specs.
-- `testdata/script/*.txtar`: end-to-end CLI tests (testscript). Each file holds the
-  commands, the input files, and the expected output. `script_test.go` runs them.
+
+Some code still writes to `os.Stdout` and reads `os.Getwd` outside `cmd/specval`.
+A later change removes this (see docs/style.md).
 
 ## Rules
 

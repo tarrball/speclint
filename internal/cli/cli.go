@@ -1,0 +1,86 @@
+// Package cli implements the specval commands.
+package cli
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+)
+
+const usage = `specval validates specs against architecture rules before code is written.
+
+Usage:
+  specval check [--format text|json] [--strict] [files...]
+        Validate specs (default: every spec in the specs dir). Exit 1 on errors.
+  specval context
+        Print the spec format, layer rules, registry, and rules (for an agent's context).
+  specval new <id> [--kind feature|bugfix|chore] [--title "..."]
+        Scaffold <specs dir>/<id>.yaml.
+  specval schema
+        Print the spec JSON Schema.
+  specval init
+        Set up specval and the Claude Code skill + hook in the current directory.
+        Safe to re-run: it only adds what's missing.
+  specval doctor [--format text|json]
+        Check that the setup is intact (config, rules, registry, Claude skill, hook, PATH).
+  specval hook
+        Not run by hand: Claude Code runs it after each file write (set up by init).
+        If the file is a spec, checks it and sends any errors back to Claude to fix.
+`
+
+// Run runs the command in args, which excludes the program name, and
+// returns the exit code.
+func Run(args []string) int {
+	if len(args) < 1 {
+		fmt.Fprint(os.Stderr, usage)
+		return 2
+	}
+	ctx := context.Background()
+	rest := args[1:]
+	var code int
+	var err error
+	switch args[0] {
+	case "check":
+		code, err = cmdCheck(ctx, rest)
+	case "context":
+		err = cmdContext(ctx, os.Stdout)
+	case "new":
+		err = cmdNew(rest)
+	case "schema":
+		err = cmdSchema(os.Stdout)
+	case "init":
+		err = cmdInit()
+	case "doctor":
+		code, err = cmdDoctor(ctx, rest)
+	case "hook":
+		code = cmdHook(ctx, os.Stdin)
+	case "-h", "--help", "help":
+		fmt.Print(usage)
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\n%s", args[0], usage)
+		code = 2
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "specval:", err)
+		if code == 0 {
+			code = 2
+		}
+	}
+	return code
+}
+
+// parseArgs parses flags that come before or after the positional arguments.
+func parseArgs(fs *flag.FlagSet, args []string) ([]string, error) {
+	var pos []string
+	for {
+		if err := fs.Parse(args); err != nil {
+			return nil, err
+		}
+		args = fs.Args()
+		if len(args) == 0 {
+			return pos, nil
+		}
+		pos, args = append(pos, args[0]), args[1:]
+	}
+}

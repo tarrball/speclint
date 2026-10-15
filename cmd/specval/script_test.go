@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 // Each script starts in an empty directory. $EXAMPLES is the examples directory.
 // Set UPDATE_SCRIPTS=1 to write the actual output into the scripts.
 func TestScripts(t *testing.T) {
-	examples, err := filepath.Abs("examples")
+	examples, err := filepath.Abs(filepath.Join("..", "..", "examples"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,7 @@ specval hook                 # run by Claude Code after each file write; checks 
 
 | Where | What | Who owns it |
 |---|---|---|
-| Embedded in the binary (`baseline/`) | spec schema, DPL layer rules (`dpl.yaml` → `data.dpl`), SV/SR rules | DPL |
+| Embedded in the binary (`internal/baseline/`) | spec schema, DPL layer rules (`dpl.yaml` → `data.dpl`), SV/SR rules | DPL |
 | `.specval/data/*.yaml` | service registry and other project data (→ `data.project.<key>`) | project (CODEOWNERS) |
 | `.specval/policy/*.rego` | project rules, packages `specval.spec.<name>` (per spec) or `specval.registry.<name>` (once, against data) | project |
 

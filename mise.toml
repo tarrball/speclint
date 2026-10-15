@@ -6,7 +6,7 @@ regal = "0.43.0"
 
 [tasks.build]
 description = "Build bin/specval"
-run = "go build -trimpath -ldflags '-s -w' -o bin/specval ."
+run = "go build -trimpath -ldflags '-s -w' -o bin/specval ./cmd/specval"
 
 [tasks.test]
 description = "Run all tests"
@@ -23,15 +23,15 @@ run = [
 description = "Check Go and Rego code"
 run = [
   "golangci-lint run ./...",
-  "opa fmt --list --fail baseline templates examples",
-  "regal lint baseline templates examples",
+  "opa fmt --list --fail internal examples",
+  "regal lint internal examples",
 ]
 
 [tasks.fmt]
 description = "Format Go and Rego code"
 run = [
   "golangci-lint fmt ./...",
-  "opa fmt --write baseline templates examples",
+  "opa fmt --write internal examples",
 ]
 
 [tasks.check]
