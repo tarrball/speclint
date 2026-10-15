@@ -80,11 +80,36 @@ func (e *Engine) loadDataFile(path string, project map[string]any) error {
 		if prev, ok := e.dataFile[k]; ok {
 			return fmt.Errorf("two data files define the key %q: %s and %s", k, prev, path)
 		}
-		project[k] = v
+		project[k] = stringKeys(v)
 		e.dataFile[k] = path
 	}
 	e.nodes[path] = &node
 	return nil
+}
+
+// stringKeys returns v with each mapping key as a string. YAML permits a key
+// such as 1, but JSON, and thus OPA, needs string keys.
+func stringKeys(v any) any {
+	switch v := v.(type) {
+	case map[any]any:
+		out := make(map[string]any, len(v))
+		for k, e := range v {
+			out[fmt.Sprint(k)] = stringKeys(e)
+		}
+		return out
+	case map[string]any:
+		for k, e := range v {
+			v[k] = stringKeys(e)
+		}
+		return v
+	case []any:
+		for i, e := range v {
+			v[i] = stringKeys(e)
+		}
+		return v
+	default:
+		return v
+	}
 }
 
 // roundTrip converts values from the YAML decoder to the JSON types that OPA uses.

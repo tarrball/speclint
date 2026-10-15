@@ -218,7 +218,7 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 		doc = map[string]any{}
 	}
 	var input any
-	if err := roundTrip(doc, &input); err != nil {
+	if err := roundTrip(stringKeys(doc), &input); err != nil {
 		return []Finding{yamlError(err)}, nil
 	}
 	rs, err := e.specQ.Eval(ctx, rego.EvalInput(input))

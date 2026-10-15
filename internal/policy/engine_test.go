@@ -471,3 +471,19 @@ func TestNestedRulePackagesAreRejected(t *testing.T) {
 		}
 	}
 }
+
+// YAML permits keys that are not strings. The schema reports such a key in a
+// spec, with its line. In a data file, the key becomes a string.
+func TestKeysThatAreNotStrings(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		".specval/data/limits.yaml":   "limits: {1: a}\n",
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\n" +
+			"acceptance: [{ id: AC1, text: T }]\n" +
+			"calls:\n  - { from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1], 1: x }\n",
+	})
+	found := check(t, cfg, "a.yaml")
+	if len(found) != 1 || found[0].Rule != "SV001" || found[0].Line != 8 || !strings.Contains(found[0].Msg, "1") {
+		t.Errorf("got %+v, want one SV001 error for the key 1 at line 8", found)
+	}
+}
