@@ -156,6 +156,10 @@ func TestClaudeChecks(t *testing.T) {
 	}{
 		{"skill missing", func(f *fixture) { f.remove(claude.SkillPath) }, "skill", StatusWarn, "is missing"},
 		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `specval context`"},
+		{"skill cannot be read", func(f *fixture) {
+			f.remove(claude.SkillPath)
+			f.write(filepath.Join(claude.SkillPath, "x"), "") // The skill path is now a directory.
+		}, "skill", StatusFail, "SKILL.md"},
 		{"skill in home", func(f *fixture) {
 			f.remove(claude.SkillPath)
 			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill("specs"))

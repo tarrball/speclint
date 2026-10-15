@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Write or change the spec ({{SPECS_DIR}}/<ticket-id>.yaml) for a feature, bugfix, or chore before you write code. Use this skill when you plan work from a ticket, or when you must implement a change that has no passing spec.
+description: Write or change the spec for a feature, bugfix, or chore before you write code. Use this skill when you plan work from a ticket, or when you must implement a change that has no passing spec.
 ---
 
 Each change needs a spec that passes `specval check` before the implementation starts.

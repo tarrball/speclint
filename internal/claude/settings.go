@@ -29,7 +29,9 @@ var (
 )
 
 // Skill returns the text of the skill that specval init writes. specsDir is
-// the specs directory of the project, as .specval.yaml gives it.
+// the specs directory of the project, as .specval.yaml gives it. Only the
+// Markdown body uses it, so that a name with YAML syntax cannot make the
+// frontmatter invalid.
 func Skill(specsDir string) string {
 	return strings.ReplaceAll(skill, "{{SPECS_DIR}}", filepath.ToSlash(specsDir))
 }
