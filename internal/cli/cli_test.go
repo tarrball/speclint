@@ -86,6 +86,40 @@ func TestCheckExitCodes(t *testing.T) {
 	}
 }
 
+func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
+	dir := t.TempDir()
+	for _, p := range []string{"a", "b", "a/sub"} {
+		if err := os.MkdirAll(filepath.Join(dir, p, "specs"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, p := range []string{"a", "b"} {
+		if err := os.WriteFile(filepath.Join(dir, p, ".specval.yaml"), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, p := range []string{"a/specs/x.yaml", "a/sub/specs/z.yaml", "b/specs/y.yaml"} {
+		if err := os.WriteFile(filepath.Join(dir, p), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code, out, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "b/specs/y.yaml")
+	if code != exitError || out != "" || !strings.Contains(errOut, "a/specs/x.yaml and b/specs/y.yaml are in different specval projects") {
+		t.Errorf("code %d, stdout %q, stderr %q", code, out, errOut)
+	}
+	// Files in two directories of the same project are permitted.
+	if code, _, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "a/sub/specs/z.yaml"); code != exitFindings {
+		t.Errorf("same project: code %d, stderr %q", code, errOut)
+	}
+	// A symbolic link to the same project is the same project.
+	if err := os.Symlink(filepath.Join(dir, "a"), filepath.Join(dir, "alias")); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "alias/specs/x.yaml"); code != exitFindings {
+		t.Errorf("symbolic link: code %d, stderr %q", code, errOut)
+	}
+}
+
 func TestSchema(t *testing.T) {
 	code, out, _ := runCLI(t, t.TempDir(), "", "schema")
 	if code != exitOK || !strings.Contains(out, `"title": "specval spec"`) {
@@ -158,6 +192,16 @@ b.yaml:5 warning SV201 Y is unused
 `
 	if b.String() != want {
 		t.Errorf("printText:\n%s\nwant:\n%s", b.String(), want)
+	}
+}
+
+func TestPrintTextWithoutALine(t *testing.T) {
+	r := &Report{}
+	r.add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
+	var b strings.Builder
+	printText(&b, r, 0)
+	if want := "(data) warning PRJ900 m (x)\n"; !strings.HasPrefix(b.String(), want) {
+		t.Errorf("printText:\n%s\nwant it to start with:\n%s", b.String(), want)
 	}
 }
 

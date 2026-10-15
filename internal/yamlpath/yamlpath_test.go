@@ -66,6 +66,14 @@ func TestLineEdgeCases(t *testing.T) {
 	if got := Line(&yaml.Node{Kind: yaml.DocumentNode}, "a"); got != 1 {
 		t.Errorf("Line(empty document) = %d, want 1", got)
 	}
+	// yaml.Unmarshal gives a zero node for an empty file.
+	var empty yaml.Node
+	if err := yaml.Unmarshal(nil, &empty); err != nil {
+		t.Fatal(err)
+	}
+	if got := Line(&empty, "a"); got != 1 {
+		t.Errorf("Line(empty file) = %d, want 1", got)
+	}
 	// A mapping node that is not in a document also works.
 	n := parse(t, doc).Content[0]
 	if got := Line(n, "calls[0].to"); got != 8 {

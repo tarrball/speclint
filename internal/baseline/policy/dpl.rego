@@ -147,9 +147,7 @@ deny contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.new[{i}].name",
-		# sprintf keeps the output for a layer that is not a string.
-		# regal ignore:prefer-string-interpolation
-		sprintf("%s is already registered (%s layer)", [s.name, layer]),
+		$"{s.name} is already registered ({layer} layer)",
 		$"Move {s.name} from services.new to services.changed.",
 	)
 }

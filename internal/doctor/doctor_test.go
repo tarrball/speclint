@@ -123,8 +123,11 @@ func TestProjectChecks(t *testing.T) {
 		{"project rule count", func(f *fixture) {
 			f.write(".specval/policy/x.rego", "package specval.spec.x\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
 		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
+		{"project rule in a baseline package", func(f *fixture) {
+			f.write(".specval/policy/x.rego", "package specval.spec.dpl\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
+		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
 		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services registered"},
-		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, ""},
+		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
 		{"registry rule fails", func(f *fixture) {
 			f.write(".specval/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
 		}, "registry", StatusFail, ".specval/data/services.yaml:2 PricingThing is in the engine layer"},

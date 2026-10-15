@@ -39,6 +39,7 @@ type Engine struct {
 	dataFile map[string]string     // top-level project data key -> file that defines it
 	nodes    map[string]*yaml.Node // project data file -> parsed YAML, for line numbers
 	modules  []*ast.Module
+	baseline map[*ast.Module]bool // the modules that are built into specval
 	specQ    rego.PreparedEvalQuery
 	regQ     rego.PreparedEvalQuery
 }
@@ -46,7 +47,7 @@ type Engine struct {
 // New loads the baseline and the project data and rules of cfg, and
 // compiles the rules.
 func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
-	e := &Engine{dataFile: map[string]string{}, nodes: map[string]*yaml.Node{}}
+	e := &Engine{dataFile: map[string]string{}, nodes: map[string]*yaml.Node{}, baseline: map[*ast.Module]bool{}}
 
 	dpl, err := baseline.Data()
 	if err != nil {
@@ -73,9 +74,11 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 		return nil, err
 	}
 	for _, m := range mods {
-		if err := e.addModule(m.Name, m.Source); err != nil {
-			return nil, err
+		mod, err := e.addModule(m.Name, m.Source)
+		if err != nil {
+			return nil, newRegoError(err)
 		}
+		e.baseline[mod] = true
 	}
 	policyFiles, err := cfg.PolicyFiles()
 	if err != nil {
@@ -86,25 +89,49 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := e.addModule(path, string(b)); err != nil {
-			return nil, err
+		if _, err := e.addModule(path, string(b)); err != nil {
+			return nil, newRegoError(err)
 		}
 	}
 
 	store := inmem.NewFromObject(data)
 	if e.specQ, err = e.prepare(ctx, specQuery, store); err != nil {
-		return nil, err
+		return nil, newRegoError(err)
 	}
 	if e.regQ, err = e.prepare(ctx, registryQuery, store); err != nil {
-		return nil, err
+		return nil, newRegoError(err)
 	}
 	return e, nil
 }
 
-func (e *Engine) addModule(name, src string) error {
+// regoError is a list of Rego parse or compile errors. Its text has one
+// error on each line, and each error starts with its file and line.
+type regoError struct{ errs ast.Errors }
+
+func (e regoError) Error() string {
+	msgs := make([]string, len(e.errs))
+	for i, err := range e.errs {
+		msgs[i] = err.Error()
+	}
+	return strings.Join(msgs, "\n")
+}
+
+func (e regoError) Unwrap() error { return e.errs }
+
+// newRegoError removes the text that OPA puts around a list of errors, such as
+// "bundle activation failed: 1 error occurred: ".
+func newRegoError(err error) error {
+	var errs ast.Errors
+	if errors.As(err, &errs) && len(errs) > 0 {
+		return regoError{errs}
+	}
+	return err
+}
+
+func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 	m, err := ast.ParseModuleWithOpts(name, src, ast.ParserOptions{ProcessAnnotation: true, RegoVersion: ast.RegoV1})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	pkg := m.Package.Path.String()
 	if strings.HasPrefix(pkg, "data.specval.spec.") || strings.HasPrefix(pkg, "data.specval.registry.") {
@@ -113,22 +140,31 @@ func (e *Engine) addModule(name, src string) error {
 			if _, ok := ruleSeverity[kind]; !ok {
 				continue
 			}
-			if ruleID(r) == "" {
-				return fmt.Errorf("%s: %s rule needs a METADATA block with custom.id", r.Location, kind)
+			if ruleAnnotation(r) == nil {
+				return nil, fmt.Errorf("%s: %s rule needs a METADATA block with custom.id", r.Location, kind)
 			}
 		}
 	}
 	e.modules = append(e.modules, m)
-	return nil
+	return m, nil
 }
 
-func ruleID(r *ast.Rule) string {
+// ruleAnnotation returns the METADATA annotation of r that has a custom.id.
+// It prefers an annotation with rule scope to one with a wider scope.
+func ruleAnnotation(r *ast.Rule) *ast.Annotations {
+	var found *ast.Annotations
 	for _, a := range r.Annotations {
-		if id, ok := a.Custom["id"].(string); ok {
-			return id
+		if id, ok := a.Custom["id"].(string); !ok || id == "" {
+			continue
+		}
+		if a.Scope == "rule" {
+			return a
+		}
+		if found == nil {
+			found = a
 		}
 	}
-	return ""
+	return found
 }
 
 func (e *Engine) prepare(ctx context.Context, query string, store storage.Store) (rego.PreparedEvalQuery, error) {
@@ -225,9 +261,11 @@ func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error
 	return out, nil
 }
 
-// RuleDocs returns the spec rules, sorted by ID, from their METADATA annotations.
+// RuleDocs returns the spec rules, sorted by ID, from their METADATA
+// annotations. A rule ID that has more than one rule body is listed once.
 func (e *Engine) RuleDocs() []RuleDoc {
 	var docs []RuleDoc
+	seen := map[string]bool{}
 	for _, m := range e.modules {
 		pkg := m.Package.Path.String()
 		if !strings.HasPrefix(pkg, "data.specval.spec.") {
@@ -235,12 +273,19 @@ func (e *Engine) RuleDocs() []RuleDoc {
 		}
 		for _, r := range m.Rules {
 			sev, ok := ruleSeverity[r.Head.Ref().String()]
-			if !ok {
+			a := ruleAnnotation(r)
+			if !ok || a == nil {
 				continue
 			}
-			for _, a := range r.Annotations {
-				docs = append(docs, RuleDoc{ID: ruleID(r), Title: a.Title, Description: a.Description, Severity: sev, Package: pkg})
+			id := a.Custom["id"].(string)
+			if seen[id] {
+				continue
 			}
+			seen[id] = true
+			docs = append(docs, RuleDoc{
+				ID: id, Title: a.Title, Description: a.Description,
+				Package: pkg, Severity: sev, Baseline: e.baseline[m],
+			})
 		}
 	}
 	slices.SortStableFunc(docs, func(a, b RuleDoc) int { return cmp.Compare(a.ID, b.ID) })

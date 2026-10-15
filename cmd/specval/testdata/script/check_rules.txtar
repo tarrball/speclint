@@ -91,19 +91,19 @@ calls:
   - { from: OrderManager, to: OrderAccessor, op: get-order }
 owner: someone
 -- check.txt --
-specs/empty.yaml:0 error SV001 acceptance is required
+specs/empty.yaml:1 error SV001 acceptance is required
     fix: Add `acceptance`: Testable acceptance criteria; at least one.
-specs/empty.yaml:0 error SV001 calls is required
+specs/empty.yaml:1 error SV001 calls is required
     fix: Add `calls`: Every service-to-service call the change adds or alters.
-specs/empty.yaml:0 error SV001 id is required
+specs/empty.yaml:1 error SV001 id is required
     fix: Add `id`: Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/<id>.yaml.
-specs/empty.yaml:0 error SV001 kind is required
+specs/empty.yaml:1 error SV001 kind is required
     fix: Add `kind`: One of: feature, bugfix, chore.
-specs/empty.yaml:0 error SV001 specval is required
+specs/empty.yaml:1 error SV001 specval is required
     fix: Add `specval`: Spec format version; always 1.
-specs/empty.yaml:0 error SV001 summary is required
+specs/empty.yaml:1 error SV001 summary is required
     fix: Add `summary`: A short paragraph: the problem and the intended behavior.
-specs/empty.yaml:0 error SV001 title is required
+specs/empty.yaml:1 error SV001 title is required
     fix: Add `title`: One-line title of the change.
 specs/rules.yaml:8 error SV107 AC2 is not covered by any call (acceptance[1])
     fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.

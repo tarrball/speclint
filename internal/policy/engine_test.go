@@ -342,9 +342,118 @@ func TestArchitectureServicesAndDataFile(t *testing.T) {
 	}
 }
 
+func TestServicesThatIsNotAMapping(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": "services: [OrderManager]\n"})
+	_, err := newEngine(t, cfg).Services()
+	if err == nil || err.Error() != "data.project.services must be a mapping of service names to layers" {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestServicesWithNoRegistry(t *testing.T) {
 	services, err := newEngine(t, project(t, map[string]string{})).Services()
 	if err != nil || len(services) != 0 {
 		t.Errorf("Services = %v, %v; want none and no error", services, err)
+	}
+}
+
+func TestAnEmptySpecReportsLineOne(t *testing.T) {
+	cfg := project(t, map[string]string{"specs/empty.yaml": ""})
+	found := check(t, cfg, "empty.yaml")
+	if len(found) == 0 {
+		t.Fatal("no findings for an empty spec")
+	}
+	for _, f := range found {
+		if f.Line != 1 {
+			t.Errorf("%s %s: line %d, want 1", f.Rule, f.Msg, f.Line)
+		}
+	}
+}
+
+func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
+	for name, c := range map[string]struct {
+		src   string
+		lines int
+	}{
+		"parse":   {"package specval.spec.a\n\ndeny contains f if {\n", 1},
+		"compile": {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n", 1},
+		"two":     {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n\nz if w\n", 2},
+	} {
+		cfg := project(t, map[string]string{".specval/policy/a.rego": c.src})
+		_, err := New(context.Background(), cfg)
+		if err == nil {
+			t.Errorf("%s: no error", name)
+			continue
+		}
+		file := filepath.Join(cfg.Root, ".specval", "policy", "a.rego") + ":"
+		var errors int
+		for line := range strings.SplitSeq(err.Error(), "\n") {
+			if strings.HasPrefix(line, "\t") {
+				continue // the source line and the marker under it
+			}
+			errors++
+			if !strings.HasPrefix(line, file) {
+				t.Errorf("%s: error line %q does not start with the file and line", name, line)
+			}
+		}
+		if errors != c.lines {
+			t.Errorf("%s: %d errors in %q, want %d", name, errors, err, c.lines)
+		}
+	}
+}
+
+func TestRuleDocsListEachRuleOnce(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/a.rego": `# METADATA
+# title: Project rules
+# description: Rules for this project.
+package specval.spec.a
+
+import rego.v1
+
+# METADATA
+# title: Two bodies
+# custom:
+#   id: PRJ001
+deny contains "a" if false
+
+# METADATA
+# title: Two bodies
+# custom:
+#   id: PRJ001
+deny contains "b" if false
+
+# METADATA
+# scope: document
+# title: Document title
+# custom:
+#   id: PRJ002
+
+# METADATA
+# title: Rule title
+# custom:
+#   id: PRJ002
+warn contains "c" if false
+`,
+	})
+	var got []string
+	for _, d := range newEngine(t, cfg).RuleDocs() {
+		if strings.HasPrefix(d.ID, "PRJ") {
+			got = append(got, d.ID+" "+d.Title)
+		}
+	}
+	if want := []string{"PRJ001 Two bodies", "PRJ002 Rule title"}; !slices.Equal(got, want) {
+		t.Errorf("RuleDocs = %q, want %q", got, want)
+	}
+}
+
+func TestRuleDocsMarkTheBaselineRules(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/a.rego": "package specval.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains \"a\" if false\n",
+	})
+	for _, d := range newEngine(t, cfg).RuleDocs() {
+		if want := !strings.HasPrefix(d.ID, "PRJ"); d.Baseline != want {
+			t.Errorf("%s: Baseline = %v, want %v", d.ID, d.Baseline, want)
+		}
 	}
 }

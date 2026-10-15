@@ -50,7 +50,7 @@ cp $WORK/services.yaml .specval/data/services.yaml
 # A policy that does not compile is a doctor failure.
 cp $WORK/broken.rego .specval/policy/broken.rego
 exits 1 specval doctor
-stdout '^✗ rules     1 error occurred: .specval/policy/broken.rego:4: rego_parse_error: unexpected eof token$'
+stdout '^✗ rules     .specval/policy/broken.rego:4: rego_parse_error: unexpected eof token$'
 stdout '^! registry  not checked until the rules load$'
 rm .specval/policy/broken.rego
 

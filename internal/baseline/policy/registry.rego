@@ -9,6 +9,21 @@ import rego.v1
 registry := object.get(data.project, "services", {})
 
 # METADATA
+# title: The registry is a mapping
+# description: data.project.services maps each service name to its layer.
+# custom:
+#   id: SR003
+deny contains f if {
+	not is_object(registry)
+	f := lib.finding(
+		rego.metadata.rule(),
+		"services",
+		$"services is not a mapping (type: {type_name(registry)})",
+		"Write services as a mapping from each service name to its layer, for example: OrderManager: { layer: manager }.",
+	)
+}
+
+# METADATA
 # title: Registered services use a known layer
 # custom:
 #   id: SR001

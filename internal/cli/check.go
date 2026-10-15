@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"sort"
 
@@ -47,12 +48,7 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string) (
 	if err != nil {
 		return nil, err
 	}
-	rel := func(p string) string {
-		if r, err := filepath.Rel(base, p); err == nil {
-			return r
-		}
-		return p
-	}
+	rel := func(p string) string { return relTo(base, p) }
 	r := &Report{}
 	reg, err := eng.CheckRegistry(ctx)
 	if err != nil {
@@ -101,6 +97,9 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 	if err != nil {
 		return exitError, err
 	}
+	if err := sameProject(cfg, files, env.Dir); err != nil {
+		return exitError, err
+	}
 	if len(files) == 0 {
 		if files, err = cfg.SpecFiles(); err != nil {
 			return exitError, err
@@ -128,14 +127,53 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 	return exitOK, nil
 }
 
+// sameProject returns an error if a file is not in the project of cfg. The
+// rules and registry of one project do not apply to the specs of another.
+func sameProject(cfg *config.Config, files []string, base string) error {
+	for _, f := range files[min(1, len(files)):] {
+		other, err := config.Find(filepath.Dir(f))
+		if err != nil {
+			return err
+		}
+		if !sameDir(other.Root, cfg.Root) {
+			return fmt.Errorf("%s and %s are in different specval projects; check each project separately",
+				relTo(base, files[0]), relTo(base, f))
+		}
+	}
+	return nil
+}
+
+// sameDir reports whether a and b are the same directory. A symbolic link to
+// a directory is the same directory.
+func sameDir(a, b string) bool {
+	if a == b {
+		return true
+	}
+	ia, errA := os.Stat(a)
+	ib, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(ia, ib)
+}
+
+// relTo returns p relative to base. If that is not possible, it returns p.
+func relTo(base, p string) string {
+	if r, err := filepath.Rel(base, p); err == nil {
+		return r
+	}
+	return p
+}
+
 func printText(w io.Writer, r *Report, specs int) {
 	for _, fr := range r.Files {
 		for _, f := range fr.Findings {
+			where := fr.File
+			if f.Line > 0 {
+				where = fmt.Sprintf("%s:%d", fr.File, f.Line)
+			}
 			at := ""
 			if f.Path != "" {
 				at = " (" + f.Path + ")"
 			}
-			fmt.Fprintf(w, "%s:%d %s %s %s%s\n    fix: %s\n", fr.File, f.Line, f.Severity, f.Rule, f.Msg, at, f.Fix)
+			fmt.Fprintf(w, "%s %s %s %s%s\n    fix: %s\n", where, f.Severity, f.Rule, f.Msg, at, f.Fix)
 		}
 	}
 	fmt.Fprintf(w, "%d spec(s) checked: %d error(s), %d warning(s)\n", specs, r.Errors, r.Warnings)

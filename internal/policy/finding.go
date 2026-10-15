@@ -36,6 +36,8 @@ type Finding struct {
 type RuleDoc struct {
 	ID, Title, Description, Package string
 	Severity                        Severity
+	// Baseline is true for a rule that is built into specval.
+	Baseline bool
 }
 
 func decodeFindings(v any, severity Severity) ([]Finding, error) {
