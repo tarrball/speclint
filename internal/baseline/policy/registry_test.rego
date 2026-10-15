@@ -36,6 +36,17 @@ test_sr001_layer_that_is_not_a_string if {
 	f.msg == "X has no valid layer (got 7)"
 }
 
+test_sr003_registry_must_be_a_mapping if {
+	every services in [[], "x", 5] {
+		findings := dpl.deny with data.project as {"services": services}
+		{[f.rule, f.path] | some f in findings} == {["SR003", "services"]}
+	}
+}
+
+test_sr003_missing_registry_is_not_an_error if {
+	count(dpl.deny) == 0 with data.project as {}
+}
+
 test_sr002_name_suffix if {
 	project := {"services": {"PricingThing": {"layer": "engine"}}}
 	some f in dpl.deny with data.project as project

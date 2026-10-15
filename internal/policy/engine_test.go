@@ -342,6 +342,14 @@ func TestArchitectureServicesAndDataFile(t *testing.T) {
 	}
 }
 
+func TestServicesThatIsNotAMapping(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": "services: [OrderManager]\n"})
+	_, err := newEngine(t, cfg).Services()
+	if err == nil || err.Error() != "data.project.services must be a mapping of service names to layers" {
+		t.Errorf("err = %v", err)
+	}
+}
+
 func TestServicesWithNoRegistry(t *testing.T) {
 	services, err := newEngine(t, project(t, map[string]string{})).Services()
 	if err != nil || len(services) != 0 {
