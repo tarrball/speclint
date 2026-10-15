@@ -173,7 +173,7 @@ func TestParseArgs(t *testing.T) {
 }
 
 func TestReportAndPrintText(t *testing.T) {
-	r := &Report{}
+	r := &report{}
 	r.add("a.yaml", nil)
 	r.add("b.yaml", []policy.Finding{
 		{Rule: "SV101", Severity: policy.SeverityError, Path: "calls[0].to", Line: 3, Msg: "X is not registered", Fix: "Register X."},
@@ -196,7 +196,7 @@ specval checked 2 spec(s) and found 1 error(s) and 1 warning(s).
 }
 
 func TestPrintTextWithoutALine(t *testing.T) {
-	r := &Report{}
+	r := &report{}
 	r.add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
 	var b strings.Builder
 	printText(&b, r, 0)

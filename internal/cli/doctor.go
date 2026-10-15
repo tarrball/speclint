@@ -25,7 +25,7 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (exitCode, error) {
 	}
 	switch *format {
 	case formatJSON:
-		if err := writeJSON(env.Stdout, map[string]any{"checks": checks, "ok": !failed}); err != nil {
+		if err := writeJSON(env.Stdout, doctorReport{Checks: checks, OK: !failed}); err != nil {
 			return exitError, err
 		}
 	case formatText:
@@ -35,6 +35,13 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (exitCode, error) {
 		return exitFindings, nil
 	}
 	return exitOK, nil
+}
+
+// doctorReport is the JSON output of doctor.
+type doctorReport struct {
+	Checks []doctor.Check `json:"checks"`
+	// OK is false if a check failed.
+	OK bool `json:"ok"`
 }
 
 func printChecks(w io.Writer, checks []doctor.Check) {
