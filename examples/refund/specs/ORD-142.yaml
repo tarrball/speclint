@@ -3,19 +3,19 @@ id: ORD-142
 kind: feature
 title: Customer can request a refund for a delivered order
 summary: >
-  Customers currently have to call support for refunds. Let them request one
-  for a delivered order; the refund amount follows the pricing rules that were
-  applied at purchase time.
+  Customers must call support to get a refund. Let them request a refund for
+  a delivered order. The refund amount follows the pricing rules that applied
+  at the time of purchase.
 acceptance:
   - id: AC1
-    text: Given a delivered order, when the customer requests a refund, then the refund amount is calculated from the original price and discounts.
+    text: Given a delivered order, when the customer requests a refund, then the system calculates the refund amount from the original price and discounts.
   - id: AC2
-    text: Given an order that is not delivered, when a refund is requested, then the request is rejected with a reason.
+    text: Given an order that is not delivered, when the customer requests a refund, then the system rejects the request and gives the reason.
   - id: AC3
     text: Given an approved refund, then the order records the refund amount and status.
 services:
   new:
-    - { name: RefundEngine, layer: engine, purpose: Computes refund eligibility and amount for an order }
+    - { name: RefundEngine, layer: engine, purpose: Calculates the refund eligibility and amount for an order }
   changed: [OrderManager, OrderAccessor]
 calls:
   - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1, AC2] }

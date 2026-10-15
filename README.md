@@ -1,114 +1,108 @@
-# specval (prototype)
+# specval
 
-Validate a feature/bugfix spec against architecture rules **before any code is written**.
-A single Go binary with OPA embedded: no conftest, Docker, or runtime to install.
+specval checks a change spec against architecture rules before you write code.
+
+A spec is a short YAML file for one ticket. It gives the acceptance criteria,
+the services that the change adds or changes, and each call between services.
+specval checks the spec against a layered architecture and against the rules
+of your project. Each finding tells you how to fix it.
 
 ```
-specval init                 # .specval.yaml, registry, project policy, Claude skill + hook (re-runnable)
-specval doctor               # is the setup still intact? (--format json)
-specval new ORD-150 --title "Customer can cancel an order"
-specval check                # every spec in specs/; exit 1 on errors (--format json, --strict)
-specval context              # spec format + layers + registry + rules, for an agent (~750 tokens)
-specval schema               # the spec JSON Schema
-specval hook                 # run by Claude Code after each file write; checks the spec it just saved (see below)
+$ specval check specs/ORD-143.yaml
+specs/ORD-143.yaml:8 error SV107 No call covers AC2 (acceptance[1])
+    fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
+specs/ORD-143.yaml:10 error SV109 ShippingManager is not a registered service (services.changed[1])
+    fix: If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager.
+specs/ORD-143.yaml:14 error ORD001 OrderAccessor cannot call PricingEngine (calls[2])
+    fix: Make OrderManager call PricingEngine, and give the price to the services that need it.
+specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[2])
+    fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
+specs/ORD-143.yaml:15 error SV101 RefundEngine is not a registered service (calls[3].to)
+    fix: If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
+specs/ORD-143.yaml:15 error SV108 AC4 is not an acceptance criterion in this spec (calls[3].covers[1])
+    fix: Use one of: AC1, AC2, or add AC4 under acceptance.
+specval checked 1 spec(s) and found 6 error(s) and 0 warning(s).
 ```
 
-## How rules are layered
+specval works with [Claude Code](https://claude.com/claude-code). A skill tells
+Claude to write the spec before the code. A hook checks the spec each time
+Claude saves it, and sends the findings back to Claude.
 
-| Where | What | Who owns it |
-|---|---|---|
-| Embedded in the binary (`internal/baseline/`) | spec schema, DPL layer rules (`dpl.yaml` → `data.dpl`), SV/SR rules | DPL |
-| `.specval/data/*.yaml` | service registry and other project data (→ `data.project.<key>`) | project (CODEOWNERS) |
-| `.specval/policy/*.rego` | project rules, packages `specval.spec.<name>` (per spec) or `specval.registry.<name>` (once, against data) | project |
+## Install
 
-The schema check (SV001) runs first, and other rules run only once it passes.
-Registry rules (SR*) run once per `check` and report against the registry file, not against each spec.
+specval needs Go 1.26 or later.
 
-## Writing a rule
-
-Every `deny` (error) or `warn` rule needs a METADATA block with `title` and
-`custom.id`; the loader refuses rules without one. Build results with `lib.finding`,
-which reads the id and title from that metadata, so `specval context` and the
-lint output come from the same source:
-
-```rego
-# METADATA
-# title: Only OrderManager calls PricingEngine
-# description: Pricing is orchestrated in one place.
-# custom:
-#   id: ORD001
-deny contains f if {
-	some i, c in input.calls
-	c.to == "PricingEngine"
-	c.from != "OrderManager"
-	f := lib.finding(rego.metadata.rule(), $"calls[{i}]",
-		$"{c.from} may not call PricingEngine",
-		"Have OrderManager call PricingEngine and pass the price to whoever needs it.")
-}
+```
+go install github.com/tarrball/specval/cmd/specval@latest
 ```
 
-`path` is a YAML path (`calls[2].to`); specval resolves it to a line number.
+Make sure that the Go bin directory is on your `PATH`. The Claude Code hook
+runs the `specval` that is on `PATH`.
 
-## Claude Code
+## Quick start
 
-`specval init` sets up two things:
+1. In the root of your repository, set up specval:
 
-- **A skill** (`.claude/skills/spec/SKILL.md`) that tells Claude, while
-  planning, to run `specval context`, write the spec, and fix every finding
-  before writing code.
-- **A hook** in `.claude/settings.json` that makes Claude Code run
-  `specval hook` after every Write, Edit, or MultiEdit.
+   ```
+   specval init
+   ```
 
-### What `specval hook` does
+   This writes `.specval.yaml`, the service registry, a file for project rules,
+   the Claude Code skill, and the hook.
 
-Claude Code pipes a JSON event describing the tool call to its stdin.
-`specval hook` reads the edited file's path from it, then:
+2. Add your services and their layers to `.specval/data/services.yaml`:
 
-1. **Ignores anything that isn't a spec.** If the file isn't `.yaml`/`.yml`,
-   isn't under a `.specval.yaml` project, or isn't in that project's
-   `specs_dir`, it exits 0 silently (~20ms, Claude sees nothing).
-2. **Checks the spec,** exactly like `specval check <file>`.
-3. **Reports back through its exit code:**
+   ```yaml
+   services:
+     OrderManager: { layer: manager }
+     PricingEngine: { layer: engine }
+     OrderAccessor: { layer: accessor }
+   ```
 
-| Result | Exit | Effect |
-|---|---|---|
-| Errors | 2 | Findings and their `fix:` lines go to stderr, which Claude Code hands to Claude, along with an instruction to fix the spec before writing code. |
-| Warnings only | 0 | Warnings are passed to Claude as extra context; nothing is blocked. |
-| Passes | 0 | Nothing. |
-| specval itself fails (e.g. a broken policy) | 1 | Claude Code shows the error to the user, and Claude carries on. |
+3. Make a spec for a ticket, then write its content:
 
-It's feedback, not a gate. The hook runs after the file is saved, so a failing
-spec stays on disk, and nothing *forces* Claude to stop before writing code;
-the message and the skill tell it to. A hard gate (a PreToolUse hook that blocks
-writes outside `specs/`, or a Stop hook that won't let Claude finish while a
-spec fails) is possible, and worth A/B testing against this.
+   ```
+   specval new ORD-150 --title "Customer can cancel an order"
+   ```
 
-## Keeping the setup healthy
+4. Check the spec:
 
-`specval doctor` checks each piece and gives a fix for each problem (exit 1 on any failure):
+   ```
+   specval check
+   ```
 
-| Check | Fails when |
+5. Make sure that the setup works:
+
+   ```
+   specval doctor
+   ```
+
+For a complete project, see [`examples/refund`](examples/refund). It has one
+spec that passes, one spec that breaks the layer rules, and one spec that
+breaks the schema.
+
+## Commands
+
+| Command | What it does |
 |---|---|
-| config | no `.specval.yaml` here or in a parent |
-| specs / data / policy | a configured directory is missing (warning) |
-| rules | a data file or Rego policy won't load, or a rule has no `custom.id` |
-| registry | no services registered (warning), or registry rules (SR*) fail |
-| skill | `.claude/skills/spec/SKILL.md` is missing or no longer runs `specval context` (warning) |
-| hook | no PostToolUse hook runs `specval hook` in project, local, or user settings; `disableAllHooks` is set; a settings file is invalid JSON; the matcher misses Write/Edit/MultiEdit (warning) |
-| path | `specval` isn't on PATH or won't run, so the hook can't either; or PATH points to a different binary than the one you ran (warning) |
+| `specval check [files...]` | Checks the given specs, or each spec in the specs directory. Use `--format json` for JSON output, and `--strict` to fail on warnings. |
+| `specval new <id>` | Makes `<specs dir>/<id>.yaml` from the template. Use `--kind` and `--title` to set those fields. |
+| `specval context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
+| `specval schema` | Prints the JSON Schema of a spec. |
+| `specval init` | Sets up specval, the skill, and the hook. You can run it again to restore a missing part. |
+| `specval doctor` | Checks the setup, and gives a fix for each problem. Use `--format json` for JSON output. |
+| `specval hook` | Claude Code runs this command after each file write. Do not run it yourself. |
 
-`specval init` is the repair step. It only creates what's missing and merges the
-hook into an existing `.claude/settings.json` without dropping other settings
-(the file is rewritten with sorted keys).
+| Exit status | Meaning |
+|---|---|
+| 0 | The command succeeded and found no errors. |
+| 1 | `check` found an error (or a warning, with `--strict`), or `doctor` found a failure. |
+| 2 | The command was not correct, or specval could not do it. |
 
-## Dev
+## Documentation
 
-The tool versions are pinned in `mise.toml`; run `mise install` once to get them.
-
-```
-mise run check   # lint and test
-mise run build   # build bin/specval
-```
-
-`examples/refund` has one passing spec (ORD-142), one with architecture
-violations (ORD-143), and one with schema errors (ORD-144).
+- [docs/specs.md](docs/specs.md): the spec format and the built-in rules.
+- [docs/rules.md](docs/rules.md): how to add project data and project rules.
+- [docs/claude-code.md](docs/claude-code.md): the skill, the hook, and `specval doctor`.
+- [docs/architecture.md](docs/architecture.md): how specval works inside.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to build, test, and change specval.
