@@ -17,9 +17,13 @@ new_list := object.get(input, ["services", "new"], [])
 
 changed := object.get(input, ["services", "changed"], [])
 
-new_services := {s.name: s | some s in new_list}
+new_services[s.name] := s if {
+	some s in new_list
+}
 
-ac_ids := {ac.id | some ac in acceptance}
+ac_ids contains ac.id if {
+	some ac in acceptance
+}
 
 used contains name if {
 	some c in calls
@@ -48,18 +52,24 @@ base_name(name) := trim_suffix(name, sfx) if {
 	endswith(name, sfx)
 } else := name
 
-can_call(l) := sprintf("%s may call only %s", [
-	lib.capitalize(lib.plural(l)),
-	lib.join([lib.plural(t) | some t in lib.ordered(layers[l])], "and"),
-]) if count(layers[l]) > 0
+can_call(l) := $"{lib.capitalize(lib.plural(l))} may call only {targets}" if {
+	count(layers[l]) > 0
+	targets := lib.join([lib.plural(t) | some t in lib.ordered(layers[l])], "and")
+}
 
-can_call(l) := sprintf("%s may not call other services", [lib.capitalize(lib.plural(l))]) if count(layers[l]) == 0
+can_call(l) := $"{lib.capitalize(lib.plural(l))} may not call other services" if count(layers[l]) == 0
 
 layer_fix(from, to, target) := msg if {
 	callers := lib.ordered([l | some l, targets in layers; to in targets])
 	count(callers) > 0
-	msg := sprintf("%s. Route the call to %s through a %s instead.", [can_call(from), target, lib.join(callers, "or")])
-} else := sprintf("%s. %s are entry points; no service calls them.", [can_call(from), lib.capitalize(lib.plural(to))])
+	msg := $"{can_call(from)}. Route the call to {target} through a {lib.join(callers, "or")} instead."
+} else := $"{can_call(from)}. {lib.capitalize(lib.plural(to))} are entry points; no service calls them."
+
+# unknown_fix tells how to fix a reference to a service that is not registered.
+unknown_fix(name, action) := concat(" ", [
+	$"If {name} is new, {action} services.new with a layer and purpose.",
+	$"Otherwise use a registered service: {concat(", ", suggestions(name))}.",
+])
 
 # METADATA
 # title: Calls use known services
@@ -74,9 +84,9 @@ deny contains f if {
 	not new_services[name]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("calls[%d].%s", [i, end]),
-		sprintf("%s is not a registered service", [name]),
-		sprintf("If %s is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: %s.", [name, concat(", ", suggestions(name))]),
+		$"calls[{i}].{end}",
+		$"{name} is not a registered service",
+		unknown_fix(name, "declare it under"),
 	)
 }
 
@@ -92,8 +102,8 @@ deny contains f if {
 	not to in object.get(layers, from, [])
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("calls[%d]", [i]),
-		sprintf("%s (%s) may not call %s (%s)", [c.from, from, c.to, to]),
+		$"calls[{i}]",
+		$"{c.from} ({from}) may not call {c.to} ({to})",
 		layer_fix(from, to, c.to),
 	)
 }
@@ -109,9 +119,9 @@ deny contains f if {
 	not endswith(s.name, sfx)
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.new[%d].name", [i]),
-		sprintf("%s is in the %s layer but does not end in %s", [s.name, s.layer, sfx]),
-		sprintf("Rename it to %s%s everywhere in the spec, or change its layer.", [base_name(s.name), sfx]),
+		$"services.new[{i}].name",
+		$"{s.name} is in the {s.layer} layer but does not end in {sfx}",
+		$"Rename it to {base_name(s.name)}{sfx} everywhere in the spec, or change its layer.",
 	)
 }
 
@@ -125,9 +135,9 @@ deny contains f if {
 	reg := registry[s.name]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.new[%d].name", [i]),
-		sprintf("%s is already registered (%s layer)", [s.name, reg.layer]),
-		sprintf("Move %s from services.new to services.changed.", [s.name]),
+		$"services.new[{i}].name",
+		$"{s.name} is already registered ({reg.layer} layer)",
+		$"Move {s.name} from services.new to services.changed.",
 	)
 }
 
@@ -141,9 +151,9 @@ deny contains f if {
 	not layers[s.layer]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.new[%d].layer", [i]),
-		sprintf("%v is not a layer", [s.layer]),
-		sprintf("Use one of: %s.", [concat(", ", data.dpl.layer_order)]),
+		$"services.new[{i}].layer",
+		$"{s.layer} is not a layer",
+		$"Use one of: {concat(", ", data.dpl.layer_order)}.",
 	)
 }
 
@@ -157,15 +167,17 @@ deny contains f if {
 	not used[s.name]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.new[%d]", [i]),
-		sprintf("%s is declared as new but no call uses it", [s.name]),
-		sprintf("Add the calls to or from %s, or remove it from services.new.", [s.name]),
+		$"services.new[{i}]",
+		$"{s.name} is declared as new but no call uses it",
+		$"Add the calls to or from {s.name}, or remove it from services.new.",
 	)
 }
 
 # METADATA
 # title: Every acceptance criterion is implemented by a call
-# description: Each acceptance criterion id appears in the `covers` list of at least one call, so every requirement traces to the services that implement it.
+# description: >-
+#   Each acceptance criterion id appears in the `covers` list of at least one call,
+#   so every requirement traces to the services that implement it.
 # custom:
 #   id: SV107
 deny contains f if {
@@ -173,9 +185,9 @@ deny contains f if {
 	not covered[ac.id]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("acceptance[%d]", [i]),
-		sprintf("%s is not covered by any call", [ac.id]),
-		sprintf("Add %s to `covers` on the call(s) that implement it, or add the missing call.", [ac.id]),
+		$"acceptance[{i}]",
+		$"{ac.id} is not covered by any call",
+		$"Add {ac.id} to `covers` on the call(s) that implement it, or add the missing call.",
 	)
 }
 
@@ -190,9 +202,9 @@ deny contains f if {
 	not ac_ids[id]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("calls[%d].covers[%d]", [i, j]),
-		sprintf("%s is not an acceptance criterion in this spec", [id]),
-		sprintf("Use one of: %s, or add %s under acceptance.", [concat(", ", sort(ac_ids)), id]),
+		$"calls[{i}].covers[{j}]",
+		$"{id} is not an acceptance criterion in this spec",
+		$"Use one of: {concat(", ", sort(ac_ids))}, or add {id} under acceptance.",
 	)
 }
 
@@ -206,9 +218,9 @@ deny contains f if {
 	not registry[name]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.changed[%d]", [i]),
-		sprintf("%s is not a registered service", [name]),
-		sprintf("If %s is new, move it to services.new with a layer and purpose. Otherwise use a registered service: %s.", [name, concat(", ", suggestions(name))]),
+		$"services.changed[{i}]",
+		$"{name} is not a registered service",
+		unknown_fix(name, "move it to"),
 	)
 }
 
@@ -223,8 +235,8 @@ warn contains f if {
 	not used[name]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.changed[%d]", [i]),
-		sprintf("%s is listed as changed but no call involves it", [name]),
-		sprintf("Add the calls that change %s, or remove it from services.changed.", [name]),
+		$"services.changed[{i}]",
+		$"{name} is listed as changed but no call involves it",
+		$"Add the calls that change {name}, or remove it from services.changed.",
 	)
 }

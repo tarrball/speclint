@@ -11,7 +11,9 @@ hints := data.dpl.schema_hints
 
 # METADATA
 # title: Spec matches the specval format
-# description: Required fields, field names, and value types follow the schema (`specval schema`). Other rules run only once this passes.
+# description: >-
+#   Required fields, field names, and value types follow the schema (`specval schema`).
+#   Other rules run only once this passes.
 # custom:
 #   id: SV001
 deny contains f if {

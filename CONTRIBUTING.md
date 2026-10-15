@@ -4,7 +4,7 @@
 
 1. Install [mise](https://mise.jdx.dev/).
 2. In the repository root, run `mise install`.
-   This installs the pinned versions of Go, golangci-lint, and the opa CLI.
+   This installs the pinned versions of Go, golangci-lint, the opa CLI, and Regal.
 3. Run `mise run check` to make sure that lint and tests pass.
 
 ## Tasks

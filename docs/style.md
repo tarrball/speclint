@@ -122,6 +122,7 @@ A `//nolint` directive must name the linter and give a reason:
 - Write `msg` as a statement of the problem.
   Write `fix` as one or more instructions in STE.
 - `opa fmt` must not change the file. `mise run fmt` applies it.
+- Regal must not find a problem. `.regal/config.yaml` gives the reason for each rule that is off.
 
 ## Commits
 

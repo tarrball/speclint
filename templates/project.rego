@@ -10,8 +10,8 @@
 # 	some i, c in input.calls
 # 	c.to == "PricingEngine"
 # 	c.from != "OrderManager"
-# 	f := lib.finding(rego.metadata.rule(), sprintf("calls[%d]", [i]),
-# 		sprintf("%s may not call PricingEngine", [c.from]),
+# 	f := lib.finding(rego.metadata.rule(), $"calls[{i}]",
+# 		$"{c.from} may not call PricingEngine",
 # 		"Have OrderManager call PricingEngine and pass the result along.")
 # }
 package specval.spec.project

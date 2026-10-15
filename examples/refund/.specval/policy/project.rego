@@ -14,8 +14,8 @@ deny contains f if {
 	c.from != "OrderManager"
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("calls[%d]", [i]),
-		sprintf("%s may not call PricingEngine", [c.from]),
+		$"calls[{i}]",
+		$"{c.from} may not call PricingEngine",
 		"Have OrderManager call PricingEngine and pass the price to whoever needs it.",
 	)
 }

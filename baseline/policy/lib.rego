@@ -15,9 +15,13 @@ finding(meta, path, msg, fix) := {
 # join renders ["a", "b", "c"] as "a, b <word> c".
 join(xs, _) := xs[0] if count(xs) == 1
 
-join(xs, word) := sprintf("%s %s %s", [concat(", ", array.slice(xs, 0, count(xs) - 1)), word, xs[count(xs) - 1]]) if count(xs) > 1
+join(xs, word) := $"{concat(", ", head)} {word} {last}" if {
+	count(xs) > 1
+	head := array.slice(xs, 0, count(xs) - 1)
+	last := xs[count(xs) - 1]
+}
 
-plural(word) := concat("", [word, "s"])
+plural(word) := $"{word}s"
 
 capitalize(s) := concat("", [upper(substring(s, 0, 1)), substring(s, 1, -1)])
 
