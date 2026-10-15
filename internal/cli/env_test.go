@@ -16,7 +16,7 @@ func TestCommandsWithoutAWorkingDirectory(t *testing.T) {
 	for _, c := range []struct {
 		args  []string
 		stdin string
-		want  int
+		want  exitCode
 	}{
 		{[]string{"help"}, "", exitOK},
 		{[]string{"schema"}, "", exitOK},
@@ -29,7 +29,7 @@ func TestCommandsWithoutAWorkingDirectory(t *testing.T) {
 	} {
 		var out, errOut bytes.Buffer
 		env := &Env{Stdin: strings.NewReader(c.stdin), Stdout: &out, Stderr: &errOut}
-		if got := Run(context.Background(), c.args, env); got != c.want {
+		if got := exitCode(Run(context.Background(), c.args, env)); got != c.want {
 			t.Errorf("%v: exit %d, want %d (stderr %q)", c.args, got, c.want, errOut.String())
 		}
 		if c.want == exitError && !strings.Contains(errOut.String(), "working directory") {
@@ -59,7 +59,7 @@ func TestHookResolvesARelativePathAgainstEnvDir(t *testing.T) {
 	}
 	var out, errOut bytes.Buffer
 	env := &Env{Stdin: strings.NewReader(`{"tool_input": {"file_path": "specs/bad.yaml"}}`), Stdout: &out, Stderr: &errOut, Dir: dir}
-	if got := Run(context.Background(), []string{"hook"}, env); got != hookBlock {
+	if got := exitCode(Run(context.Background(), []string{"hook"}, env)); got != hookBlock {
 		t.Errorf("exit %d, want %d (stderr %q)", got, hookBlock, errOut.String())
 	}
 }

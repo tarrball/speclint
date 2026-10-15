@@ -8,9 +8,9 @@ import (
 	"github.com/tarrball/specval/internal/doctor"
 )
 
-func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
+func cmdDoctor(ctx context.Context, env *Env, args []string) (exitCode, error) {
 	fl := newFlagSet("doctor", env)
-	format := fl.String("format", "text", "output format: text or json")
+	format := formatFlag(fl)
 	if err := parseNoArgs(fl, args); err != nil {
 		return exitError, err
 	}
@@ -24,14 +24,12 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
 		failed = failed || c.Status == doctor.StatusFail
 	}
 	switch *format {
-	case "json":
+	case formatJSON:
 		if err := writeJSON(env.Stdout, map[string]any{"checks": checks, "ok": !failed}); err != nil {
 			return exitError, err
 		}
-	case "text":
+	case formatText:
 		printChecks(env.Stdout, checks)
-	default:
-		return exitError, fmt.Errorf("unknown format %q; use text or json", *format)
 	}
 	if failed {
 		return exitFindings, nil

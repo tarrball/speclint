@@ -17,15 +17,15 @@ import (
 
 // runCLI runs specval with args in dir and returns the exit code, stdout,
 // and stderr.
-func runCLI(t *testing.T, dir, stdin string, args ...string) (code int, stdout, stderr string) {
+func runCLI(t *testing.T, dir, stdin string, args ...string) (code exitCode, stdout, stderr string) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	code = Run(context.Background(), args, &Env{
+	code = exitCode(Run(context.Background(), args, &Env{
 		Stdin:  strings.NewReader(stdin),
 		Stdout: &out,
 		Stderr: &errOut,
 		Dir:    dir,
-	})
+	}))
 	return code, out.String(), errOut.String()
 }
 
@@ -72,7 +72,7 @@ func TestCheckExitCodes(t *testing.T) {
 	}
 	for _, c := range []struct {
 		args []string
-		want int
+		want exitCode
 	}{
 		{[]string{"check", "specs/ORD-142.yaml"}, exitOK},
 		{[]string{"check", "specs/ORD-143.yaml"}, exitFindings},

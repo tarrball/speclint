@@ -73,9 +73,9 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string, r
 	return r, nil
 }
 
-func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
+func cmdCheck(ctx context.Context, env *Env, args []string) (exitCode, error) {
 	fl := newFlagSet("check", env)
-	format := fl.String("format", "text", "output format: text or json")
+	format := formatFlag(fl)
 	strict := fl.Bool("strict", false, "fail on warnings too")
 	files, err := parseArgs(fl, args)
 	if err != nil {
@@ -111,14 +111,12 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 		return exitError, err
 	}
 	switch *format {
-	case "json":
+	case formatJSON:
 		if err := writeJSON(env.Stdout, r); err != nil {
 			return exitError, err
 		}
-	case "text":
+	case formatText:
 		printText(env.Stdout, r, len(files))
-	default:
-		return exitError, fmt.Errorf("unknown format %q; use text or json", *format)
 	}
 	if r.Errors > 0 || (*strict && r.Warnings > 0) {
 		return exitFindings, nil

@@ -19,7 +19,8 @@ stdout '"name": "registry",\n\s+"detail": "no services are registered'
 
 # An unknown format is a usage error.
 exits 2 specval doctor --format yaml
-stderr '^specval: unknown format "yaml"; use text or json$'
+stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
+! stderr '^specval:'
 
 # With services registered, all checks pass.
 cp $WORK/services.yaml .specval/data/services.yaml

@@ -19,7 +19,8 @@ stdout '"rule": "SV001"'
 # An unknown format is a usage error.
 exits 2 specval check --format yaml
 ! stdout .
-stderr '^specval: unknown format "yaml"; use text or json$'
+stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
+! stderr '^specval:'
 
 # A missing spec file is an error.
 exits 2 specval check specs/nope.yaml
