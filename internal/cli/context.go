@@ -11,7 +11,10 @@ import (
 	"github.com/tarrball/specval/internal/policy"
 )
 
-func cmdContext(ctx context.Context, env *Env) error {
+func cmdContext(ctx context.Context, env *Env, args []string) error {
+	if err := parseNoArgs(newFlagSet("context", env), args); err != nil {
+		return err
+	}
 	dir, err := env.workDir()
 	if err != nil {
 		return err

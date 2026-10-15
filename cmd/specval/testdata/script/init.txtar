@@ -48,7 +48,7 @@ created  .claude/skills/spec/SKILL.md
 hooked   .claude/settings.json
 -- exists.txt --
 exists   .specval.yaml
-exists   .specval/data/services.yaml
+exists   .specval/data/services.yaml (services)
 exists   .specval/policy/project.rego
 exists   .claude/skills/spec/SKILL.md
 exists   .claude/settings.json (specval hook)

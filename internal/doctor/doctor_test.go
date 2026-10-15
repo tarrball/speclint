@@ -128,6 +128,11 @@ func TestProjectChecks(t *testing.T) {
 		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
 		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services are registered"},
 		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
+		{"registry rule warns", func(f *fixture) {
+			f.write(".specval/policy/r.rego", "package specval.registry.r\n\nimport data.specval.lib\nimport rego.v1\n\n"+
+				"# METADATA\n# title: T\n# custom:\n#   id: PRJ900\n"+
+				"warn contains lib.finding(rego.metadata.rule(), \"services.OrderManager\", \"OrderManager has no owner\", \"Add an owner.\") if true\n")
+		}, "registry", StatusWarn, "OrderManager has no owner"},
 		{"registry rule fails", func(f *fixture) {
 			f.write(".specval/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
 		}, "registry", StatusFail, ".specval/data/services.yaml:2 PricingThing is in the engine layer"},
@@ -216,4 +221,32 @@ func TestPathChecks(t *testing.T) {
 		f.env.Executable = filepath.Join(t.TempDir(), "specval")
 		f.want("path", StatusWarn, "the hook will run")
 	})
+}
+
+// Each check has one result. If a settings file is not valid, the hook check
+// fails, and doctor does not also report the hook as correct.
+func TestOneHookCheckWhenASettingsFileIsNotValid(t *testing.T) {
+	f := newFixture(t)
+	f.write(claude.LocalSettingsPath, "{not json")
+	var hooks []Check
+	for _, c := range Run(context.Background(), f.env) {
+		if c.Name == "hook" {
+			hooks = append(hooks, c)
+		}
+	}
+	if len(hooks) != 1 || hooks[0].Status != StatusFail {
+		t.Errorf("hook checks = %+v, want one failure", hooks)
+	}
+}
+
+func TestRegistryFixNamesTheConfiguredDataFile(t *testing.T) {
+	f := newFixture(t)
+	f.remove(".specval/data")
+	f.write(".specval.yaml", "data: [registry.yaml]\n")
+	f.write("registry.yaml", "services: {}\n")
+	for _, c := range Run(context.Background(), f.env) {
+		if c.Name == "registry" && !strings.Contains(c.Fix, "registry.yaml") {
+			t.Errorf("registry fix = %q, want it to name registry.yaml", c.Fix)
+		}
+	}
 }

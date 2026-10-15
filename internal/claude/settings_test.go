@@ -148,3 +148,30 @@ func TestMatcherCovers(t *testing.T) {
 		}
 	}
 }
+
+func TestInspectSettingsWrongShape(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	for content, field := range map[string]string{
+		`{"hooks": []}`: "hooks",
+		`{"hooks": {"PostToolUse": [{"matcher": 1}]}}`: "hooks.matcher", // Go leaves out map keys and list indexes.
+		`{"disableAllHooks": "yes"}`:                   "disableAllHooks",
+	} {
+		writeFile(t, path, content)
+		_, err := InspectSettings(path)
+		want := path + `: the field "` + field + `" has the wrong type`
+		if err == nil || err.Error() != want {
+			t.Errorf("%s: err = %v, want %q", content, err, want)
+		}
+	}
+}
+
+func TestInspectSettingsThatIsNotAnObject(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	for _, content := range []string{"[]", "true", `"x"`} {
+		writeFile(t, path, content)
+		_, err := InspectSettings(path)
+		if want := path + ": the settings must be a JSON object"; err == nil || err.Error() != want {
+			t.Errorf("%s: err = %v, want %q", content, err, want)
+		}
+	}
+}

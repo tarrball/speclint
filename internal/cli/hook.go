@@ -51,7 +51,10 @@ func cmdHook(ctx context.Context, env *Env) int {
 	if base == "" {
 		base = cfg.Root
 	}
-	r, err := run(ctx, cfg, []string{fp}, base)
+	// The hook reports only the findings for the spec. A problem in the
+	// registry is not a problem in the spec, and Claude must not change the
+	// registry to fix it. check and doctor report the registry.
+	r, err := run(ctx, cfg, []string{fp}, base, false)
 	if err != nil {
 		fmt.Fprintln(env.Stderr, "specval:", err)
 		return hookError

@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -212,5 +213,112 @@ func TestSpecRejectsATitleThatIsNotUTF8(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Root, "specs", "T-1.yaml")); !os.IsNotExist(err) {
 		t.Errorf("Spec wrote a file: %v", err)
+	}
+}
+
+func TestInitStopsOnAConfigurationThatIsNotValid(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: [unclosed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err == nil {
+		t.Fatalf("Init = nil, want the configuration error; output:\n%s", out.String())
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("Init wrote files: %v", entries)
+	}
+}
+
+func TestInitUsesTheConfiguredDataAndPolicyPaths(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("data: [registry.yaml]\npolicy: [rules]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{"registry.yaml", filepath.Join("rules", "project.rego")} {
+		if _, err := os.Stat(filepath.Join(dir, p)); err != nil {
+			t.Errorf("%s: %v", p, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".specval")); !os.IsNotExist(err) {
+		t.Errorf("Init wrote .specval, which the configuration does not use")
+	}
+	if !strings.Contains(out.String(), "created  registry.yaml\n") {
+		t.Errorf("output:\n%s", out.String())
+	}
+}
+
+// initIn writes the given files to a new directory, runs Init there, and
+// returns the directory and the output of Init.
+func initIn(t *testing.T, files map[string]string) (dir, output string) {
+	t.Helper()
+	dir = t.TempDir()
+	for name, content := range files {
+		p := filepath.Join(dir, name)
+		if strings.HasSuffix(name, "/") {
+			if err := os.MkdirAll(p, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err != nil {
+		t.Fatalf("Init: %v\noutput:\n%s", err, out.String())
+	}
+	return dir, out.String()
+}
+
+func TestInitKeepsAnExistingRegistry(t *testing.T) {
+	dir, out := initIn(t, map[string]string{
+		config.FileName:      "data: [data]\n",
+		"data/registry.yaml": "services:\n  OrderManager: { layer: manager }\n",
+	})
+	if _, err := os.Stat(filepath.Join(dir, "data", "services.yaml")); !os.IsNotExist(err) {
+		t.Error("Init wrote data/services.yaml, which defines services a second time")
+	}
+	if !strings.Contains(out, "exists   data/registry.yaml (services)\n") {
+		t.Errorf("output:\n%s", out)
+	}
+}
+
+func TestInitWritesJSONForAJSONRegistry(t *testing.T) {
+	dir, _ := initIn(t, map[string]string{config.FileName: "data: [registry.json]\n"})
+	b, err := os.ReadFile(filepath.Join(dir, "registry.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v map[string]any
+	if err := json.Unmarshal(b, &v); err != nil {
+		t.Fatalf("registry.json is not valid JSON: %v\n%s", err, b)
+	}
+	if _, ok := v["services"]; !ok {
+		t.Errorf("registry.json has no services:\n%s", b)
+	}
+}
+
+func TestInitLooksAtWhatAConfiguredPathIs(t *testing.T) {
+	// An existing file without an extension is the registry file.
+	dir, out := initIn(t, map[string]string{
+		config.FileName: "data: [registry]\npolicy: [rules.rego]\n",
+		"registry":      "services: {}\n",
+		"rules.rego/":   "",
+	})
+	if !strings.Contains(out, "exists   registry (services)\n") {
+		t.Errorf("output:\n%s", out)
+	}
+	// An existing directory with an extension in its name is a directory.
+	if _, err := os.Stat(filepath.Join(dir, "rules.rego", "project.rego")); err != nil {
+		t.Errorf("rules.rego/project.rego: %v", err)
 	}
 }
