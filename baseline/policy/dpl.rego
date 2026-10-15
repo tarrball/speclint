@@ -69,7 +69,8 @@ layer_fix(from, to, target) := msg if {
 	msg := $"{rule}. Route the call to {target} through a {lib.join(callers, "or")} instead."
 } else := msg if {
 	rule := can_call(from)
-	msg := $"{rule}. {lib.capitalize(lib.plural(to))} are entry points; no service calls them."
+	callee := lib.capitalize(lib.plural(to))
+	msg := $"{rule}. {callee} are entry points; no service calls them."
 }
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
