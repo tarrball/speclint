@@ -92,9 +92,10 @@ func Modules() ([]Module, error) {
 	return mods, err
 }
 
-// Data returns the document that the rules see as data.dpl: the layer rules
-// from dpl.yaml, plus the schema and the per-path key lists and descriptions
-// that the schema rule uses to write fixes.
+// Data returns the document that the rules see as data.dpl. It contains the
+// layer rules from dpl.yaml and the schema. It also contains the permitted
+// keys and the description of each path in the schema, which the schema rule
+// uses to write fixes.
 func Data() (map[string]any, error) {
 	var d map[string]any
 	if err := yaml.Unmarshal([]byte(dpl), &d); err != nil {

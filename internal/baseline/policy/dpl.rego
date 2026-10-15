@@ -39,7 +39,8 @@ layer_of(name) := registry[name].layer
 
 layer_of(name) := new_services[name].layer if not registry[name]
 
-# Registered services in the same layer as `name` (by suffix), else all of them.
+# suggestions returns the registered services in the layer that the suffix of
+# name gives. If there are none, it returns all of the registered services.
 suggestions(name) := names if {
 	some l, sfx in suffix
 	endswith(name, sfx)
@@ -74,7 +75,7 @@ layer_fix(from, to, target) := msg if {
 }
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
-# It is undefined if the registry is not an object, as sprintf was.
+# It is undefined if the registry is not an object. SR003 reports that case.
 unknown_fix(name, action) := concat(" ", [
 	$"If {name} is new, {action} services.new with a layer and purpose.",
 	$"Otherwise use a registered service: {names}.",

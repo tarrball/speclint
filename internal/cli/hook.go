@@ -18,8 +18,8 @@ const (
 )
 
 // cmdHook handles a Claude Code PostToolUse event. If the event is not about
-// a spec, it exits 0 and writes nothing, so that the hook does not get in the
-// way of other work.
+// a spec, it exits 0 and writes nothing, so that the hook does not stop other
+// work.
 func cmdHook(ctx context.Context, env *Env) int {
 	in, err := claude.ReadEvent(env.Stdin)
 	if err != nil {

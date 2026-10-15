@@ -32,11 +32,16 @@ var (
 	specTemplate string
 )
 
-// Init creates the parts of a specval project in dir that do not exist yet:
-// the configuration, the data and policy files, the specs directory, the
-// Claude Code skill, and the hook. It does not change a file that exists,
-// except that it adds the hook to an existing settings file. Init writes one
-// line to w for each part.
+// Init creates each part of a specval project in dir that does not exist:
+//
+//   - the configuration file
+//   - the data and policy files
+//   - the specs directory
+//   - the Claude Code skill
+//   - the hook in the Claude Code settings
+//
+// Init does not change a file that exists. The one exception is the settings
+// file, to which it adds the hook. Init writes one line to w for each part.
 func Init(dir string, w io.Writer) error {
 	// Read the settings file first, so that a file that is not valid stops
 	// Init before it writes anything.

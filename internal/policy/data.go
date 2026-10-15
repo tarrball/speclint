@@ -86,7 +86,7 @@ func (e *Engine) loadDataFile(path string, project map[string]any) error {
 	return nil
 }
 
-// roundTrip converts YAML-decoded values into the JSON-compatible types that OPA expects.
+// roundTrip converts values from the YAML decoder to the JSON types that OPA uses.
 func roundTrip(in, out any) error {
 	b, err := json.Marshal(in)
 	if err != nil {
