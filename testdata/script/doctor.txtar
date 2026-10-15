@@ -1,0 +1,105 @@
+# After init, doctor warns only that the registry is empty.
+cd proj
+exits 0 specval init
+exits 0 specval doctor
+stdout '^✓ config    .*/\.specval\.yaml$'
+stdout '^✓ specs     specs \(0 spec\(s\)\)$'
+stdout '^✓ rules     11 spec rule\(s\) compile, 0 from this project$'
+stdout '^! registry  no services registered \(data.project.services is empty\)$'
+stdout '^    fix: Add your services and their layers to .specval/data/services.yaml; until then every call fails SV101.$'
+stdout '^✓ skill     .claude/skills/spec/SKILL.md$'
+stdout '^✓ hook      .claude/settings.json$'
+stdout '^✓ path      .*/specval$'
+stdout '^0 problem\(s\), 1 warning\(s\).$'
+
+# The JSON format has the same checks.
+exits 0 specval doctor --format json
+stdout '"ok": true'
+stdout '"name": "registry",\n\s+"detail": "no services registered'
+
+# An unknown format is a usage error.
+exits 2 specval doctor --format yaml
+stderr '^specval: unknown format "yaml"$'
+
+# With services registered, all checks pass.
+cp $WORK/services.yaml .specval/data/services.yaml
+exits 0 specval doctor
+stdout '^✓ registry  1 service\(s\), .specval/data/services.yaml$'
+stdout '^specval setup looks good.$'
+
+# A registry rule failure is a doctor failure.
+cp $WORK/badservices.yaml .specval/data/services.yaml
+exits 1 specval doctor
+stdout '^✗ registry  .specval/data/services.yaml:2 PricingThing is in the engine layer but does not end in Engine$'
+cp $WORK/services.yaml .specval/data/services.yaml
+
+# A policy that does not compile is a doctor failure.
+cp $WORK/broken.rego .specval/policy/broken.rego
+exits 1 specval doctor
+stdout '^✗ rules     1 error occurred: .specval/policy/broken.rego:4: rego_parse_error: unexpected eof token$'
+stdout '^! registry  not checked until the rules load$'
+rm .specval/policy/broken.rego
+
+# A skill that no longer runs specval context is a warning.
+cp $WORK/oldskill.md .claude/skills/spec/SKILL.md
+exits 0 specval doctor
+stdout '^! skill     .claude/skills/spec/SKILL.md no longer tells Claude to run `specval context`$'
+rm .claude/skills/spec/SKILL.md
+exits 0 specval doctor
+stdout '^! skill     .claude/skills/spec/SKILL.md is missing; '
+
+# A matcher that misses a write tool is a warning.
+cp $WORK/narrow.json .claude/settings.json
+exits 0 specval doctor
+stdout '^! hook      matcher "Write" in .claude/settings.json doesn''t fire on Edit, MultiEdit$'
+
+# disableAllHooks in any settings file is a failure.
+cp $WORK/disabled.json .claude/settings.local.json
+exits 1 specval doctor
+stdout '^✗ hook      hooks are turned off by disableAllHooks in .claude/settings.local.json$'
+rm .claude/settings.local.json
+
+# A settings file that is not valid JSON is a failure.
+cp $WORK/badjson.json .claude/settings.local.json
+exits 1 specval doctor
+stdout '^✗ hook      .claude/settings.local.json is not valid JSON: '
+rm .claude/settings.local.json
+
+# No hook is a failure.
+rm .claude/settings.json
+exits 1 specval doctor
+stdout '^✗ hook      no PostToolUse hook runs `specval hook`; '
+
+# A missing specs, data, or policy directory is a warning.
+rm specs .specval/policy
+exits 1 specval doctor
+stdout '^! specs     specs does not exist$'
+stdout '^! policy    .specval/policy \(listed in .specval.yaml\) does not exist$'
+
+# Without a .specval.yaml, doctor fails at once.
+cd $WORK/elsewhere
+exits 1 specval doctor
+stdout '^✗ config    no .specval.yaml found in .* or any parent \(run `specval init`\)$'
+stdout '^    fix: Run `specval init` in the project root.$'
+stdout '^1 problem\(s\), 0 warning\(s\).$'
+
+-- proj/.keep --
+-- elsewhere/.keep --
+-- services.yaml --
+services:
+  OrderManager: { layer: manager }
+-- badservices.yaml --
+services:
+  PricingThing: { layer: engine }
+-- broken.rego --
+package specval.spec.broken
+
+deny contains f if {
+-- oldskill.md --
+Write the spec. Then write the code.
+-- narrow.json --
+{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"type": "command", "command": "specval hook"}]}]}}
+-- disabled.json --
+{"disableAllHooks": true}
+-- badjson.json --
+{not json

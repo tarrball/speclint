@@ -1,0 +1,37 @@
+# Without a .specval.yaml here or in a parent, check exits 2.
+exits 2 specval check
+! stdout .
+stderr '^specval: no .specval.yaml found in .* or any parent \(run `specval init`\)$'
+
+# check finds .specval.yaml in a parent directory, and uses its specs_dir.
+cd project/sub
+exits 0 specval check
+cmp stdout $WORK/check.txt
+
+# A .specval.yaml that is not valid YAML is an error.
+cd $WORK/broken
+exits 2 specval check
+stderr '^specval: .*broken/.specval.yaml: yaml: '
+
+-- project/.specval.yaml --
+specs_dir: changes
+data: [registry.yaml]
+-- project/registry.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+-- project/sub/.keep --
+-- project/changes/A-1.yaml --
+specval: 1
+id: A-1
+kind: bugfix
+title: A spec in a custom specs_dir
+summary: OrderManager reads an order.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- broken/.specval.yaml --
+specs_dir: [unclosed
+-- check.txt --
+1 spec(s) checked: 0 error(s), 0 warning(s)

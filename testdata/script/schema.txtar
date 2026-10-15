@@ -1,0 +1,5 @@
+# schema prints the embedded spec JSON Schema and exits 0.
+exits 0 specval schema
+! stderr .
+stdout '"\$schema": "http://json-schema.org/draft-07/schema#"'
+stdout '"title": "specval spec"'

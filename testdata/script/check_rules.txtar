@@ -1,0 +1,313 @@
+# This project breaks each baseline spec rule at least one time.
+# The output fixes the message and the fix text of each rule.
+exits 1 specval check
+cmp stdout check.txt
+! stderr .
+
+# A spec with only warnings passes, unless --strict is set.
+exits 0 specval check specs/warn.yaml
+cmp stdout warn.txt
+exits 1 specval check --strict specs/warn.yaml
+cmp stdout warn.txt
+
+exits 1 specval check --format json specs/rules.yaml
+cmp stdout rules.json
+
+-- .specval.yaml --
+specs_dir: specs
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  PricingEngine: { layer: engine }
+  OrderAccessor: { layer: accessor }
+  BillingAccessor: { layer: accessor }
+-- specs/pass.yaml --
+specval: 1
+id: PASS-1
+kind: feature
+title: A spec that passes
+summary: OrderManager reads an order.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+services:
+  changed: [OrderManager]
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- specs/warn.yaml --
+specval: 1
+id: WARN-1
+kind: chore
+title: A spec with only a warning
+summary: BillingAccessor is listed as changed, but no call uses it.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+services:
+  changed: [BillingAccessor]
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- specs/rules.yaml --
+specval: 1
+id: RULES-1
+kind: feature
+title: A spec that breaks each spec rule
+summary: Each part of this spec breaks one rule.
+acceptance:
+  - { id: AC1, text: Covered. }
+  - { id: AC2, text: Not covered by a call. }
+services:
+  new:
+    - { name: RefundCalc, layer: engine, purpose: Has no layer suffix. }
+    - { name: TaxManager, layer: engine, purpose: Has the suffix of a different layer. }
+    - { name: PricingEngine, layer: engine, purpose: Is already registered. }
+    - { name: AuditHelper, layer: helper, purpose: Has an unknown layer. }
+    - { name: UnusedEngine, layer: engine, purpose: Is not in a call. }
+    - { name: CacheResource, layer: resource, purpose: Calls a service. }
+  changed: [GhostManager, BillingAccessor]
+calls:
+  - { from: OrderManager, to: RefundCalc, op: Calculate, covers: [AC1] }
+  - { from: OrderManager, to: TaxManager, op: Tax, covers: [AC1] }
+  - { from: PricingEngine, to: OrderManager, op: Notify, covers: [AC1] }
+  - { from: OrderAccessor, to: PricingEngine, op: Reprice, covers: [AC9] }
+  - { from: CacheResource, to: OrderAccessor, op: Fill, covers: [AC1] }
+  - { from: OrderManager, to: MysteryEngine, op: Run, covers: [AC1] }
+  - { from: Somebody, to: OrderAccessor, op: Run, covers: [AC1] }
+-- specs/yaml.yaml --
+specval: 1
+id: [unclosed
+-- specs/empty.yaml --
+-- specs/shape.yaml --
+specval: 2
+id: bad id
+kind: feature
+title: ""
+summary: Wrong shapes.
+acceptance:
+  - { id: A1, text: Bad id. }
+services:
+  new:
+    - { name: lowerEngine, layer: engine }
+  removed: []
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: get-order }
+owner: someone
+-- check.txt --
+specs/empty.yaml:0 error SV001 acceptance is required
+    fix: Add `acceptance`: Testable acceptance criteria; at least one.
+specs/empty.yaml:0 error SV001 calls is required
+    fix: Add `calls`: Every service-to-service call the change adds or alters.
+specs/empty.yaml:0 error SV001 id is required
+    fix: Add `id`: Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/<id>.yaml.
+specs/empty.yaml:0 error SV001 kind is required
+    fix: Add `kind`: One of: feature, bugfix, chore.
+specs/empty.yaml:0 error SV001 specval is required
+    fix: Add `specval`: Spec format version; always 1.
+specs/empty.yaml:0 error SV001 summary is required
+    fix: Add `summary`: A short paragraph: the problem and the intended behavior.
+specs/empty.yaml:0 error SV001 title is required
+    fix: Add `title`: One-line title of the change.
+specs/rules.yaml:8 error SV107 AC2 is not covered by any call (acceptance[1])
+    fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
+specs/rules.yaml:11 error SV103 RefundCalc is in the engine layer but does not end in Engine (services.new[0].name)
+    fix: Rename it to RefundCalcEngine everywhere in the spec, or change its layer.
+specs/rules.yaml:12 error SV103 TaxManager is in the engine layer but does not end in Engine (services.new[1].name)
+    fix: Rename it to TaxEngine everywhere in the spec, or change its layer.
+specs/rules.yaml:13 error SV104 PricingEngine is already registered (engine layer) (services.new[2].name)
+    fix: Move PricingEngine from services.new to services.changed.
+specs/rules.yaml:14 error SV105 helper is not a layer (services.new[3].layer)
+    fix: Use one of: manager, engine, accessor, resource.
+specs/rules.yaml:14 error SV106 AuditHelper is declared as new but no call uses it (services.new[3])
+    fix: Add the calls to or from AuditHelper, or remove it from services.new.
+specs/rules.yaml:15 error SV106 UnusedEngine is declared as new but no call uses it (services.new[4])
+    fix: Add the calls to or from UnusedEngine, or remove it from services.new.
+specs/rules.yaml:17 error SV109 GhostManager is not a registered service (services.changed[0])
+    fix: If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager.
+specs/rules.yaml:17 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[1])
+    fix: Add the calls that change BillingAccessor, or remove it from services.changed.
+specs/rules.yaml:21 error SV102 PricingEngine (engine) may not call OrderManager (manager) (calls[2])
+    fix: Engines may call only accessors. Managers are entry points; no service calls them.
+specs/rules.yaml:22 error SV102 OrderAccessor (accessor) may not call PricingEngine (engine) (calls[3])
+    fix: Accessors may call only resources. Route the call to PricingEngine through a manager instead.
+specs/rules.yaml:22 error SV108 AC9 is not an acceptance criterion in this spec (calls[3].covers[0])
+    fix: Use one of: AC1, AC2, or add AC9 under acceptance.
+specs/rules.yaml:23 error SV102 CacheResource (resource) may not call OrderAccessor (accessor) (calls[4])
+    fix: Resources may not call other services. Route the call to OrderAccessor through a manager or engine instead.
+specs/rules.yaml:24 error SV101 MysteryEngine is not a registered service (calls[5].to)
+    fix: If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
+specs/rules.yaml:25 error SV101 Somebody is not a registered service (calls[6].from)
+    fix: If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor, OrderAccessor, OrderManager, PricingEngine.
+specs/shape.yaml:1 error SV001 Additional property owner is not allowed
+    fix: Remove `owner` or fix its name. Allowed here: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title.
+specs/shape.yaml:1 error SV001 specval does not match: 1 (specval)
+    fix: Spec format version; always 1.
+specs/shape.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
+    fix: Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/<id>.yaml.
+specs/shape.yaml:4 error SV001 String length must be greater than or equal to 1 (title)
+    fix: One-line title of the change.
+specs/shape.yaml:7 error SV001 Does not match pattern '^AC[0-9]+$' (acceptance[0].id)
+    fix: AC followed by a number, e.g. AC1.
+specs/shape.yaml:8 error SV001 Additional property removed is not allowed (services)
+    fix: Remove `removed` or fix its name. Allowed here: changed, new.
+specs/shape.yaml:10 error SV001 purpose is required (services.new[0])
+    fix: Add `purpose`: One sentence on what the service is responsible for.
+specs/shape.yaml:10 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (services.new[0].name)
+    fix: PascalCase name ending in its layer suffix, e.g. RefundEngine.
+specs/shape.yaml:13 error SV001 covers is required (calls[0])
+    fix: Add `covers`: Acceptance criteria this call helps satisfy, e.g. [AC1].
+specs/shape.yaml:13 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (calls[0].op)
+    fix: PascalCase operation name, e.g. CalculateRefund.
+specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[0])
+    fix: Add the calls that change BillingAccessor, or remove it from services.changed.
+specs/yaml.yaml:1 error SV000 yaml: line 1: did not find expected ',' or ']'
+    fix: Fix the YAML syntax at this line.
+6 spec(s) checked: 32 error(s), 2 warning(s)
+-- warn.txt --
+specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[0])
+    fix: Add the calls that change BillingAccessor, or remove it from services.changed.
+1 spec(s) checked: 0 error(s), 1 warning(s)
+-- rules.json --
+{
+  "files": [
+    {
+      "file": "specs/rules.yaml",
+      "findings": [
+        {
+          "rule": "SV107",
+          "title": "Every acceptance criterion is implemented by a call",
+          "severity": "error",
+          "path": "acceptance[1]",
+          "line": 8,
+          "msg": "AC2 is not covered by any call",
+          "fix": "Add AC2 to `covers` on the call(s) that implement it, or add the missing call."
+        },
+        {
+          "rule": "SV103",
+          "title": "New services are named for their layer",
+          "severity": "error",
+          "path": "services.new[0].name",
+          "line": 11,
+          "msg": "RefundCalc is in the engine layer but does not end in Engine",
+          "fix": "Rename it to RefundCalcEngine everywhere in the spec, or change its layer."
+        },
+        {
+          "rule": "SV103",
+          "title": "New services are named for their layer",
+          "severity": "error",
+          "path": "services.new[1].name",
+          "line": 12,
+          "msg": "TaxManager is in the engine layer but does not end in Engine",
+          "fix": "Rename it to TaxEngine everywhere in the spec, or change its layer."
+        },
+        {
+          "rule": "SV104",
+          "title": "New services are actually new",
+          "severity": "error",
+          "path": "services.new[2].name",
+          "line": 13,
+          "msg": "PricingEngine is already registered (engine layer)",
+          "fix": "Move PricingEngine from services.new to services.changed."
+        },
+        {
+          "rule": "SV105",
+          "title": "New services use a known layer",
+          "severity": "error",
+          "path": "services.new[3].layer",
+          "line": 14,
+          "msg": "helper is not a layer",
+          "fix": "Use one of: manager, engine, accessor, resource."
+        },
+        {
+          "rule": "SV106",
+          "title": "New services are used",
+          "severity": "error",
+          "path": "services.new[3]",
+          "line": 14,
+          "msg": "AuditHelper is declared as new but no call uses it",
+          "fix": "Add the calls to or from AuditHelper, or remove it from services.new."
+        },
+        {
+          "rule": "SV106",
+          "title": "New services are used",
+          "severity": "error",
+          "path": "services.new[4]",
+          "line": 15,
+          "msg": "UnusedEngine is declared as new but no call uses it",
+          "fix": "Add the calls to or from UnusedEngine, or remove it from services.new."
+        },
+        {
+          "rule": "SV109",
+          "title": "Changed services are registered",
+          "severity": "error",
+          "path": "services.changed[0]",
+          "line": 17,
+          "msg": "GhostManager is not a registered service",
+          "fix": "If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager."
+        },
+        {
+          "rule": "SV201",
+          "title": "Changed services take part in a call",
+          "severity": "warning",
+          "path": "services.changed[1]",
+          "line": 17,
+          "msg": "BillingAccessor is listed as changed but no call involves it",
+          "fix": "Add the calls that change BillingAccessor, or remove it from services.changed."
+        },
+        {
+          "rule": "SV102",
+          "title": "Calls follow the layer rules",
+          "severity": "error",
+          "path": "calls[2]",
+          "line": 21,
+          "msg": "PricingEngine (engine) may not call OrderManager (manager)",
+          "fix": "Engines may call only accessors. Managers are entry points; no service calls them."
+        },
+        {
+          "rule": "SV102",
+          "title": "Calls follow the layer rules",
+          "severity": "error",
+          "path": "calls[3]",
+          "line": 22,
+          "msg": "OrderAccessor (accessor) may not call PricingEngine (engine)",
+          "fix": "Accessors may call only resources. Route the call to PricingEngine through a manager instead."
+        },
+        {
+          "rule": "SV108",
+          "title": "Calls cover real acceptance criteria",
+          "severity": "error",
+          "path": "calls[3].covers[0]",
+          "line": 22,
+          "msg": "AC9 is not an acceptance criterion in this spec",
+          "fix": "Use one of: AC1, AC2, or add AC9 under acceptance."
+        },
+        {
+          "rule": "SV102",
+          "title": "Calls follow the layer rules",
+          "severity": "error",
+          "path": "calls[4]",
+          "line": 23,
+          "msg": "CacheResource (resource) may not call OrderAccessor (accessor)",
+          "fix": "Resources may not call other services. Route the call to OrderAccessor through a manager or engine instead."
+        },
+        {
+          "rule": "SV101",
+          "title": "Calls use known services",
+          "severity": "error",
+          "path": "calls[5].to",
+          "line": 24,
+          "msg": "MysteryEngine is not a registered service",
+          "fix": "If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine."
+        },
+        {
+          "rule": "SV101",
+          "title": "Calls use known services",
+          "severity": "error",
+          "path": "calls[6].from",
+          "line": 25,
+          "msg": "Somebody is not a registered service",
+          "fix": "If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor, OrderAccessor, OrderManager, PricingEngine."
+        }
+      ]
+    }
+  ],
+  "errors": 14,
+  "warnings": 1
+}

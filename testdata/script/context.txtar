@@ -1,0 +1,65 @@
+# context prints the format, layers, registry, and rules for an agent.
+cd $EXAMPLES/refund
+exits 0 specval context
+cmp stdout $WORK/refund.txt
+! stderr .
+
+# With an empty registry, context says so.
+cd $WORK/empty
+exits 0 specval context
+stdout '^## Registered services\n\(none yet\)$'
+
+# Without a .specval.yaml, context exits 2.
+cd $WORK
+exits 2 specval context
+stderr '^specval: no .specval.yaml found'
+
+-- empty/.specval.yaml --
+-- refund.txt --
+# Spec rules (specval)
+
+Every change needs a passing spec at specs/<id>.yaml before code is written. Scaffold: `specval new <id>`. Validate: `specval check <file>`. Each finding includes a fix.
+
+## Format
+```yaml
+specval: 1
+id: ORD-142                # ticket id; file is specs/<id>.yaml
+kind: feature              # feature | bugfix | chore
+title: Customer can request a refund
+summary: One paragraph - the problem and the intended behavior.
+acceptance:                # testable criteria, ids AC1, AC2, ...
+  - { id: AC1, text: "Given a delivered order, when the customer requests a refund, then ..." }
+services:
+  new:                     # services this change introduces
+    - { name: RefundEngine, layer: engine, purpose: Computes refund amounts }
+  changed: [OrderManager]  # registered services whose behavior changes
+calls:                     # every service-to-service call the change adds or alters
+  - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1] }
+out_of_scope: [Partial refunds]
+```
+
+## Layers (caller -> may call)
+- manager -> engine, accessor
+- engine -> accessor
+- accessor -> resource
+- resource -> nothing
+Service names end with their layer: Manager, Engine, Accessor, Resource.
+
+## Registered services
+- manager: OrderManager
+- engine: PricingEngine
+- accessor: CatalogAccessor, OrderAccessor
+
+## Rules
+- ORD001 (error) Only OrderManager calls PricingEngine: Pricing is orchestrated in one place so discounts are applied consistently.
+- SV001 (error) Spec matches the specval format: Required fields, field names, and value types follow the schema (`specval schema`). Other rules run only once this passes.
+- SV101 (error) Calls use known services: Each call's `from` and `to` is a registered service or is declared in `services.new`.
+- SV102 (error) Calls follow the layer rules: A service may call only the layers its own layer allows (see Layers).
+- SV103 (error) New services are named for their layer: A new service's name ends with its layer's suffix (Manager, Engine, Accessor, Resource).
+- SV104 (error) New services are actually new: A service already in the registry belongs under `services.changed`, not `services.new`.
+- SV105 (error) New services use a known layer: A new service's `layer` is one of the DPL layers.
+- SV106 (error) New services are used: Every service in `services.new` appears in at least one call.
+- SV107 (error) Every acceptance criterion is implemented by a call: Each acceptance criterion id appears in the `covers` list of at least one call, so every requirement traces to the services that implement it.
+- SV108 (error) Calls cover real acceptance criteria: Every id in a call's `covers` is defined under `acceptance`.
+- SV109 (error) Changed services are registered: Every name in `services.changed` is in the registry.
+- SV201 (warning) Changed services take part in a call: A service listed in `services.changed` should appear in at least one call.

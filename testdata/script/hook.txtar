@@ -1,0 +1,128 @@
+# The hook reads a Claude Code PostToolUse event from stdin.
+
+# A spec with errors: exit 2, and the findings go to stderr for Claude.
+jsonexpand events/bad.json bad.json
+stdin bad.json
+exits 2 specval hook
+! stdout .
+cmp stderr bad.txt
+
+# A spec with only warnings: exit 0, and the warnings go to stdout as JSON.
+jsonexpand events/warn.json warn.json
+stdin warn.json
+exits 0 specval hook
+cmp stdout warn.out
+! stderr .
+
+# A passing spec: exit 0, and no output.
+jsonexpand events/pass.json pass.json
+stdin pass.json
+exits 0 specval hook
+! stdout .
+! stderr .
+
+# A relative file path is resolved against cwd.
+jsonexpand events/relative.json relative.json
+stdin relative.json
+exits 2 specval hook
+stderr '^specs/bad.yaml:'
+
+# The hook ignores files that are not specs, and input that it cannot read.
+stdin events/notyaml.json
+exits 0 specval hook
+! stdout .
+! stderr .
+jsonexpand events/outside.json outside.json
+stdin outside.json
+exits 0 specval hook
+! stdout .
+! stderr .
+jsonexpand events/noproject.json noproject.json
+stdin noproject.json
+exits 0 specval hook
+! stdout .
+stdin events/nofile.json
+exits 0 specval hook
+! stdout .
+stdin events/garbage.txt
+exits 0 specval hook
+! stdout .
+! stderr .
+
+# If specval itself fails, the hook exits 1 so that Claude Code shows the error to the user.
+mkdir .specval/policy
+cp broken.rego .specval/policy/broken.rego
+stdin bad.json
+exits 1 specval hook
+stderr '^specval: .*broken.rego:'
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+  BillingAccessor: { layer: accessor }
+-- specs/bad.yaml --
+specval: 1
+id: BAD-1
+kind: feature
+title: Bad
+summary: An accessor calls a manager.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderAccessor, to: OrderManager, op: Notify, covers: [AC1] }
+-- specs/warn.yaml --
+specval: 1
+id: WARN-1
+kind: feature
+title: Warn
+summary: BillingAccessor is listed as changed, but no call uses it.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+services:
+  changed: [BillingAccessor]
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- specs/pass.yaml --
+specval: 1
+id: PASS-1
+kind: feature
+title: Pass
+summary: OrderManager reads an order.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- notspec.yaml --
+a: b
+-- other/.keep --
+-- events/bad.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/bad.yaml"}}
+-- events/warn.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/warn.yaml"}}
+-- events/pass.json --
+{"cwd": "$WORK", "tool_name": "Edit", "tool_input": {"file_path": "$WORK/specs/pass.yaml"}}
+-- events/relative.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "specs/bad.yaml"}}
+-- events/notyaml.json --
+{"cwd": "/", "tool_name": "Write", "tool_input": {"file_path": "/tmp/main.go"}}
+-- events/outside.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/notspec.yaml"}}
+-- events/noproject.json --
+{"cwd": "/", "tool_name": "Write", "tool_input": {"file_path": "/nonexistent/specs/x.yaml"}}
+-- events/nofile.json --
+{"cwd": "/", "tool_name": "Bash", "tool_input": {"command": "ls"}}
+-- events/garbage.txt --
+not json
+-- broken.rego --
+package specval.spec.broken
+
+deny contains f if {
+-- bad.txt --
+specs/bad.yaml:9 error SV102 OrderAccessor (accessor) may not call OrderManager (manager) (calls[0])
+    fix: Accessors may call only resources. Managers are entry points; no service calls them.
+1 spec(s) checked: 1 error(s), 0 warning(s)
+The spec does not pass yet. Apply each fix above and save the spec again before writing any code.
+-- warn.out --
+{"hookSpecificOutput":{"additionalContext":"specval warnings (spec passes; consider fixing):\nspecs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[0])\n    fix: Add the calls that change BillingAccessor, or remove it from services.changed.\n1 spec(s) checked: 0 error(s), 1 warning(s)\n","hookEventName":"PostToolUse"}}

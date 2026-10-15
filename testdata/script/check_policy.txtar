@@ -1,0 +1,110 @@
+# Project rules run with the baseline rules. Files named *_test.rego are not loaded.
+exits 1 specval check
+cmp stdout check.txt
+
+# A deny or warn rule without custom.id stops the load.
+cp noid.rego .specval/policy/noid.rego
+exits 2 specval check
+stderr 'noid.rego:6: deny rule needs a METADATA block with custom.id$'
+rm .specval/policy/noid.rego
+
+# A Rego syntax error stops the load.
+cp syntax.rego .specval/policy/syntax.rego
+exits 2 specval check
+stderr 'syntax.rego:'
+rm .specval/policy/syntax.rego
+
+# A finding that is not an object is an error.
+cp malformed.rego .specval/policy/malformed.rego
+exits 2 specval check
+stderr 'rule returned a malformed finding'
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+-- .specval/data/limits.json --
+{"limits": {"max_calls": 1}}
+-- .specval/policy/project.rego --
+package specval.spec.project
+
+import data.specval.lib
+import rego.v1
+
+# METADATA
+# title: Specs have a short title
+# description: Titles are at most 20 characters.
+# custom:
+#   id: PRJ201
+warn contains f if {
+	count(input.title) > 20
+	f := lib.finding(rego.metadata.rule(), "title", "The title is too long", "Shorten the title.")
+}
+
+# METADATA
+# title: Specs stay small
+# custom:
+#   id: PRJ001
+deny contains f if {
+	count(input.calls) > data.project.limits.max_calls
+	f := lib.finding(rego.metadata.rule(), "calls", "Too many calls", "Split the spec.")
+}
+-- .specval/policy/project_test.rego --
+package specval.spec.project_test
+
+this is not valid rego, and specval must not load it
+-- .specval/policy/registry.rego --
+package specval.registry.project
+
+import data.specval.lib
+import rego.v1
+
+# METADATA
+# title: Accessors are listed
+# custom:
+#   id: PRJ900
+warn contains f if {
+	not data.project.services.CustomerAccessor
+	f := lib.finding(rego.metadata.rule(), "services", "No CustomerAccessor", "Register CustomerAccessor.")
+}
+-- specs/A-1.yaml --
+specval: 1
+id: A-1
+kind: feature
+title: A title that is longer than twenty characters
+summary: Two calls.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+  - { from: OrderManager, to: OrderAccessor, op: GetLines, covers: [AC1] }
+-- noid.rego --
+package specval.spec.noid
+
+import rego.v1
+
+# A rule without METADATA.
+deny contains "no id" if true
+-- syntax.rego --
+package specval.spec.syntax
+
+deny contains f if {
+-- malformed.rego --
+package specval.spec.malformed
+
+import rego.v1
+
+# METADATA
+# title: Returns a string
+# custom:
+#   id: BAD001
+deny contains "not an object" if true
+-- check.txt --
+.specval/data/services.yaml:1 warning PRJ900 No CustomerAccessor (services)
+    fix: Register CustomerAccessor.
+specs/A-1.yaml:4 warning PRJ201 The title is too long (title)
+    fix: Shorten the title.
+specs/A-1.yaml:8 error PRJ001 Too many calls (calls)
+    fix: Split the spec.
+1 spec(s) checked: 1 error(s), 2 warning(s)
