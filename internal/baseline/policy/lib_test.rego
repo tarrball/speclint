@@ -53,3 +53,9 @@ test_quote_uses_go_escapes if {
 	lib.quote("") == `""`
 	lib.quote("<b>&") == `"<b>&"`
 }
+
+test_quote_writes_other_values_as_json if {
+	lib.quote(7) == "7"
+	lib.quote(true) == "true"
+	lib.quote({"a": 1}) == `{"a":1}`
+}

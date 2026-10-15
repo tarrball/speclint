@@ -30,6 +30,12 @@ test_sr001_quotes_the_layer if {
 	f.msg == `X has no valid layer (got "storage")`
 }
 
+test_sr001_layer_that_is_not_a_string if {
+	project := {"services": {"X": {"layer": 7}}}
+	some f in dpl.deny with data.project as project
+	f.msg == "X has no valid layer (got 7)"
+}
+
 test_sr002_name_suffix if {
 	project := {"services": {"PricingThing": {"layer": "engine"}}}
 	some f in dpl.deny with data.project as project

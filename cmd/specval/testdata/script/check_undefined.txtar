@@ -53,7 +53,7 @@ calls:
 -- check.txt --
 .specval/data/services.yaml:4 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
-.specval/data/services.yaml:5 error SR001 NumberEngine has no valid layer (got '\a') (services.NumberEngine)
+.specval/data/services.yaml:5 error SR001 NumberEngine has no valid layer (got 7) (services.NumberEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
 specs/undefined.yaml:10 error SV105 helper is not a layer (services.new[0].layer)
     fix: Use one of: manager, engine, accessor, resource.

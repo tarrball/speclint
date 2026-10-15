@@ -28,7 +28,11 @@ plural(word) := $"{word}s" if is_string(word)
 # quote renders s as a quoted string with Go escapes, like "got \"x\"".
 # json.marshal is different: it escapes <, >, and & for HTML.
 # regal ignore:prefer-string-interpolation
-quote(s) := sprintf("%q", [s])
+quote(s) := sprintf("%q", [s]) if is_string(s)
+
+# quote renders a value that is not a string as JSON. sprintf("%q") would
+# write the number 7 as the character '\a'.
+quote(s) := json.marshal(s) if not is_string(s)
 
 capitalize(s) := concat("", [upper(substring(s, 0, 1)), substring(s, 1, -1)])
 
