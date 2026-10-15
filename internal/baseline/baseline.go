@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"io/fs"
 	"path"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 )
@@ -29,6 +32,38 @@ var (
 
 // Schema returns the JSON Schema of a spec.
 func Schema() string { return schema }
+
+// specFields holds the parts of the schema that Go code also uses. Thus the
+// schema is the one source of these values.
+type specFields struct {
+	kinds []string
+	id    *regexp.Regexp
+}
+
+var schemaFields = sync.OnceValue(func() specFields {
+	var s struct {
+		Properties struct {
+			Kind struct {
+				Enum []string `json:"enum"`
+			} `json:"kind"`
+			ID struct {
+				Pattern string `json:"pattern"`
+			} `json:"id"`
+		} `json:"properties"`
+	}
+	// The schema is embedded, and the tests parse it. Thus an error here is a
+	// defect in the build, not in the input.
+	if err := json.Unmarshal([]byte(schema), &s); err != nil {
+		panic("baseline: schema.json: " + err.Error())
+	}
+	return specFields{kinds: s.Properties.Kind.Enum, id: regexp.MustCompile(s.Properties.ID.Pattern)}
+})
+
+// Kinds returns the values that the kind of a spec can have.
+func Kinds() []string { return slices.Clone(schemaFields().kinds) }
+
+// IDPattern returns the pattern that the ID of a spec must match.
+func IDPattern() *regexp.Regexp { return schemaFields().id }
 
 // Format returns an annotated example spec. It shows an agent the format.
 func Format() string { return format }

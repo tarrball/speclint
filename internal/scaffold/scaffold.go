@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/claude"
 	"github.com/tarrball/specval/internal/config"
 )
@@ -87,11 +87,9 @@ func sameDir(a, b string) bool {
 	return a == b
 }
 
-var idRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
-
 // ValidID reports whether id can be the ID of a spec.
 func ValidID(id string) bool {
-	return idRe.MatchString(id)
+	return baseline.IDPattern().MatchString(id)
 }
 
 // Spec writes a new spec, made from the template, to <specs dir>/<id>.yaml.
