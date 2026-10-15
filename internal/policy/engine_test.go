@@ -393,3 +393,59 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 		}
 	}
 }
+
+func TestRuleDocsListEachRuleOnce(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/a.rego": `# METADATA
+# title: Project rules
+# description: Rules for this project.
+package specval.spec.a
+
+import rego.v1
+
+# METADATA
+# title: Two bodies
+# custom:
+#   id: PRJ001
+deny contains "a" if false
+
+# METADATA
+# title: Two bodies
+# custom:
+#   id: PRJ001
+deny contains "b" if false
+
+# METADATA
+# scope: document
+# title: Document title
+# custom:
+#   id: PRJ002
+
+# METADATA
+# title: Rule title
+# custom:
+#   id: PRJ002
+warn contains "c" if false
+`,
+	})
+	var got []string
+	for _, d := range newEngine(t, cfg).RuleDocs() {
+		if strings.HasPrefix(d.ID, "PRJ") {
+			got = append(got, d.ID+" "+d.Title)
+		}
+	}
+	if want := []string{"PRJ001 Two bodies", "PRJ002 Rule title"}; !slices.Equal(got, want) {
+		t.Errorf("RuleDocs = %q, want %q", got, want)
+	}
+}
+
+func TestRuleDocsMarkTheBaselineRules(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/policy/a.rego": "package specval.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains \"a\" if false\n",
+	})
+	for _, d := range newEngine(t, cfg).RuleDocs() {
+		if want := !strings.HasPrefix(d.ID, "PRJ"); d.Baseline != want {
+			t.Errorf("%s: Baseline = %v, want %v", d.ID, d.Baseline, want)
+		}
+	}
+}
