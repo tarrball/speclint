@@ -1,2 +1,37 @@
 [tools]
 go = "1.26"
+golangci-lint = "2.14.0"
+opa = "1.21.2" # Keep in step with github.com/open-policy-agent/opa in go.mod.
+
+[tasks.build]
+description = "Build bin/specval"
+run = "go build -trimpath -ldflags '-s -w' -o bin/specval ."
+
+[tasks.test]
+description = "Run all tests"
+run = "go test ./..."
+
+[tasks.cover]
+description = "Run all tests and open the coverage report"
+run = [
+  "go test -coverprofile=coverage.out ./...",
+  "go tool cover -html=coverage.out",
+]
+
+[tasks.lint]
+description = "Check Go and Rego code"
+run = [
+  "golangci-lint run ./...",
+  "opa fmt --list --fail baseline templates examples",
+]
+
+[tasks.fmt]
+description = "Format Go and Rego code"
+run = [
+  "golangci-lint fmt ./...",
+  "opa fmt --write baseline templates examples",
+]
+
+[tasks.check]
+description = "Run lint and test (do this before you push)"
+depends = ["lint", "test"]
