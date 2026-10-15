@@ -19,7 +19,11 @@ func cmdNew(env *Env, args []string) error {
 	if len(pos) != 1 || !scaffold.ValidID(pos[0]) {
 		return errors.New("usage: specval new <id> (letters, digits, . _ -)")
 	}
-	cfg, err := config.Find(env.Dir)
+	dir, err := env.workDir()
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Find(dir)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,11 @@ import (
 )
 
 func cmdContext(ctx context.Context, env *Env) error {
-	cfg, err := config.Find(env.Dir)
+	dir, err := env.workDir()
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Find(dir)
 	if err != nil {
 		return err
 	}

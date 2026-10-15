@@ -84,12 +84,16 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 	if err != nil {
 		return exitError, err
 	}
+	dir, err := env.workDir()
+	if err != nil {
+		return exitError, err
+	}
 	for i, f := range files {
 		if !filepath.IsAbs(f) {
-			files[i] = filepath.Join(env.Dir, f)
+			files[i] = filepath.Join(dir, f)
 		}
 	}
-	start := env.Dir
+	start := dir
 	if len(files) > 0 {
 		start = filepath.Dir(files[0])
 	}
@@ -102,7 +106,7 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 			return exitError, err
 		}
 	}
-	r, err := run(ctx, cfg, files, env.Dir)
+	r, err := run(ctx, cfg, files, dir)
 	if err != nil {
 		return exitError, err
 	}

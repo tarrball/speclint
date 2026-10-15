@@ -3,6 +3,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -41,7 +42,8 @@ type Env struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
-	// Dir is the working directory. It must be an absolute path.
+	// Dir is the working directory, as an absolute path. It is "" if the
+	// working directory is not known. Then a command that needs it fails.
 	Dir string
 	// Home is the home directory of the user.
 	Home string
@@ -88,6 +90,14 @@ func Run(ctx context.Context, args []string, env *Env) int {
 		}
 	}
 	return code
+}
+
+// workDir returns env.Dir, or an error if the working directory is not known.
+func (env *Env) workDir() (string, error) {
+	if env.Dir == "" {
+		return "", errors.New("the working directory is not known")
+	}
+	return env.Dir, nil
 }
 
 // parseArgs parses flags that come before or after the positional arguments.

@@ -29,12 +29,16 @@ func cmdHook(ctx context.Context, env *Env) int {
 	if fp == "" || (filepath.Ext(fp) != ".yaml" && filepath.Ext(fp) != ".yml") {
 		return hookPass
 	}
-	if !filepath.IsAbs(fp) {
-		fp = filepath.Join(in.Cwd, fp)
+	// Claude Code gives cwd in each event. If it does not, use the working
+	// directory of specval. If neither is known, the path cannot be resolved.
+	if in.Cwd == "" {
+		in.Cwd = env.Dir
 	}
-	fp, err = filepath.Abs(fp)
-	if err != nil {
-		return hookPass
+	if !filepath.IsAbs(fp) {
+		if !filepath.IsAbs(in.Cwd) {
+			return hookPass
+		}
+		fp = filepath.Join(in.Cwd, fp)
 	}
 	cfg, err := config.Find(filepath.Dir(fp))
 	if err != nil {

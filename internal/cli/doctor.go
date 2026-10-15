@@ -15,7 +15,11 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
 	if _, err := parseArgs(fl, args); err != nil {
 		return exitError, err
 	}
-	checks := doctor.Run(ctx, doctor.Env{Dir: env.Dir, Home: env.Home, Executable: env.Executable})
+	dir, err := env.workDir()
+	if err != nil {
+		return exitError, err
+	}
+	checks := doctor.Run(ctx, doctor.Env{Dir: dir, Home: env.Home, Executable: env.Executable})
 	failed := false
 	for _, c := range checks {
 		failed = failed || c.Status == doctor.StatusFail
