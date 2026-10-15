@@ -1,6 +1,0 @@
-# Service registry (CODEOWNERS-protected)
-services:
-  OrderManager: { layer: manager }
-  PricingEngine: { layer: engine }
-  OrderAccessor: { layer: accessor }
-  CatalogAccessor: { layer: accessor }
