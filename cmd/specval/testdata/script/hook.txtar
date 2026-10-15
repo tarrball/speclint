@@ -138,9 +138,9 @@ package specval.spec.broken
 
 deny contains f if {
 -- bad.txt --
-specs/bad.yaml:9 error SV102 OrderAccessor (accessor) may not call OrderManager (manager) (calls[0])
-    fix: Accessors may call only resources. Managers are entry points; no service calls them.
-1 spec(s) checked: 1 error(s), 0 warning(s)
-The spec does not pass yet. Apply each fix above and save the spec again before writing any code.
+specs/bad.yaml:9 error SV102 OrderAccessor (accessor) cannot call OrderManager (manager) (calls[0])
+    fix: Accessors can call only resources. No service can call managers.
+specval checked 1 spec(s) and found 1 error(s) and 0 warning(s).
+The spec does not pass. Apply each fix above, then save the spec again. Do not write code until the spec passes.
 -- warn.out --
-{"hookSpecificOutput":{"additionalContext":"specval warnings (spec passes; consider fixing):\nspecs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[0])\n    fix: Add the calls that change BillingAccessor, or remove it from services.changed.\n1 spec(s) checked: 0 error(s), 1 warning(s)\n","hookEventName":"PostToolUse"}}
+{"hookSpecificOutput":{"additionalContext":"The spec passes, but specval found warnings. If you can, fix them:\nspecs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])\n    fix: Add the calls that change BillingAccessor, or remove it from services.changed.\nspecval checked 1 spec(s) and found 0 error(s) and 1 warning(s).\n","hookEventName":"PostToolUse"}}

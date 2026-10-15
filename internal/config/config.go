@@ -44,7 +44,7 @@ func Find(start string) (*Config, error) {
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return nil, fmt.Errorf("no %s found in %s or any parent (run `specval init`)", FileName, start)
+			return nil, fmt.Errorf("no %s in %s or in a parent directory; run `specval init`", FileName, start)
 		}
 		dir = parent
 	}

@@ -46,7 +46,7 @@ func decodeFindings(v any, severity Severity) ([]Finding, error) {
 		return nil, nil
 	}
 	if err := roundTrip(v, &found); err != nil {
-		return nil, fmt.Errorf("rule returned a malformed finding: %w", err)
+		return nil, fmt.Errorf("a rule returned a finding that is not an object: %w", err)
 	}
 	for i := range found {
 		found[i].Severity = severity

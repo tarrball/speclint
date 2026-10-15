@@ -1,11 +1,11 @@
 ---
 name: spec
-description: Write or revise the spec (specs/<ticket-id>.yaml) for a feature, bugfix, or chore before any code is written. Use when planning work from a ticket or when asked to implement something that has no passing spec yet.
+description: Write or change the spec (specs/<ticket-id>.yaml) for a feature, bugfix, or chore before you write code. Use this skill when you plan work from a ticket, or when you must implement a change that has no passing spec.
 ---
 
-Every change needs a spec that passes `specval check` before implementation starts.
+Each change needs a spec that passes `specval check` before the implementation starts.
 
-1. Run `specval context`. It prints the spec format, the layer rules, the registered services, and every rule.
-2. Write `specs/<ticket-id>.yaml` (`specval new <ticket-id> --title "..."` scaffolds it).
-3. Saving the file runs the checks automatically. Each finding has a `fix:`; apply it and save again until the spec passes. Do not satisfy a rule by dropping calls or acceptance criteria the change really needs.
-4. Start implementation only once the spec passes, and implement the calls it lists.
+1. Run `specval context`. It prints the spec format, the layer rules, the registered services, and each rule.
+2. Write `specs/<ticket-id>.yaml`. To make the file from the template, run `specval new <ticket-id> --title "..."`.
+3. When you save the file, specval checks it. Each finding has a `fix:`. Apply the fix and save the file again. Do this until the spec passes. Do not remove a call or an acceptance criterion that the change needs, only to make a rule pass.
+4. Start the implementation only after the spec passes. Implement the calls that the spec lists.

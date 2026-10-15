@@ -5,13 +5,13 @@ cmp stdout check.txt
 # Two data files that define the same top-level key are an error.
 cp extra.yaml .specval/data/extra.yaml
 exits 2 specval check
-stderr '^specval: data key "services" is defined in both .*/extra.yaml and .*/services.yaml$'
+stderr '^specval: two data files define the key "services": .*/extra.yaml and .*/services.yaml$'
 rm .specval/data/extra.yaml
 
 # A data file must be a mapping.
 cp list.yaml .specval/data/list.yaml
 exits 2 specval check
-stderr 'list.yaml: data files must be a mapping'
+stderr 'list.yaml: a data file must be a mapping'
 
 -- .specval.yaml --
 -- .specval/data/services.yaml --
@@ -29,11 +29,11 @@ services: {}
 - b
 -- check.txt --
 .specval/data/services.yaml:3 error SR002 PricingThing is in the engine layer but does not end in Engine (services.PricingThing)
-    fix: Rename it to end in Engine, or fix its layer.
+    fix: Change its name so that it ends in Engine, or change its layer.
 .specval/data/services.yaml:4 error SR001 OrderAccessor has no valid layer (got "storage") (services.OrderAccessor)
     fix: Set layer to one of: manager, engine, accessor, resource.
 .specval/data/services.yaml:5 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
 .specval/data/services.yaml:6 error SR001 MarkupEngine has no valid layer (got "<b>&\x00") (services.MarkupEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
-0 spec(s) checked: 4 error(s), 0 warning(s)
+specval checked 0 spec(s) and found 4 error(s) and 0 warning(s).

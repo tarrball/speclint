@@ -73,11 +73,11 @@ func (e *Engine) loadDataFile(path string, project map[string]any) error {
 	}
 	var doc map[string]any
 	if err := node.Decode(&doc); err != nil {
-		return fmt.Errorf("%s: data files must be a mapping: %w", path, err)
+		return fmt.Errorf("%s: a data file must be a mapping: %w", path, err)
 	}
 	for k, v := range doc {
 		if prev, ok := e.dataFile[k]; ok {
-			return fmt.Errorf("data key %q is defined in both %s and %s", k, prev, path)
+			return fmt.Errorf("two data files define the key %q: %s and %s", k, prev, path)
 		}
 		project[k] = v
 		e.dataFile[k] = path

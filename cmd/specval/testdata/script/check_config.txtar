@@ -1,7 +1,7 @@
 # Without a .specval.yaml here or in a parent, check exits 2.
 exits 2 specval check
 ! stdout .
-stderr '^specval: no .specval.yaml found in .* or any parent \(run `specval init`\)$'
+stderr '^specval: no .specval.yaml in .* or in a parent directory; run `specval init`$'
 
 # check finds .specval.yaml in a parent directory, and uses its specs_dir.
 cd project/sub
@@ -34,4 +34,4 @@ calls:
 -- broken/.specval.yaml --
 specs_dir: [unclosed
 -- check.txt --
-1 spec(s) checked: 0 error(s), 0 warning(s)
+specval checked 1 spec(s) and found 0 error(s) and 0 warning(s).

@@ -58,13 +58,13 @@ func cmdHook(ctx context.Context, env *Env) int {
 	}
 	if r.Errors > 0 {
 		printText(env.Stderr, r, 1)
-		fmt.Fprintln(env.Stderr, "The spec does not pass yet. Apply each fix above and save the spec again before writing any code.")
+		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above, then save the spec again. Do not write code until the spec passes.")
 		return hookBlock
 	}
 	if r.Warnings > 0 {
 		var b strings.Builder
 		printText(&b, r, 1)
-		if err := claude.WriteContext(env.Stdout, "specval warnings (spec passes; consider fixing):\n"+b.String()); err != nil {
+		if err := claude.WriteContext(env.Stdout, "The spec passes, but specval found warnings. If you can, fix them:\n"+b.String()); err != nil {
 			fmt.Fprintln(env.Stderr, "specval:", err)
 			return hookError
 		}

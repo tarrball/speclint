@@ -38,7 +38,7 @@ test_missing_field_fix_uses_the_hint if {
 	some f in schema.deny with input as object.remove(valid, ["kind"])
 	f.rule == "SV001"
 	f.path == ""
-	f.fix == "Add `kind`: One of: feature, bugfix, chore."
+	f.fix == "Add `kind`: The kind of change: feature, bugfix, or chore."
 }
 
 test_missing_nested_field if {
@@ -52,14 +52,14 @@ test_unknown_field_fix_lists_the_allowed_fields if {
 	spec := object.union(valid, {"services": {"removed": []}})
 	some f in schema.deny with input as spec
 	f.path == "services"
-	f.fix == "Remove `removed` or fix its name. Allowed here: changed, new."
+	f.fix == "Remove `removed`, or correct its name. The permitted fields here are: changed, new."
 }
 
 test_wrong_value_fix_uses_the_hint if {
 	spec := object.union(valid, {"acceptance": [{"id": "A1", "text": "T"}]})
 	some f in schema.deny with input as spec
 	f.path == "acceptance[0].id"
-	f.fix == "AC followed by a number, e.g. AC1."
+	f.fix == "AC and a number, for example AC1."
 }
 
 test_fix_without_a_hint if {
@@ -67,5 +67,5 @@ test_fix_without_a_hint if {
 	spec := object.union(valid, {"out_of_scope": [1]})
 	some f in schema.deny with input as spec
 	f.path == "out_of_scope[0]"
-	f.fix == "See `specval schema` for the expected format."
+	f.fix == "Run `specval schema` to see the correct format."
 }

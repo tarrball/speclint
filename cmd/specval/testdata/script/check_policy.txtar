@@ -17,7 +17,7 @@ rm .specval/policy/syntax.rego
 # A finding that is not an object is an error.
 cp malformed.rego .specval/policy/malformed.rego
 exits 2 specval check
-stderr 'rule returned a malformed finding'
+stderr 'a rule returned a finding that is not an object'
 
 -- .specval.yaml --
 -- .specval/data/services.yaml --
@@ -107,4 +107,4 @@ specs/A-1.yaml:4 warning PRJ201 The title is too long (title)
     fix: Shorten the title.
 specs/A-1.yaml:8 error PRJ001 Too many calls (calls)
     fix: Split the spec.
-1 spec(s) checked: 1 error(s), 2 warning(s)
+specval checked 1 spec(s) and found 1 error(s) and 2 warning(s).

@@ -53,12 +53,12 @@ base_name(name) := trim_suffix(name, sfx) if {
 	endswith(name, sfx)
 } else := name
 
-can_call(l) := $"{lib.capitalize(lib.plural(l))} may call only {targets}" if {
+can_call(l) := $"{lib.capitalize(lib.plural(l))} can call only {targets}" if {
 	count(layers[l]) > 0
 	targets := lib.join([lib.plural(t) | some t in lib.ordered(layers[l])], "and")
 }
 
-can_call(l) := $"{lib.capitalize(lib.plural(l))} may not call other services" if count(layers[l]) == 0
+can_call(l) := $"{lib.capitalize(lib.plural(l))} cannot call other services" if count(layers[l]) == 0
 
 # layer_fix is undefined if the layer of the caller is not known (SV105).
 # String interpolation writes an undefined value as "<undefined>", so the
@@ -67,11 +67,11 @@ layer_fix(from, to, target) := msg if {
 	rule := can_call(from)
 	callers := lib.ordered([l | some l, targets in layers; to in targets])
 	count(callers) > 0
-	msg := $"{rule}. Route the call to {target} through a {lib.join(callers, "or")} instead."
+	msg := $"{rule}. Send the call to {target} through a {lib.join(callers, "or")}."
 } else := msg if {
 	rule := can_call(from)
-	callee := lib.capitalize(lib.plural(to))
-	msg := $"{rule}. {callee} are entry points; no service calls them."
+	callee := lib.plural(to)
+	msg := $"{rule}. No service can call {callee}."
 }
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
@@ -85,7 +85,7 @@ unknown_fix(name, action) := concat(" ", [
 
 # METADATA
 # title: Calls use known services
-# description: Each call's `from` and `to` is a registered service or is declared in `services.new`.
+# description: The `from` and the `to` of each call is a registered service or a service in `services.new`.
 # custom:
 #   id: SV101
 deny contains f if {
@@ -104,7 +104,7 @@ deny contains f if {
 
 # METADATA
 # title: Calls follow the layer rules
-# description: A service may call only the layers its own layer allows (see Layers).
+# description: A service can call only the layers that its layer can call (see Layers).
 # custom:
 #   id: SV102
 deny contains f if {
@@ -115,14 +115,14 @@ deny contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"calls[{i}]",
-		$"{c.from} ({from}) may not call {c.to} ({to})",
+		$"{c.from} ({from}) cannot call {c.to} ({to})",
 		layer_fix(from, to, c.to),
 	)
 }
 
 # METADATA
 # title: New services are named for their layer
-# description: A new service's name ends with its layer's suffix (Manager, Engine, Accessor, Resource).
+# description: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).
 # custom:
 #   id: SV103
 deny contains f if {
@@ -133,13 +133,13 @@ deny contains f if {
 		rego.metadata.rule(),
 		$"services.new[{i}].name",
 		$"{s.name} is in the {s.layer} layer but does not end in {sfx}",
-		$"Rename it to {base_name(s.name)}{sfx} everywhere in the spec, or change its layer.",
+		$"Change its name to {base_name(s.name)}{sfx} everywhere in the spec, or change its layer.",
 	)
 }
 
 # METADATA
 # title: New services are actually new
-# description: A service already in the registry belongs under `services.changed`, not `services.new`.
+# description: A service that is in the registry goes under `services.changed`, not under `services.new`.
 # custom:
 #   id: SV104
 deny contains f if {
@@ -155,7 +155,7 @@ deny contains f if {
 
 # METADATA
 # title: New services use a known layer
-# description: A new service's `layer` is one of the DPL layers.
+# description: The `layer` of a new service is one of the DPL layers.
 # custom:
 #   id: SV105
 deny contains f if {
@@ -171,7 +171,7 @@ deny contains f if {
 
 # METADATA
 # title: New services are used
-# description: Every service in `services.new` appears in at least one call.
+# description: Each service in `services.new` is in one or more calls.
 # custom:
 #   id: SV106
 deny contains f if {
@@ -180,16 +180,16 @@ deny contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.new[{i}]",
-		$"{s.name} is declared as new but no call uses it",
+		$"{s.name} is in services.new, but no call uses it",
 		$"Add the calls to or from {s.name}, or remove it from services.new.",
 	)
 }
 
 # METADATA
-# title: Every acceptance criterion is implemented by a call
+# title: A call implements each acceptance criterion
 # description: >-
-#   Each acceptance criterion id appears in the `covers` list of at least one call,
-#   so every requirement traces to the services that implement it.
+#   The ID of each acceptance criterion is in the `covers` list of one or more calls.
+#   Thus each requirement shows the services that implement it.
 # custom:
 #   id: SV107
 deny contains f if {
@@ -198,14 +198,14 @@ deny contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"acceptance[{i}]",
-		$"{ac.id} is not covered by any call",
+		$"No call covers {ac.id}",
 		$"Add {ac.id} to `covers` on the call(s) that implement it, or add the missing call.",
 	)
 }
 
 # METADATA
 # title: Calls cover real acceptance criteria
-# description: Every id in a call's `covers` is defined under `acceptance`.
+# description: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
 # custom:
 #   id: SV108
 deny contains f if {
@@ -222,7 +222,7 @@ deny contains f if {
 
 # METADATA
 # title: Changed services are registered
-# description: Every name in `services.changed` is in the registry.
+# description: Each name in `services.changed` is in the registry.
 # custom:
 #   id: SV109
 deny contains f if {
@@ -238,7 +238,7 @@ deny contains f if {
 
 # METADATA
 # title: Changed services take part in a call
-# description: A service listed in `services.changed` should appear in at least one call.
+# description: Each service in `services.changed` is in one or more calls.
 # custom:
 #   id: SV201
 warn contains f if {
@@ -248,7 +248,7 @@ warn contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.changed[{i}]",
-		$"{name} is listed as changed but no call involves it",
+		$"{name} is in services.changed, but no call uses it",
 		$"Add the calls that change {name}, or remove it from services.changed.",
 	)
 }

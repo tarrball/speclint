@@ -19,40 +19,40 @@ stdout '"rule": "SV001"'
 # An unknown format is a usage error.
 exits 2 specval check --format yaml
 ! stdout .
-stderr '^specval: unknown format "yaml"$'
+stderr '^specval: unknown format "yaml"; use text or json$'
 
 # A missing spec file is an error.
 exits 2 specval check specs/nope.yaml
 stderr 'specs/nope.yaml: open .*specs/nope.yaml: no such file or directory'
 
 -- one.txt --
-1 spec(s) checked: 0 error(s), 0 warning(s)
+specval checked 1 spec(s) and found 0 error(s) and 0 warning(s).
 -- all.txt --
-specs/ORD-143.yaml:8 error SV107 AC2 is not covered by any call (acceptance[1])
+specs/ORD-143.yaml:8 error SV107 No call covers AC2 (acceptance[1])
     fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
 specs/ORD-143.yaml:10 error SV109 ShippingManager is not a registered service (services.changed[1])
     fix: If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager.
-specs/ORD-143.yaml:14 error ORD001 OrderAccessor may not call PricingEngine (calls[2])
-    fix: Have OrderManager call PricingEngine and pass the price to whoever needs it.
-specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) may not call PricingEngine (engine) (calls[2])
-    fix: Accessors may call only resources. Route the call to PricingEngine through a manager instead.
+specs/ORD-143.yaml:14 error ORD001 OrderAccessor cannot call PricingEngine (calls[2])
+    fix: Make OrderManager call PricingEngine, and give the price to the services that need it.
+specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[2])
+    fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
 specs/ORD-143.yaml:15 error SV101 RefundEngine is not a registered service (calls[3].to)
     fix: If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
 specs/ORD-143.yaml:15 error SV108 AC4 is not an acceptance criterion in this spec (calls[3].covers[1])
     fix: Use one of: AC1, AC2, or add AC4 under acceptance.
 specs/ORD-144.yaml:1 error SV001 acceptance is required
-    fix: Add `acceptance`: Testable acceptance criteria; at least one.
+    fix: Add `acceptance`: The acceptance criteria. Give one or more, and make each one possible to test.
 specs/ORD-144.yaml:1 error SV001 calls is required
-    fix: Add `calls`: Every service-to-service call the change adds or alters.
+    fix: Add `calls`: Each call from one service to another that this change adds or changes.
 specs/ORD-144.yaml:1 error SV001 kind is required
-    fix: Add `kind`: One of: feature, bugfix, chore.
+    fix: Add `kind`: The kind of change: feature, bugfix, or chore.
 specs/ORD-144.yaml:1 error SV001 summary is required
-    fix: Add `summary`: A short paragraph: the problem and the intended behavior.
+    fix: Add `summary`: A short paragraph that tells the problem and the new behavior.
 specs/ORD-144.yaml:1 error SV001 Additional property cals is not allowed
-    fix: Remove `cals` or fix its name. Allowed here: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title.
+    fix: Remove `cals`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title.
 specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
-    fix: Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/<id>.yaml.
-3 spec(s) checked: 12 error(s), 0 warning(s)
+    fix: The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml.
+specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
 -- all.json --
 {
   "files": [
@@ -65,11 +65,11 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
       "findings": [
         {
           "rule": "SV107",
-          "title": "Every acceptance criterion is implemented by a call",
+          "title": "A call implements each acceptance criterion",
           "severity": "error",
           "path": "acceptance[1]",
           "line": 8,
-          "msg": "AC2 is not covered by any call",
+          "msg": "No call covers AC2",
           "fix": "Add AC2 to `covers` on the call(s) that implement it, or add the missing call."
         },
         {
@@ -87,8 +87,8 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "severity": "error",
           "path": "calls[2]",
           "line": 14,
-          "msg": "OrderAccessor may not call PricingEngine",
-          "fix": "Have OrderManager call PricingEngine and pass the price to whoever needs it."
+          "msg": "OrderAccessor cannot call PricingEngine",
+          "fix": "Make OrderManager call PricingEngine, and give the price to the services that need it."
         },
         {
           "rule": "SV102",
@@ -96,8 +96,8 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "severity": "error",
           "path": "calls[2]",
           "line": 14,
-          "msg": "OrderAccessor (accessor) may not call PricingEngine (engine)",
-          "fix": "Accessors may call only resources. Route the call to PricingEngine through a manager instead."
+          "msg": "OrderAccessor (accessor) cannot call PricingEngine (engine)",
+          "fix": "Accessors can call only resources. Send the call to PricingEngine through a manager."
         },
         {
           "rule": "SV101",
@@ -129,7 +129,7 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "path": "",
           "line": 1,
           "msg": "acceptance is required",
-          "fix": "Add `acceptance`: Testable acceptance criteria; at least one."
+          "fix": "Add `acceptance`: The acceptance criteria. Give one or more, and make each one possible to test."
         },
         {
           "rule": "SV001",
@@ -138,7 +138,7 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "path": "",
           "line": 1,
           "msg": "calls is required",
-          "fix": "Add `calls`: Every service-to-service call the change adds or alters."
+          "fix": "Add `calls`: Each call from one service to another that this change adds or changes."
         },
         {
           "rule": "SV001",
@@ -147,7 +147,7 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "path": "",
           "line": 1,
           "msg": "kind is required",
-          "fix": "Add `kind`: One of: feature, bugfix, chore."
+          "fix": "Add `kind`: The kind of change: feature, bugfix, or chore."
         },
         {
           "rule": "SV001",
@@ -156,7 +156,7 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "path": "",
           "line": 1,
           "msg": "summary is required",
-          "fix": "Add `summary`: A short paragraph: the problem and the intended behavior."
+          "fix": "Add `summary`: A short paragraph that tells the problem and the new behavior."
         },
         {
           "rule": "SV001",
@@ -165,7 +165,7 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "path": "",
           "line": 1,
           "msg": "Additional property cals is not allowed",
-          "fix": "Remove `cals` or fix its name. Allowed here: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title."
+          "fix": "Remove `cals`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title."
         },
         {
           "rule": "SV001",
@@ -174,7 +174,7 @@ specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9.
           "path": "id",
           "line": 2,
           "msg": "Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$'",
-          "fix": "Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/\u003cid\u003e.yaml."
+          "fix": "The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is \u003cid\u003e.yaml."
         }
       ]
     }

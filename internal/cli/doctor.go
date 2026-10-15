@@ -34,7 +34,7 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
 	case "text":
 		printChecks(env.Stdout, checks)
 	default:
-		return exitError, fmt.Errorf("unknown format %q", *format)
+		return exitError, fmt.Errorf("unknown format %q; use text or json", *format)
 	}
 	if failed {
 		return exitFindings, nil
@@ -59,7 +59,7 @@ func printChecks(w io.Writer, checks []doctor.Check) {
 		}
 	}
 	if fails+warns == 0 {
-		fmt.Fprintln(w, "specval setup looks good.")
+		fmt.Fprintln(w, "The specval setup has no problems.")
 	} else {
 		fmt.Fprintf(w, "%d problem(s), %d warning(s).\n", fails, warns)
 	}

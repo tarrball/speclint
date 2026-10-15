@@ -13,8 +13,8 @@ hints := data.dpl.schema_hints
 # METADATA
 # title: Spec matches the specval format
 # description: >-
-#   Required fields, field names, and value types follow the schema (`specval schema`).
-#   Other rules run only once this passes.
+#   The spec has the fields, the field names, and the value types that the schema
+#   (`specval schema`) gives. The other rules run only after this rule passes.
 # custom:
 #   id: SV001
 deny contains f if {
@@ -50,7 +50,8 @@ fix(e) := msg if {
 } else := msg if {
 	e.type == "additional_property_not_allowed"
 	p := split(e.desc, " ")[2]
-	msg := sprintf("Remove `%s` or fix its name. Allowed here: %s.", [p, concat(", ", keys[norm(e.field)])])
+	permitted := concat(", ", keys[norm(e.field)])
+	msg := $"Remove `{p}`, or correct its name. The permitted fields here are: {permitted}."
 } else := msg if {
 	msg := hints[norm(e.field)]
-} else := "See `specval schema` for the expected format."
+} else := "Run `specval schema` to see the correct format."

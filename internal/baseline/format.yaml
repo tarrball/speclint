@@ -1,14 +1,14 @@
 specval: 1
-id: ORD-142                # ticket id; file is specs/<id>.yaml
-kind: feature              # feature | bugfix | chore
+id: ORD-142                # the ticket ID; the file is specs/<id>.yaml
+kind: feature              # feature, bugfix, or chore
 title: Customer can request a refund
-summary: One paragraph - the problem and the intended behavior.
-acceptance:                # testable criteria, ids AC1, AC2, ...
+summary: One paragraph that tells the problem and the new behavior.
+acceptance:                # criteria that you can test, with the IDs AC1, AC2, ...
   - { id: AC1, text: "Given a delivered order, when the customer requests a refund, then ..." }
 services:
-  new:                     # services this change introduces
-    - { name: RefundEngine, layer: engine, purpose: Computes refund amounts }
-  changed: [OrderManager]  # registered services whose behavior changes
-calls:                     # every service-to-service call the change adds or alters
+  new:                     # the services that this change adds
+    - { name: RefundEngine, layer: engine, purpose: Calculates refund amounts }
+  changed: [OrderManager]  # the registered services whose behavior changes
+calls:                     # each call between services that the change adds or changes
   - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1] }
 out_of_scope: [Partial refunds]

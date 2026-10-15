@@ -223,12 +223,12 @@ func TestNewErrors(t *testing.T) {
 		{
 			"a data key in two files",
 			map[string]string{".specval/data/a.yaml": "services: {}", ".specval/data/b.json": `{"services": {}}`},
-			`data key "services" is defined in both`,
+			`two data files define the key "services"`,
 		},
 		{
 			"a data file that is not a mapping",
 			map[string]string{".specval/data/a.yaml": "- a\n"},
-			"data files must be a mapping",
+			"a data file must be a mapping",
 		},
 		{
 			"a data file that is not valid YAML",
@@ -279,7 +279,7 @@ deny contains 42 if true
 		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
 	})
 	_, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
-	if err == nil || !strings.Contains(err.Error(), "malformed finding") {
+	if err == nil || !strings.Contains(err.Error(), "a finding that is not an object") {
 		t.Errorf("err = %v, want a malformed finding error", err)
 	}
 }
