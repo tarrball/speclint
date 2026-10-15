@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -54,8 +55,7 @@ func main() {
 	case "new":
 		err = cmdNew(args)
 	case "schema":
-		b, _ := embedded.ReadFile("baseline/schema.json")
-		os.Stdout.Write(b)
+		err = cmdSchema(os.Stdout)
 	case "init":
 		err = cmdInit()
 	case "doctor":
@@ -187,7 +187,9 @@ func cmdCheck(ctx context.Context, args []string) (int, error) {
 	case "json":
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(r)
+		if err := enc.Encode(r); err != nil {
+			return 2, err
+		}
 	case "text":
 		printText(os.Stdout, r, len(files))
 	default:
@@ -255,14 +257,27 @@ func cmdHook(ctx context.Context, stdin io.Reader) int {
 	if r.Warnings > 0 {
 		var b strings.Builder
 		printText(&b, r, 1)
-		json.NewEncoder(os.Stdout).Encode(map[string]any{
+		err := json.NewEncoder(os.Stdout).Encode(map[string]any{
 			"hookSpecificOutput": map[string]any{
 				"hookEventName":     "PostToolUse",
 				"additionalContext": "specval warnings (spec passes; consider fixing):\n" + b.String(),
 			},
 		})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "specval:", err)
+			return 1
+		}
 	}
 	return 0
+}
+
+func cmdSchema(w io.Writer) error {
+	b, err := embedded.ReadFile("baseline/schema.json")
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(b)
+	return err
 }
 
 func cmdContext(ctx context.Context, w io.Writer) error {
@@ -344,7 +359,7 @@ func cmdNew(args []string) error {
 		return err
 	}
 	if len(pos) != 1 || !idRe.MatchString(pos[0]) {
-		return fmt.Errorf("usage: specval new <id> (letters, digits, . _ -)")
+		return errors.New("usage: specval new <id> (letters, digits, . _ -)")
 	}
 	cwd, _ := os.Getwd()
 	cfg, err := findConfig(cwd)

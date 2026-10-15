@@ -4,11 +4,13 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -255,7 +257,7 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 		return nil, err
 	}
 	if len(rs) == 0 {
-		return nil, fmt.Errorf("policy query returned no result")
+		return nil, errors.New("policy query returned no result")
 	}
 	bind := rs[0].Bindings
 	findings, err := decodeFindings(bind["schema"], "error")
@@ -271,7 +273,7 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 		if err != nil {
 			return nil, err
 		}
-		findings = append(deny, warn...)
+		findings = slices.Concat(deny, warn)
 	}
 	for i := range findings {
 		findings[i].Line = lineFor(&node, findings[i].Path)
@@ -291,12 +293,12 @@ func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error
 		return out, nil
 	}
 	for _, b := range []struct{ name, sev string }{{"deny", "error"}, {"warn", "warning"}} {
-		fs, err := decodeFindings(rs[0].Bindings[b.name], b.sev)
+		found, err := decodeFindings(rs[0].Bindings[b.name], b.sev)
 		if err != nil {
 			return nil, err
 		}
-		for _, f := range fs {
-			key := strings.SplitN(f.Path, ".", 2)[0]
+		for _, f := range found {
+			key, _, _ := strings.Cut(f.Path, ".")
 			file, ok := e.dataFile[key]
 			if !ok {
 				file = "(data)"
@@ -306,8 +308,8 @@ func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error
 			out[file] = append(out[file], f)
 		}
 	}
-	for _, fs := range out {
-		sortFindings(fs)
+	for _, found := range out {
+		sortFindings(found)
 	}
 	return out, nil
 }
@@ -339,25 +341,25 @@ func (e *Engine) RuleDocs() []RuleDoc {
 }
 
 func decodeFindings(v any, severity string) ([]Finding, error) {
-	var fs []Finding
+	var found []Finding
 	if v == nil {
 		return nil, nil
 	}
-	if err := roundTrip(v, &fs); err != nil {
+	if err := roundTrip(v, &found); err != nil {
 		return nil, fmt.Errorf("rule returned a malformed finding: %w", err)
 	}
-	for i := range fs {
-		fs[i].Severity = severity
+	for i := range found {
+		found[i].Severity = severity
 	}
-	return fs, nil
+	return found, nil
 }
 
-func sortFindings(fs []Finding) {
-	sort.SliceStable(fs, func(i, j int) bool {
-		if fs[i].Line != fs[j].Line {
-			return fs[i].Line < fs[j].Line
+func sortFindings(found []Finding) {
+	sort.SliceStable(found, func(i, j int) bool {
+		if found[i].Line != found[j].Line {
+			return found[i].Line < found[j].Line
 		}
-		return fs[i].Rule < fs[j].Rule
+		return found[i].Rule < found[j].Rule
 	})
 }
 
@@ -387,7 +389,7 @@ func lineFor(doc *yaml.Node, path string) int {
 		n = n.Content[0]
 	}
 	line := n.Line
-	for _, seg := range strings.Split(indexRe.ReplaceAllString(path, ".$1"), ".") {
+	for seg := range strings.SplitSeq(indexRe.ReplaceAllString(path, ".$1"), ".") {
 		if seg == "" {
 			continue
 		}
@@ -405,6 +407,8 @@ func lineFor(doc *yaml.Node, path string) int {
 				next = n.Content[i]
 				line = next.Line
 			}
+		default:
+			// Scalars and aliases have no children, so the path stops here.
 		}
 		if next == nil {
 			break

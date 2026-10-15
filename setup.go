@@ -195,7 +195,9 @@ func cmdDoctor(ctx context.Context, args []string) (int, error) {
 	case "json":
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(map[string]any{"checks": checks, "ok": !failed})
+		if err := enc.Encode(map[string]any{"checks": checks, "ok": !failed}); err != nil {
+			return 2, err
+		}
 	case "text":
 		printChecks(os.Stdout, checks)
 	default:
@@ -253,8 +255,9 @@ func doctor(ctx context.Context, cwd string) []Check {
 	specsDir := cfg.abs(cfg.SpecsDir)
 	if info, err := os.Stat(specsDir); err != nil || !info.IsDir() {
 		add("warn", "specs", cfg.SpecsDir+" does not exist", repair)
+	} else if err := walkFiles(specsDir, []string{".yaml", ".yml"}, func(string) error { specs++; return nil }); err != nil {
+		add("fail", "specs", err.Error(), "")
 	} else {
-		walkFiles(specsDir, []string{".yaml", ".yml"}, func(string) error { specs++; return nil })
 		add("ok", "specs", fmt.Sprintf("%s (%d spec(s))", cfg.SpecsDir, specs), "")
 	}
 
@@ -330,7 +333,7 @@ func doctor(ctx context.Context, cwd string) []Check {
 	disabledIn := ""
 	for _, p := range []string{
 		filepath.Join(cfg.Root, settingsPath),
-		filepath.Join(cfg.Root, ".claude/settings.local.json"),
+		filepath.Join(cfg.Root, ".claude", "settings.local.json"),
 		filepath.Join(home, settingsPath),
 	} {
 		st, err := inspectSettings(p)
@@ -370,7 +373,7 @@ func doctor(ctx context.Context, cwd string) []Check {
 	if err != nil {
 		add("fail", "path", "specval is not on PATH, so the hook command `specval hook` can't run",
 			"Put the specval binary on PATH (the same PATH Claude Code starts with).")
-	} else if out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput(); err != nil {
+	} else if out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput(); err != nil { //nolint:gosec // Running the specval on PATH is the purpose of this check.
 		add("fail", "path", fmt.Sprintf("%s doesn't run: %v %s", onPath, err, strings.TrimSpace(string(out))), "Reinstall specval.")
 	} else if self, _ := os.Executable(); !sameFile(self, onPath) {
 		add("warn", "path", fmt.Sprintf("the hook will run %s, but you ran %s", onPath, self), "Make sure they're the same version, or fix PATH.")
