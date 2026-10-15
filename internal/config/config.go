@@ -2,7 +2,10 @@
 package config
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -34,13 +37,19 @@ func Find(start string) (*Config, error) {
 	}
 	for {
 		p := filepath.Join(dir, FileName)
-		if b, err := os.ReadFile(p); err == nil {
-			c := &Config{SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
-			if err := yaml.Unmarshal(b, c); err != nil {
+		b, err := os.ReadFile(p)
+		if err == nil {
+			c, err := parse(b)
+			if err != nil {
 				return nil, fmt.Errorf("%s: %w", p, err)
 			}
 			c.Root = dir
 			return c, nil
+		}
+		// A configuration file that exists but cannot be read must not let the
+		// search continue to a parent directory, which has other rules.
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -48,6 +57,18 @@ func Find(start string) (*Config, error) {
 		}
 		dir = parent
 	}
+}
+
+// parse reads a configuration. A key that it does not know is an error, so
+// that a typing error such as "spec_dir" does not go unseen.
+func parse(b []byte) (*Config, error) {
+	c := &Config{SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
+	dec := yaml.NewDecoder(bytes.NewReader(b))
+	dec.KnownFields(true)
+	if err := dec.Decode(c); err != nil && !errors.Is(err, io.EOF) { // An empty file gives io.EOF.
+		return nil, err
+	}
+	return c, nil
 }
 
 // Abs returns p as an absolute path. A relative p is relative to Root.
