@@ -33,6 +33,7 @@ linters:
         - G304 # specval reads files at paths that the user gives it.
         - G703 # Same as G304, found by taint analysis.
         - G306 # specval writes project files that other tools must read (0o644).
+        - G302 # Same as G306, for a file that specval creates with os.OpenFile.
     nolintlint:
       require-explanation: true
       require-specific: true

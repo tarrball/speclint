@@ -297,7 +297,7 @@ func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error
 }
 
 // RuleDocs returns the spec rules, sorted by ID, from their METADATA
-// annotations. A rule ID that has more than one rule body is listed once.
+// annotations. It lists a rule ID that has more than one rule body one time.
 func (e *Engine) RuleDocs() []RuleDoc {
 	var docs []RuleDoc
 	seen := map[string]bool{}
@@ -318,7 +318,7 @@ func (e *Engine) RuleDocs() []RuleDoc {
 			seen[id] = true
 			docs = append(docs, RuleDoc{
 				ID: id, Title: a.Title, Description: a.Description,
-				Package: m.Package.Path.String(), Severity: sev, Baseline: e.baseline[m],
+				Severity: sev, Baseline: e.baseline[m],
 			})
 		}
 	}

@@ -96,7 +96,7 @@ specs/empty.yaml:1 error SV001 acceptance is required
 specs/empty.yaml:1 error SV001 calls is required
     fix: Add `calls`: Each call from one service to another that this change adds or changes.
 specs/empty.yaml:1 error SV001 id is required
-    fix: Add `id`: The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml.
+    fix: Add `id`: The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml.
 specs/empty.yaml:1 error SV001 kind is required
     fix: Add `kind`: The kind of change: feature, bugfix, or chore.
 specs/empty.yaml:1 error SV001 specval is required
@@ -135,26 +135,26 @@ specs/rules.yaml:24 error SV101 MysteryEngine is not a registered service (calls
     fix: If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
 specs/rules.yaml:25 error SV101 Somebody is not a registered service (calls[6].from)
     fix: If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor, OrderAccessor, OrderManager, PricingEngine.
+specs/shape.yaml:1 error SV001 specval does not match: 1 (specval)
+    fix: Correct the value of `specval`. The version of the spec format. It is always 1.
 specs/shape.yaml:1 error SV001 Additional property owner is not allowed
     fix: Remove `owner`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title.
-specs/shape.yaml:1 error SV001 specval does not match: 1 (specval)
-    fix: The version of the spec format. It is always 1.
 specs/shape.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
-    fix: The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml.
+    fix: Correct the value of `id`. The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml.
 specs/shape.yaml:4 error SV001 String length must be greater than or equal to 1 (title)
-    fix: The title of the change, on one line.
+    fix: Correct the value of `title`. The title of the change, on one line.
 specs/shape.yaml:7 error SV001 Does not match pattern '^AC[0-9]+$' (acceptance[0].id)
-    fix: AC and a number, for example AC1.
+    fix: Correct the value of `acceptance[0].id`. AC and a number, for example AC1.
 specs/shape.yaml:8 error SV001 Additional property removed is not allowed (services)
     fix: Remove `removed`, or correct its name. The permitted fields here are: changed, new.
-specs/shape.yaml:10 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (services.new[0].name)
-    fix: A PascalCase name that ends with the suffix of its layer, for example RefundEngine.
 specs/shape.yaml:10 error SV001 purpose is required (services.new[0])
     fix: Add `purpose`: One sentence that tells what the service does.
+specs/shape.yaml:10 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (services.new[0].name)
+    fix: Correct the value of `services.new[0].name`. A PascalCase name that ends with the suffix of its layer, for example RefundEngine.
 specs/shape.yaml:13 error SV001 covers is required (calls[0])
     fix: Add `covers`: The acceptance criteria that this call helps to satisfy, for example [AC1].
 specs/shape.yaml:13 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (calls[0].op)
-    fix: The name of the operation, in PascalCase, for example CalculateRefund.
+    fix: Correct the value of `calls[0].op`. The name of the operation, in PascalCase, for example CalculateRefund.
 specs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
 specs/yaml.yaml:1 error SV000 yaml: line 1: did not find expected ',' or ']'
@@ -181,7 +181,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV103",
-          "title": "New services are named for their layer",
+          "title": "Each new service has the suffix of its layer",
           "severity": "error",
           "path": "services.new[0].name",
           "line": 11,
@@ -190,7 +190,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV103",
-          "title": "New services are named for their layer",
+          "title": "Each new service has the suffix of its layer",
           "severity": "error",
           "path": "services.new[1].name",
           "line": 12,
@@ -199,7 +199,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV104",
-          "title": "New services are actually new",
+          "title": "A new service is not in the registry",
           "severity": "error",
           "path": "services.new[2].name",
           "line": 13,
@@ -217,7 +217,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV106",
-          "title": "New services are used",
+          "title": "Each new service is in a call",
           "severity": "error",
           "path": "services.new[3]",
           "line": 14,
@@ -226,7 +226,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV106",
-          "title": "New services are used",
+          "title": "Each new service is in a call",
           "severity": "error",
           "path": "services.new[4]",
           "line": 15,
@@ -235,7 +235,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV109",
-          "title": "Changed services are registered",
+          "title": "Each changed service is in the registry",
           "severity": "error",
           "path": "services.changed[0]",
           "line": 17,
@@ -271,7 +271,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV108",
-          "title": "Calls cover real acceptance criteria",
+          "title": "Each call covers acceptance criteria of the spec",
           "severity": "error",
           "path": "calls[3].covers[0]",
           "line": 22,

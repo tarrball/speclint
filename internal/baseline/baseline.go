@@ -51,7 +51,7 @@ var schemaFields = sync.OnceValue(func() specFields {
 			} `json:"id"`
 		} `json:"properties"`
 	}
-	// The schema is embedded, and the tests parse it. Thus an error here is a
+	// The binary contains the schema, and the tests parse it. Thus an error here is a
 	// defect in the build, not in the input.
 	if err := json.Unmarshal([]byte(schema), &s); err != nil {
 		panic("baseline: schema.json: " + err.Error())

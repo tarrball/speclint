@@ -90,7 +90,7 @@ breaks the schema.
 | `specval context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
 | `specval schema` | Prints the JSON Schema of a spec. |
 | `specval init` | Sets up specval, the skill, and the hook. You can run it again to restore a missing part. |
-| `specval doctor` | Checks the setup, and gives a fix for each problem. Use `--format json` for JSON output. |
+| `specval doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
 | `specval hook` | Claude Code runs this command after each file write. Do not run it yourself. |
 
 | Exit status | Meaning |

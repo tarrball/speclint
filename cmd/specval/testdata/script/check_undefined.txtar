@@ -1,7 +1,9 @@
 # A rule must not report a finding when a value in its message is undefined.
-# Here AuditHelper has an unknown layer, so SV105 reports it, and SV102 does
-# not. NoLayerEngine is registered without a layer, and NumberEngine with a
-# layer that is not a string, so SR001 reports them, and SV104 and SV102 do not.
+# - AuditHelper has an unknown layer. SV105 reports it. SV102 does not report
+#   its call.
+# - The registry has NoLayerEngine with no layer, and NumberEngine with a layer
+#   that is not a string. SR001 reports both. SV104 reports only NumberEngine,
+#   because NoLayerEngine has no layer to show. SV102 reports neither call.
 exits 1 specval check
 cmp stdout check.txt
 
@@ -23,7 +25,7 @@ specval: 1
 id: UNDEF-1
 kind: feature
 title: A spec where a rule has an undefined value
-summary: AuditHelper has an unknown layer. NoLayerEngine is registered without a layer.
+summary: AuditHelper has an unknown layer. The registry has NoLayerEngine with no layer.
 acceptance:
   - { id: AC1, text: Covered. }
 services:

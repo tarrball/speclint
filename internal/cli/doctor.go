@@ -8,9 +8,9 @@ import (
 	"github.com/tarrball/specval/internal/doctor"
 )
 
-func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
+func cmdDoctor(ctx context.Context, env *Env, args []string) (exitCode, error) {
 	fl := newFlagSet("doctor", env)
-	format := fl.String("format", "text", "output format: text or json")
+	format := formatFlag(fl)
 	if err := parseNoArgs(fl, args); err != nil {
 		return exitError, err
 	}
@@ -24,19 +24,24 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
 		failed = failed || c.Status == doctor.StatusFail
 	}
 	switch *format {
-	case "json":
-		if err := writeJSON(env.Stdout, map[string]any{"checks": checks, "ok": !failed}); err != nil {
+	case formatJSON:
+		if err := writeJSON(env.Stdout, doctorReport{Checks: checks, OK: !failed}); err != nil {
 			return exitError, err
 		}
-	case "text":
+	case formatText:
 		printChecks(env.Stdout, checks)
-	default:
-		return exitError, fmt.Errorf("unknown format %q; use text or json", *format)
 	}
 	if failed {
 		return exitFindings, nil
 	}
 	return exitOK, nil
+}
+
+// doctorReport is the JSON output of doctor.
+type doctorReport struct {
+	Checks []doctor.Check `json:"checks"`
+	// OK is false if a check failed.
+	OK bool `json:"ok"`
 }
 
 func printChecks(w io.Writer, checks []doctor.Check) {
@@ -58,6 +63,6 @@ func printChecks(w io.Writer, checks []doctor.Check) {
 	if fails+warns == 0 {
 		fmt.Fprintln(w, "The specval setup has no problems.")
 	} else {
-		fmt.Fprintf(w, "%d problem(s), %d warning(s).\n", fails, warns)
+		fmt.Fprintf(w, "%d failure(s), %d warning(s).\n", fails, warns)
 	}
 }

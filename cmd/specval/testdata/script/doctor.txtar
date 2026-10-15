@@ -10,7 +10,7 @@ stdout '^    fix: Add each service and its layer to .specval/data/services.yaml.
 stdout '^✓ skill     .claude/skills/spec/SKILL.md$'
 stdout '^✓ hook      .claude/settings.json$'
 stdout '^✓ path      .*/specval$'
-stdout '^0 problem\(s\), 1 warning\(s\).$'
+stdout '^0 failure\(s\), 1 warning\(s\).$'
 
 # The JSON format has the same checks.
 exits 0 specval doctor --format json
@@ -19,7 +19,8 @@ stdout '"name": "registry",\n\s+"detail": "no services are registered'
 
 # An unknown format is a usage error.
 exits 2 specval doctor --format yaml
-stderr '^specval: unknown format "yaml"; use text or json$'
+stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
+! stderr '^specval:'
 
 # With services registered, all checks pass.
 cp $WORK/services.yaml .specval/data/services.yaml
@@ -95,7 +96,7 @@ cd $WORK/elsewhere
 exits 1 specval doctor
 stdout '^✗ config    no .specval.yaml in .* or in a parent directory; run `specval init`$'
 stdout '^    fix: Run `specval init` in the project root.$'
-stdout '^1 problem\(s\), 0 warning\(s\).$'
+stdout '^1 failure\(s\), 0 warning\(s\).$'
 
 -- proj/.keep --
 -- elsewhere/.keep --

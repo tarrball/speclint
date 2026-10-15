@@ -26,7 +26,7 @@ Before you write code, comments, or documentation, read [docs/style.md](docs/sty
 - A change in behavior must have a test that fails before the change and passes after it.
 - The end-to-end tests in `testdata/script` hold the exact CLI output.
   If you change the output, run `UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/specval`.
-  Then examine the diff and include it in the same commit.
+  Then examine the diff. Include it in the same commit.
 - A change to the CLI output, a rule, or a configuration file must also update the documentation.
 - If you change the version of `github.com/open-policy-agent/opa` in `go.mod`,
   change the `opa` version in `mise.toml` to the same version.

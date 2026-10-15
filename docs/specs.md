@@ -1,8 +1,9 @@
 # Specs
 
 A spec describes one change before anyone writes code for it. It is a YAML
-file in the specs directory (`specs/` if you do not change `specs_dir`). The
-name of the file is the ID of the ticket: `specs/ORD-142.yaml`.
+file in the specs directory (`specs/` if you do not change `specs_dir`). Name
+the file with the ID of the ticket: `specs/ORD-142.yaml`. specval does not
+check the name of the file.
 
 `specval new <id>` makes a spec from the template. `specval schema` prints the
 JSON Schema that each spec must match.
@@ -60,7 +61,7 @@ out_of_scope:
 specval checks each call against four layers. A service can call only the
 layers in its row.
 
-| Layer | Can call | Name ends with |
+| Layer | Can call | Suffix of the service name |
 |---|---|---|
 | manager | engine, accessor | `Manager` |
 | engine | accessor | `Engine` |
@@ -83,7 +84,7 @@ correct shape.
 | SV001 | error | The spec matches the schema. |
 | SV101 | error | Each call uses a registered service or a service in `services.new`. |
 | SV102 | error | Each call follows the layer rules. |
-| SV103 | error | The name of each new service ends with the name of its layer. |
+| SV103 | error | The name of each new service ends with the suffix of its layer. |
 | SV104 | error | A service in `services.new` is not already registered. |
 | SV105 | error | Each new service has a known layer. |
 | SV106 | error | Each new service is in one or more calls. |
@@ -98,7 +99,7 @@ specval also runs these rules on the service registry, one time for each
 | ID | Severity | Rule |
 |---|---|---|
 | SR001 | error | Each registered service has a known layer. |
-| SR002 | error | The name of each registered service ends with the name of its layer. |
+| SR002 | error | The name of each registered service ends with the suffix of its layer. |
 | SR003 | error | The registry is a mapping from service names to entries. |
 | SR004 | error | Each entry in the registry is a mapping with a layer, for example `{ layer: manager }`. |
 

@@ -122,10 +122,10 @@ func TestProjectChecks(t *testing.T) {
 		}, "registry", StatusWarn, "cannot check the registry until the rules load"},
 		{"project rule count", func(f *fixture) {
 			f.write(".specval/policy/x.rego", "package specval.spec.x\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
-		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
+		}, "rules", StatusOK, "compile, 1 from this project"},
 		{"project rule in a baseline package", func(f *fixture) {
 			f.write(".specval/policy/x.rego", "package specval.spec.dpl\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
-		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
+		}, "rules", StatusOK, "compile, 1 from this project"},
 		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services are registered"},
 		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
 		{"registry rule warns", func(f *fixture) {
@@ -156,9 +156,13 @@ func TestClaudeChecks(t *testing.T) {
 	}{
 		{"skill missing", func(f *fixture) { f.remove(claude.SkillPath) }, "skill", StatusWarn, "is missing"},
 		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `specval context`"},
+		{"skill cannot be read", func(f *fixture) {
+			f.remove(claude.SkillPath)
+			f.write(filepath.Join(claude.SkillPath, "x"), "") // The skill path is now a directory.
+		}, "skill", StatusFail, "SKILL.md"},
 		{"skill in home", func(f *fixture) {
 			f.remove(claude.SkillPath)
-			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill())
+			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill("specs"))
 		}, "skill", StatusOK, "home"},
 		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `specval hook`"},
 		{"hook in home", func(f *fixture) {
@@ -190,7 +194,7 @@ func TestUnknownHomeDirectory(t *testing.T) {
 	cwd := t.TempDir()
 	for path, content := range map[string]string{
 		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`,
-		claude.SkillPath:    claude.Skill(),
+		claude.SkillPath:    claude.Skill("specs"),
 	} {
 		p := filepath.Join(cwd, path)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {

@@ -17,15 +17,15 @@ import (
 
 // runCLI runs specval with args in dir and returns the exit code, stdout,
 // and stderr.
-func runCLI(t *testing.T, dir, stdin string, args ...string) (code int, stdout, stderr string) {
+func runCLI(t *testing.T, dir, stdin string, args ...string) (code exitCode, stdout, stderr string) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	code = Run(context.Background(), args, &Env{
+	code = exitCode(Run(context.Background(), args, &Env{
 		Stdin:  strings.NewReader(stdin),
 		Stdout: &out,
 		Stderr: &errOut,
 		Dir:    dir,
-	})
+	}))
 	return code, out.String(), errOut.String()
 }
 
@@ -72,7 +72,7 @@ func TestCheckExitCodes(t *testing.T) {
 	}
 	for _, c := range []struct {
 		args []string
-		want int
+		want exitCode
 	}{
 		{[]string{"check", "specs/ORD-142.yaml"}, exitOK},
 		{[]string{"check", "specs/ORD-143.yaml"}, exitFindings},
@@ -173,7 +173,7 @@ func TestParseArgs(t *testing.T) {
 }
 
 func TestReportAndPrintText(t *testing.T) {
-	r := &Report{}
+	r := &report{}
 	r.add("a.yaml", nil)
 	r.add("b.yaml", []policy.Finding{
 		{Rule: "SV101", Severity: policy.SeverityError, Path: "calls[0].to", Line: 3, Msg: "X is not registered", Fix: "Register X."},
@@ -196,7 +196,7 @@ specval checked 2 spec(s) and found 1 error(s) and 1 warning(s).
 }
 
 func TestPrintTextWithoutALine(t *testing.T) {
-	r := &Report{}
+	r := &report{}
 	r.add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
 	var b strings.Builder
 	printText(&b, r, 0)
@@ -217,7 +217,7 @@ func TestPrintChecks(t *testing.T) {
     fix: Add services.
 ✗ hook      missing
     fix: Run init.
-1 problem(s), 1 warning(s).
+1 failure(s), 1 warning(s).
 `
 	if b.String() != want {
 		t.Errorf("printChecks:\n%s\nwant:\n%s", b.String(), want)

@@ -307,7 +307,7 @@ warn contains "x" if false
 	if !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v (sorted, spec rules only)", ids, want)
 	}
-	want0 := RuleDoc{ID: "PRJ201", Title: "A project warning", Description: "It explains the rule.", Package: "data.specval.spec.a", Severity: SeverityWarning}
+	want0 := RuleDoc{ID: "PRJ201", Title: "A project warning", Description: "It explains the rule.", Severity: SeverityWarning}
 	if docs[0] != want0 {
 		t.Errorf("docs[0] = %+v, want %+v", docs[0], want0)
 	}
@@ -389,7 +389,7 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 		var errors int
 		for line := range strings.SplitSeq(err.Error(), "\n") {
 			if strings.HasPrefix(line, "\t") {
-				continue // the source line and the marker under it
+				continue // This line shows the source and a marker under it.
 			}
 			errors++
 			if !strings.HasPrefix(line, file) {

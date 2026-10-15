@@ -11,7 +11,7 @@ keys := data.dpl.schema_keys
 hints := data.dpl.schema_hints
 
 # METADATA
-# title: Spec matches the specval format
+# title: The spec matches the schema
 # description: >-
 #   The spec has the fields, the field names, and the value types that the schema
 #   (`specval schema`) gives. The other rules run only after this rule passes.
@@ -53,5 +53,6 @@ fix(e) := msg if {
 	permitted := concat(", ", keys[norm(e.field)])
 	msg := $"Remove `{p}`, or correct its name. The permitted fields here are: {permitted}."
 } else := msg if {
-	msg := hints[norm(e.field)]
+	hint := hints[norm(e.field)]
+	msg := $"Correct the value of `{display(e.field)}`. {hint}"
 } else := "Run `specval schema` to see the correct format."

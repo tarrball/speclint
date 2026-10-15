@@ -12,15 +12,15 @@ import (
 
 // Exit codes of specval hook. Claude Code gives them these meanings.
 const (
-	hookPass  = 0 // Claude continues. Claude Code reads stdout as JSON for Claude.
-	hookError = 1 // Claude Code shows stderr to the user, and Claude continues.
-	hookBlock = 2 // Claude Code sends stderr to Claude.
+	hookPass  exitCode = 0 // Claude continues. Claude Code reads stdout as JSON for Claude.
+	hookError exitCode = 1 // Claude Code shows stderr to the user, and Claude continues.
+	hookBlock exitCode = 2 // Claude Code sends stderr to Claude.
 )
 
 // cmdHook handles a Claude Code PostToolUse event. If the event is not about
 // a spec, it exits 0 and writes nothing, so that the hook does not stop other
 // work.
-func cmdHook(ctx context.Context, env *Env) int {
+func cmdHook(ctx context.Context, env *Env) exitCode {
 	in, err := claude.ReadEvent(env.Stdin)
 	if err != nil {
 		return hookPass
@@ -61,7 +61,7 @@ func cmdHook(ctx context.Context, env *Env) int {
 	}
 	if r.Errors > 0 {
 		printText(env.Stderr, r, 1)
-		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above, then save the spec again. Do not write code until the spec passes.")
+		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above. Then save the spec again. Do not write code until the spec passes.")
 		return hookBlock
 	}
 	if r.Warnings > 0 {

@@ -12,24 +12,24 @@ import (
 	"github.com/tarrball/specval/internal/policy"
 )
 
-// FileReport holds the findings for one file.
-type FileReport struct {
+// fileReport holds the findings for one file.
+type fileReport struct {
 	File     string           `json:"file"`
 	Findings []policy.Finding `json:"findings"`
 }
 
-// Report holds the findings of one check, and the totals.
-type Report struct {
-	Files    []FileReport `json:"files"`
+// report holds the findings of one check, and the totals.
+type report struct {
+	Files    []fileReport `json:"files"`
 	Errors   int          `json:"errors"`
 	Warnings int          `json:"warnings"`
 }
 
-func (r *Report) add(file string, found []policy.Finding) {
+func (r *report) add(file string, found []policy.Finding) {
 	if found == nil {
 		found = []policy.Finding{}
 	}
-	r.Files = append(r.Files, FileReport{File: file, Findings: found})
+	r.Files = append(r.Files, fileReport{File: file, Findings: found})
 	for _, f := range found {
 		switch f.Severity {
 		case policy.SeverityError:
@@ -42,13 +42,13 @@ func (r *Report) add(file string, found []policy.Finding) {
 
 // run checks the given spec files and, if registry is true, the registry. The
 // spec files must be absolute paths. run reports paths relative to base.
-func run(ctx context.Context, cfg *config.Config, files []string, base string, registry bool) (*Report, error) {
+func run(ctx context.Context, cfg *config.Config, files []string, base string, registry bool) (*report, error) {
 	eng, err := policy.New(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 	rel := func(p string) string { return relTo(base, p) }
-	r := &Report{Files: []FileReport{}}
+	r := &report{Files: []fileReport{}}
 	if registry {
 		reg, err := eng.CheckRegistry(ctx)
 		if err != nil {
@@ -73,9 +73,9 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string, r
 	return r, nil
 }
 
-func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
+func cmdCheck(ctx context.Context, env *Env, args []string) (exitCode, error) {
 	fl := newFlagSet("check", env)
-	format := fl.String("format", "text", "output format: text or json")
+	format := formatFlag(fl)
 	strict := fl.Bool("strict", false, "fail on warnings too")
 	files, err := parseArgs(fl, args)
 	if err != nil {
@@ -111,14 +111,12 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 		return exitError, err
 	}
 	switch *format {
-	case "json":
+	case formatJSON:
 		if err := writeJSON(env.Stdout, r); err != nil {
 			return exitError, err
 		}
-	case "text":
+	case formatText:
 		printText(env.Stdout, r, len(files))
-	default:
-		return exitError, fmt.Errorf("unknown format %q; use text or json", *format)
 	}
 	if r.Errors > 0 || (*strict && r.Warnings > 0) {
 		return exitFindings, nil
@@ -161,7 +159,7 @@ func relTo(base, p string) string {
 	return p
 }
 
-func printText(w io.Writer, r *Report, specs int) {
+func printText(w io.Writer, r *report, specs int) {
 	for _, fr := range r.Files {
 		for _, f := range fr.Findings {
 			where := fr.File

@@ -50,7 +50,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 		fmt.Fprintf(w, "- %s -> %s\n", l, targets)
 		suffixes = append(suffixes, arch.Suffix[l])
 	}
-	fmt.Fprintf(w, "The name of each service ends with the name of its layer: %s.\n\n", strings.Join(suffixes, ", "))
+	fmt.Fprintf(w, "The name of each service ends with the suffix of its layer: %s.\n\n", strings.Join(suffixes, ", "))
 
 	fmt.Fprint(w, "## Registered services\n")
 	byLayer := map[string][]string{}

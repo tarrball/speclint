@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 func writeFile(t *testing.T, path, content string) {
@@ -20,7 +22,7 @@ func writeFile(t *testing.T, path, content string) {
 
 func TestSkillRunsSpecvalContext(t *testing.T) {
 	// doctor uses this text to tell that the skill is the specval skill.
-	if !strings.Contains(Skill(), "specval context") {
+	if !strings.Contains(Skill("specs"), "specval context") {
 		t.Error("the skill does not tell Claude to run `specval context`")
 	}
 }
@@ -172,6 +174,27 @@ func TestInspectSettingsThatIsNotAnObject(t *testing.T) {
 		_, err := InspectSettings(path)
 		if want := path + ": the settings must be a JSON object"; err == nil || err.Error() != want {
 			t.Errorf("%s: err = %v, want %q", content, err, want)
+		}
+	}
+}
+
+// The skill starts with YAML frontmatter. A specs directory with YAML syntax
+// in its name must not make the frontmatter invalid.
+func TestSkillFrontmatterIsValidYAML(t *testing.T) {
+	for _, dir := range []string{"specs", "changes: draft", "a #b", `"quoted"`} {
+		parts := strings.SplitN(Skill(dir), "---\n", 3)
+		if len(parts) != 3 {
+			t.Fatalf("%q: the skill has no frontmatter", dir)
+		}
+		var front struct {
+			Name        string `yaml:"name"`
+			Description string `yaml:"description"`
+		}
+		if err := yaml.Unmarshal([]byte(parts[1]), &front); err != nil || front.Name != "spec" || front.Description == "" {
+			t.Errorf("%q: frontmatter %+v, err %v", dir, front, err)
+		}
+		if !strings.Contains(parts[2], dir+"/<ticket-id>.yaml") {
+			t.Errorf("%q: the body does not name the specs directory", dir)
 		}
 	}
 }

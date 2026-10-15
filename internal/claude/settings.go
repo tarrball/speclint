@@ -3,7 +3,7 @@
 package claude
 
 import (
-	_ "embed" // The templates are embedded.
+	_ "embed" // For the go:embed directives.
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,8 +28,13 @@ var (
 	settingsTemplate []byte
 )
 
-// Skill returns the text of the skill that specval init writes.
-func Skill() string { return skill }
+// Skill returns the text of the skill that specval init writes. specsDir is
+// the specs directory of the project, as .specval.yaml gives it. Only the
+// Markdown body uses it, so that a name with YAML syntax cannot make the
+// frontmatter invalid.
+func Skill(specsDir string) string {
+	return strings.ReplaceAll(skill, "{{SPECS_DIR}}", filepath.ToSlash(specsDir))
+}
 
 type settingsFile struct {
 	DisableAllHooks bool `json:"disableAllHooks"`

@@ -56,7 +56,7 @@ the checks as JSON.
 | rules | A data file or a Rego file does not load, or a rule has no `custom.id`. |
 | registry | No services are registered (warning), the registry is not a mapping, or a registry rule fails. |
 | skill | The skill is missing, or it no longer tells Claude to run `specval context` (warning). |
-| hook | No `PostToolUse` hook runs `specval hook` in the project, local, or user settings; `disableAllHooks` is set; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |
+| hook | No `PostToolUse` hook runs `specval hook` in the project, local, or user settings; a settings file sets `disableAllHooks`; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |
 | path | `specval` is not on `PATH`, or it does not run. If the `specval` on `PATH` is not the binary that runs `doctor`, the check warns. |
 
 To repair the setup, run `specval init` in the project root. It adds each

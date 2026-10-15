@@ -322,3 +322,59 @@ func TestInitLooksAtWhatAConfiguredPathIs(t *testing.T) {
 		t.Errorf("rules.rego/project.rego: %v", err)
 	}
 }
+
+func TestInitWritesTheSpecsDirIntoTheSkill(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: changes\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(dir, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, claude.SkillPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "changes/<ticket-id>.yaml") || strings.Contains(string(b), "specs/<ticket-id>") {
+		t.Errorf("the skill does not use the configured specs_dir:\n%s", b)
+	}
+}
+
+func TestSpecValidatesItsArguments(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	for _, c := range []struct{ id, kind, want string }{
+		{"../escape", "chore", `the id "../escape" is not valid`},
+		{"A-1", "epic", `the kind "epic" is not valid; use one of: feature, bugfix, chore`},
+	} {
+		if _, err := Spec(cfg, c.id, c.kind, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("Spec(%q, %q): err = %v, want %q", c.id, c.kind, err, c.want)
+		}
+	}
+	if entries, _ := os.ReadDir(cfg.Root); len(entries) != 0 {
+		t.Errorf("Spec wrote files: %v", entries)
+	}
+}
+
+// A dangling symbolic link at the destination is a file that exists. Spec must
+// not follow the link and create its target. A check before the write, then a
+// write, would do that.
+func TestSpecDoesNotFollowADanglingLink(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	target := filepath.Join(t.TempDir(), "elsewhere.yaml")
+	link := filepath.Join(cfg.Root, "specs", "A-1.yaml")
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Spec(cfg, "A-1", "chore", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("Spec: err = %v, want already exists", err)
+	}
+	if info, err := os.Lstat(link); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("the link changed: %v", err)
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Errorf("Spec created the target of the link: %v", err)
+	}
+}

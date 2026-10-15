@@ -85,7 +85,7 @@ unknown_fix(name, action) := concat(" ", [
 
 # METADATA
 # title: Calls use known services
-# description: The `from` and the `to` of each call is a registered service or a service in `services.new`.
+# description: The `from` and the `to` of each call are registered services or services in `services.new`.
 # custom:
 #   id: SV101
 deny contains f if {
@@ -121,7 +121,7 @@ deny contains f if {
 }
 
 # METADATA
-# title: New services are named for their layer
+# title: Each new service has the suffix of its layer
 # description: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).
 # custom:
 #   id: SV103
@@ -138,7 +138,7 @@ deny contains f if {
 }
 
 # METADATA
-# title: New services are actually new
+# title: A new service is not in the registry
 # description: A service that is in the registry goes under `services.changed`, not under `services.new`.
 # custom:
 #   id: SV104
@@ -155,7 +155,7 @@ deny contains f if {
 
 # METADATA
 # title: New services use a known layer
-# description: The `layer` of a new service is one of the DPL layers.
+# description: The `layer` of a new service is one of the layers.
 # custom:
 #   id: SV105
 deny contains f if {
@@ -170,7 +170,7 @@ deny contains f if {
 }
 
 # METADATA
-# title: New services are used
+# title: Each new service is in a call
 # description: Each service in `services.new` is in one or more calls.
 # custom:
 #   id: SV106
@@ -189,7 +189,7 @@ deny contains f if {
 # title: A call implements each acceptance criterion
 # description: >-
 #   The ID of each acceptance criterion is in the `covers` list of one or more calls.
-#   Thus each requirement shows the services that implement it.
+#   Thus each acceptance criterion shows the services that implement it.
 # custom:
 #   id: SV107
 deny contains f if {
@@ -204,7 +204,7 @@ deny contains f if {
 }
 
 # METADATA
-# title: Calls cover real acceptance criteria
+# title: Each call covers acceptance criteria of the spec
 # description: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
 # custom:
 #   id: SV108
@@ -221,7 +221,7 @@ deny contains f if {
 }
 
 # METADATA
-# title: Changed services are registered
+# title: Each changed service is in the registry
 # description: Each name in `services.changed` is in the registry.
 # custom:
 #   id: SV109
