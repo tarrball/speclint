@@ -94,13 +94,14 @@ func Run(ctx context.Context, env Env) []Check {
 		add(StatusFail, "rules", strings.ReplaceAll(err.Error(), cfg.Root+string(filepath.Separator), ""), "Fix the file named above; `specval check` will fail until then.")
 		add(StatusWarn, "registry", "not checked until the rules load", "")
 	} else {
+		docs := eng.RuleDocs()
 		var project int
-		for _, d := range eng.RuleDocs() {
-			if d.Package != "data.specval.spec.schema" && d.Package != "data.specval.spec.dpl" {
+		for _, d := range docs {
+			if !d.Baseline {
 				project++
 			}
 		}
-		add(StatusOK, "rules", fmt.Sprintf("%d spec rule(s) compile, %d from this project", len(eng.RuleDocs()), project), "")
+		add(StatusOK, "rules", fmt.Sprintf("%d spec rule(s) compile, %d from this project", len(docs), project), "")
 
 		services, err := eng.Services()
 		switch {
