@@ -18,9 +18,9 @@ deny contains f if {
 	not data.dpl.layers[layer]
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.%s", [name]),
-		sprintf("%s has no valid layer (got %q)", [name, layer]),
-		sprintf("Set layer to one of: %s.", [concat(", ", data.dpl.layer_order)]),
+		$"services.{name}",
+		$"{name} has no valid layer (got {lib.quote(layer)})",
+		$"Set layer to one of: {concat(", ", data.dpl.layer_order)}.",
 	)
 }
 
@@ -34,8 +34,8 @@ deny contains f if {
 	not endswith(name, sfx)
 	f := lib.finding(
 		rego.metadata.rule(),
-		sprintf("services.%s", [name]),
-		sprintf("%s is in the %s layer but does not end in %s", [name, s.layer, sfx]),
-		sprintf("Rename it to end in %s, or fix its layer.", [sfx]),
+		$"services.{name}",
+		$"{name} is in the {s.layer} layer but does not end in {sfx}",
+		$"Rename it to end in {sfx}, or fix its layer.",
 	)
 }

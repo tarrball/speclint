@@ -15,9 +15,20 @@ finding(meta, path, msg, fix) := {
 # join renders ["a", "b", "c"] as "a, b <word> c".
 join(xs, _) := xs[0] if count(xs) == 1
 
-join(xs, word) := sprintf("%s %s %s", [concat(", ", array.slice(xs, 0, count(xs) - 1)), word, xs[count(xs) - 1]]) if count(xs) > 1
+join(xs, word) := $"{concat(", ", head)} {word} {last}" if {
+	count(xs) > 1
+	head := array.slice(xs, 0, count(xs) - 1)
+	last := xs[count(xs) - 1]
+}
 
-plural(word) := concat("", [word, "s"])
+# plural is undefined if word is not a string, as concat was. Interpolation
+# would write a number such as 7 as "7s".
+plural(word) := $"{word}s" if is_string(word)
+
+# quote renders s as a quoted string with Go escapes, like "got \"x\"".
+# json.marshal is different: it escapes <, >, and & for HTML.
+# regal ignore:prefer-string-interpolation
+quote(s) := sprintf("%q", [s])
 
 capitalize(s) := concat("", [upper(substring(s, 0, 1)), substring(s, 1, -1)])
 

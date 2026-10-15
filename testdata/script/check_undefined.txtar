@@ -1,0 +1,62 @@
+# A rule must not report a finding when a value in its message is undefined.
+# Here AuditHelper has an unknown layer, so SV105 reports it, and SV102 does
+# not. NoLayerEngine is registered without a layer, and NumberEngine with a
+# layer that is not a string, so SR001 reports them, and SV104 and SV102 do not.
+exits 1 specval check
+cmp stdout check.txt
+
+# A registry that is a list, not a mapping, gives no suggestions, so SV101
+# does not report the unknown service.
+cd list
+exits 0 specval check
+cmp stdout $WORK/list.txt
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+  NoLayerEngine: {}
+  NumberEngine: { layer: 7 }
+-- specs/undefined.yaml --
+specval: 1
+id: UNDEF-1
+kind: feature
+title: A spec where a rule has an undefined value
+summary: AuditHelper has an unknown layer. NoLayerEngine is registered without a layer.
+acceptance:
+  - { id: AC1, text: Covered. }
+services:
+  new:
+    - { name: AuditHelper, layer: helper, purpose: Calls a service from an unknown layer. }
+    - { name: NoLayerEngine, layer: engine, purpose: Is registered without a layer. }
+    - { name: NumberEngine, layer: engine, purpose: Is registered with the layer 7. }
+calls:
+  - { from: AuditHelper, to: OrderAccessor, op: Audit, covers: [AC1] }
+  - { from: OrderManager, to: NoLayerEngine, op: Run, covers: [AC1] }
+  - { from: OrderManager, to: NumberEngine, op: Run, covers: [AC1] }
+-- list/.specval.yaml --
+-- list/.specval/data/services.yaml --
+services: []
+-- list/specs/list.yaml --
+specval: 1
+id: LIST-1
+kind: feature
+title: A spec for a registry that is a list
+summary: Nobody is not registered.
+acceptance:
+  - { id: AC1, text: Covered. }
+calls:
+  - { from: Nobody, to: Somebody, op: Run, covers: [AC1] }
+-- list.txt --
+1 spec(s) checked: 0 error(s), 0 warning(s)
+-- check.txt --
+.specval/data/services.yaml:4 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
+    fix: Set layer to one of: manager, engine, accessor, resource.
+.specval/data/services.yaml:5 error SR001 NumberEngine has no valid layer (got '\a') (services.NumberEngine)
+    fix: Set layer to one of: manager, engine, accessor, resource.
+specs/undefined.yaml:10 error SV105 helper is not a layer (services.new[0].layer)
+    fix: Use one of: manager, engine, accessor, resource.
+specs/undefined.yaml:12 error SV104 NumberEngine is already registered (%!s(int64=7) layer) (services.new[2].name)
+    fix: Move NumberEngine from services.new to services.changed.
+1 spec(s) checked: 4 error(s), 0 warning(s)

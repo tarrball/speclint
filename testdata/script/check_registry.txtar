@@ -20,6 +20,7 @@ services:
   PricingThing: { layer: engine }
   OrderAccessor: { layer: storage }
   NoLayerEngine: {}
+  MarkupEngine: { layer: "<b>&\u0000" }
 -- specs/.keep --
 -- extra.yaml --
 services: {}
@@ -33,4 +34,6 @@ services: {}
     fix: Set layer to one of: manager, engine, accessor, resource.
 .specval/data/services.yaml:5 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
-0 spec(s) checked: 3 error(s), 0 warning(s)
+.specval/data/services.yaml:6 error SR001 MarkupEngine has no valid layer (got "<b>&\x00") (services.MarkupEngine)
+    fix: Set layer to one of: manager, engine, accessor, resource.
+0 spec(s) checked: 4 error(s), 0 warning(s)
