@@ -145,6 +145,17 @@ test_sv104_registered_service_declared_as_new if {
 	{[f.rule, f.path] | some f in findings} == {["SV104", "services.new[0].name"]}
 }
 
+test_sv104_layer_that_is_not_a_string if {
+	registry := {"services": object.union(project.services, {"NumberEngine": {"layer": 7}})}
+	s := spec({
+		"services": {"new": [new_service("NumberEngine", "engine")]},
+		"calls": [call("OrderManager", "NumberEngine")],
+	})
+	some f in dpl.deny with input as s with data.project as registry
+	f.rule == "SV104"
+	f.msg == "NumberEngine is already registered (7 layer)"
+}
+
 test_sv105_unknown_layer if {
 	s := spec({
 		"services": {"new": [new_service("X", "helper")]},
