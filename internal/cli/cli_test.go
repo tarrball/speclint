@@ -266,3 +266,29 @@ func TestCheckJSONOutput(t *testing.T) {
 		t.Errorf("check --format json escaped the message:\n%s", out)
 	}
 }
+
+func TestHelpFlagExitsZeroAndDoesNothing(t *testing.T) {
+	for _, cmd := range []string{"check", "context", "new", "schema", "init", "doctor", "hook"} {
+		dir := t.TempDir()
+		code, out, errOut := runCLI(t, dir, `{"tool_input": {"file_path": "specs/a.yaml"}}`, cmd, "--help")
+		if code != exitOK || out != "" || !strings.Contains(errOut, "Usage: specval "+cmd) {
+			t.Errorf("%s --help: code %d, stdout %q, stderr %q", cmd, code, out, errOut)
+		}
+		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+			t.Errorf("%s --help wrote files: %v", cmd, entries)
+		}
+	}
+}
+
+func TestCommandsRejectExtraArguments(t *testing.T) {
+	for _, cmd := range []string{"context", "schema", "init", "doctor", "hook"} {
+		dir := t.TempDir()
+		code, _, errOut := runCLI(t, dir, "", cmd, "extra")
+		if code != exitError || !strings.Contains(errOut, cmd+` takes no arguments; got "extra"`) {
+			t.Errorf("%s extra: code %d, stderr %q", cmd, code, errOut)
+		}
+		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
+			t.Errorf("%s extra wrote files: %v", cmd, entries)
+		}
+	}
+}

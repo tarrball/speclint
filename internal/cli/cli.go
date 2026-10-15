@@ -70,22 +70,28 @@ func Run(ctx context.Context, args []string, env *Env) int {
 	case "check":
 		code, err = cmdCheck(ctx, env, rest)
 	case "context":
-		err = cmdContext(ctx, env)
+		err = cmdContext(ctx, env, rest)
 	case "new":
 		err = cmdNew(env, rest)
 	case "schema":
-		err = cmdSchema(env)
+		err = cmdSchema(env, rest)
 	case "init":
-		err = cmdInit(env)
+		err = cmdInit(env, rest)
 	case "doctor":
 		code, err = cmdDoctor(ctx, env, rest)
 	case "hook":
-		code = cmdHook(ctx, env)
+		if err = parseNoArgs(newFlagSet("hook", env), rest); err == nil {
+			code = cmdHook(ctx, env)
+		}
 	case "-h", "--help", "help":
 		fmt.Fprint(env.Stdout, usage)
 	default:
 		fmt.Fprintf(env.Stderr, "unknown command %q\n\n%s", args[0], usage)
 		code = exitError
+	}
+	// The flag package has already written the usage for --help.
+	if errors.Is(err, flag.ErrHelp) {
+		return exitOK
 	}
 	if err != nil {
 		fmt.Fprintln(env.Stderr, "specval:", err)
@@ -128,9 +134,33 @@ func parseArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 	}
 }
 
+// synopses gives the arguments of each command, for the usage of its flags.
+var synopses = map[string]string{
+	"check":  "[--format text|json] [--strict] [files...]",
+	"new":    `<id> [--kind feature|bugfix|chore] [--title "..."]`,
+	"doctor": "[--format text|json]",
+}
+
 // newFlagSet returns a flag set that writes its messages to env.Stderr.
 func newFlagSet(name string, env *Env) *flag.FlagSet {
 	fl := flag.NewFlagSet(name, flag.ContinueOnError)
 	fl.SetOutput(env.Stderr)
+	fl.Usage = func() {
+		fmt.Fprintf(fl.Output(), "Usage: specval %s %s\n", name, synopses[name])
+		fl.PrintDefaults()
+	}
 	return fl
+}
+
+// parseNoArgs parses the flags of a command that takes no positional
+// arguments, and returns an error if there is one.
+func parseNoArgs(fl *flag.FlagSet, args []string) error {
+	pos, err := parseArgs(fl, args)
+	if err != nil {
+		return err
+	}
+	if len(pos) > 0 {
+		return fmt.Errorf("%s takes no arguments; got %q", fl.Name(), pos[0])
+	}
+	return nil
 }
