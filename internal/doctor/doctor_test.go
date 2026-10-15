@@ -222,3 +222,19 @@ func TestPathChecks(t *testing.T) {
 		f.want("path", StatusWarn, "the hook will run")
 	})
 }
+
+// Each check has one result. If a settings file is not valid, the hook check
+// fails, and doctor does not also report the hook as correct.
+func TestOneHookCheckWhenASettingsFileIsNotValid(t *testing.T) {
+	f := newFixture(t)
+	f.write(claude.LocalSettingsPath, "{not json")
+	var hooks []Check
+	for _, c := range Run(context.Background(), f.env) {
+		if c.Name == "hook" {
+			hooks = append(hooks, c)
+		}
+	}
+	if len(hooks) != 1 || hooks[0].Status != StatusFail {
+		t.Errorf("hook checks = %+v, want one failure", hooks)
+	}
+}

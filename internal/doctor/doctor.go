@@ -86,6 +86,12 @@ func (c *checker) rel(p string) string {
 	return p
 }
 
+// relText removes the project root from text, so that the paths in an error
+// message are relative to the project, as in the other checks.
+func (c *checker) relText(text string) string {
+	return strings.ReplaceAll(text, c.cfg.Root+string(filepath.Separator), "")
+}
+
 // checkSpecs makes sure that the specs directory exists, and counts the specs.
 func (c *checker) checkSpecs() {
 	if info, err := os.Stat(c.cfg.Abs(c.cfg.SpecsDir)); err != nil || !info.IsDir() {
@@ -117,7 +123,7 @@ func (c *checker) checkPaths() {
 func (c *checker) checkRules(ctx context.Context) *policy.Engine {
 	eng, err := policy.New(ctx, c.cfg)
 	if err != nil {
-		c.add(StatusFail, "rules", strings.ReplaceAll(err.Error(), c.cfg.Root+string(filepath.Separator), ""), "Fix the file in the error. Until you fix it, `specval check` fails.")
+		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `specval check` fails.")
 		return nil
 	}
 	docs := eng.RuleDocs()
@@ -214,8 +220,8 @@ func (c *checker) checkHook() {
 	for _, p := range paths {
 		st, err := claude.InspectSettings(p)
 		if err != nil {
-			c.add(StatusFail, "hook", strings.ReplaceAll(err.Error(), c.cfg.Root+string(filepath.Separator), ""), "Fix the JSON. Claude Code ignores a settings file that is not valid JSON.")
-			continue
+			c.add(StatusFail, "hook", c.relText(err.Error()), "Fix the JSON. Claude Code ignores a settings file that is not valid JSON.")
+			return
 		}
 		if st.Disabled && disabledIn == "" {
 			disabledIn = p
