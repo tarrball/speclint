@@ -11,6 +11,7 @@ mise run check   # lint and test; must pass before each commit
 mise run fmt     # format Go and Rego
 mise run build   # build bin/specval
 go test -run TestName ./...
+UPDATE_SCRIPTS=1 go test -run TestScripts ./...   # rewrite expected CLI output
 ```
 
 ## Layout
@@ -25,6 +26,8 @@ A later change moves it to `cmd/specval` and `internal/` (see docs/style.md).
 - `baseline/`: the built-in schema, layer data, and Rego rules (embedded).
 - `templates/`: the files that `specval init` writes (embedded).
 - `examples/refund/`: a sample project. The tests use its specs.
+- `testdata/script/*.txtar`: end-to-end CLI tests (testscript). Each file holds the
+  commands, the input files, and the expected output. `script_test.go` runs them.
 
 ## Rules
 
@@ -33,6 +36,8 @@ A later change moves it to `cmd/specval` and `internal/` (see docs/style.md).
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branches, commits, and pull requests.
 - Do not ignore an error. Do not add a `//nolint` without a linter name and a reason.
 - A change in behavior needs a test that fails without it.
+- If you change CLI output, update the scripts with `UPDATE_SCRIPTS=1`, then read
+  the diff of `testdata/script` line by line. The diff is the change in behavior.
 
 ## Contracts that other people depend on
 

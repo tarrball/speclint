@@ -1,0 +1,61 @@
+# new writes <specs dir>/<id>.yaml from the template and prints its path.
+cd proj
+exits 0 specval new ORD-1
+stdout '^.*/specs/ORD-1.yaml$'
+cmp specs/ORD-1.yaml $WORK/want/ORD-1.yaml
+
+# Flags can come after the id. The title is quoted.
+exits 0 specval new BUG-2 --title 'Fix the "total" field' --kind bugfix
+cmp specs/BUG-2.yaml $WORK/want/BUG-2.yaml
+
+# new does not overwrite a spec.
+exits 2 specval new ORD-1
+stderr '^specval: .*/specs/ORD-1.yaml already exists$'
+
+# The id must be one argument of letters, digits, '.', '_', and '-'.
+exits 2 specval new 'bad id'
+stderr '^specval: usage: specval new <id> \(letters, digits, . _ -\)$'
+exits 2 specval new
+stderr '^specval: usage: specval new <id>'
+exits 2 specval new A B
+stderr '^specval: usage: specval new <id>'
+
+# An unknown flag is a usage error.
+exits 2 specval new X --nope
+stderr 'flag provided but not defined: -nope'
+
+# Without a .specval.yaml, new exits 2.
+cd $WORK/elsewhere
+exits 2 specval new ORD-3
+stderr '^specval: no .specval.yaml found'
+
+-- proj/.specval.yaml --
+-- elsewhere/.keep --
+-- want/ORD-1.yaml --
+specval: 1
+id: ORD-1
+kind: feature
+title: ""
+summary: ""
+acceptance:
+  - id: AC1
+    text: ""
+services:
+  new: []
+  changed: []
+calls: []
+out_of_scope: []
+-- want/BUG-2.yaml --
+specval: 1
+id: BUG-2
+kind: bugfix
+title: "Fix the \"total\" field"
+summary: ""
+acceptance:
+  - id: AC1
+    text: ""
+services:
+  new: []
+  changed: []
+calls: []
+out_of_scope: []

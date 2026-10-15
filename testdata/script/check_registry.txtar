@@ -1,0 +1,36 @@
+# Registry rules run one time for each check, against the data file.
+exits 1 specval check
+cmp stdout check.txt
+
+# Two data files that define the same top-level key are an error.
+cp extra.yaml .specval/data/extra.yaml
+exits 2 specval check
+stderr '^specval: data key "services" is defined in both .*/extra.yaml and .*/services.yaml$'
+rm .specval/data/extra.yaml
+
+# A data file must be a mapping.
+cp list.yaml .specval/data/list.yaml
+exits 2 specval check
+stderr 'list.yaml: data files must be a mapping'
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  PricingThing: { layer: engine }
+  OrderAccessor: { layer: storage }
+  NoLayerEngine: {}
+-- specs/.keep --
+-- extra.yaml --
+services: {}
+-- list.yaml --
+- a
+- b
+-- check.txt --
+.specval/data/services.yaml:3 error SR002 PricingThing is in the engine layer but does not end in Engine (services.PricingThing)
+    fix: Rename it to end in Engine, or fix its layer.
+.specval/data/services.yaml:4 error SR001 OrderAccessor has no valid layer (got "storage") (services.OrderAccessor)
+    fix: Set layer to one of: manager, engine, accessor, resource.
+.specval/data/services.yaml:5 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
+    fix: Set layer to one of: manager, engine, accessor, resource.
+0 spec(s) checked: 3 error(s), 0 warning(s)

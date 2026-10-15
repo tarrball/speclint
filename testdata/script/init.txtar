@@ -1,0 +1,102 @@
+# init creates the config, the data and policy files, the skill, the specs
+# directory, and the hook.
+exits 0 specval init
+cmp stdout created.txt
+exists specs
+cmp .specval.yaml want/config.yaml
+cmp .claude/settings.json want/settings.json
+exists .specval/data/services.yaml .specval/policy/project.rego .claude/skills/spec/SKILL.md
+
+# The new project passes check.
+exits 0 specval check
+stdout '^0 spec\(s\) checked: 0 error\(s\), 0 warning\(s\)$'
+
+# A second init changes nothing.
+exits 0 specval init
+cmp stdout exists.txt
+
+# init adds the hook to a settings file and keeps the other settings.
+cd $WORK/merge
+exits 0 specval init
+stdout '^hooked   .claude/settings.json$'
+cmp .claude/settings.json $WORK/want/merged.json
+
+# init uses the specs_dir of an existing config in the same directory.
+cd $WORK/custom
+exits 0 specval init
+exists changes
+! exists specs
+
+# init stops if the settings file is not valid JSON.
+cd $WORK/badjson
+exits 2 specval init
+stderr '^specval: .claude/settings.json is not valid JSON: '
+
+-- merge/.claude/settings.json --
+{"model": "opus", "hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}]}}
+-- custom/.specval.yaml --
+specs_dir: changes
+-- badjson/.claude/settings.json --
+{not json
+-- created.txt --
+created  .specval.yaml
+created  .specval/data/services.yaml
+created  .specval/policy/project.rego
+created  .claude/skills/spec/SKILL.md
+hooked   .claude/settings.json
+-- exists.txt --
+exists   .specval.yaml
+exists   .specval/data/services.yaml
+exists   .specval/policy/project.rego
+exists   .claude/skills/spec/SKILL.md
+exists   .claude/settings.json (specval hook)
+-- want/config.yaml --
+# specval config. Paths are relative to this file.
+specs_dir: specs
+# Project rules: Rego files whose packages are specval.spec.<name> (per spec)
+# or specval.registry.<name> (once per run, against data only).
+policy: [.specval/policy]
+# Project data: YAML/JSON files; each top-level key is available as data.project.<key>.
+data: [.specval/data]
+-- want/settings.json --
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "specval hook",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  }
+}
+-- want/merged.json --
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "echo hi",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "specval hook",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  },
+  "model": "opus"
+}
