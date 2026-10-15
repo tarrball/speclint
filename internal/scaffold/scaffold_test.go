@@ -354,3 +354,27 @@ func TestSpecValidatesItsArguments(t *testing.T) {
 		t.Errorf("Spec wrote files: %v", entries)
 	}
 }
+
+// A dangling symbolic link at the destination is a file that exists. Spec must
+// not follow the link and create its target. A check before the write, then a
+// write, would do that.
+func TestSpecDoesNotFollowADanglingLink(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	target := filepath.Join(t.TempDir(), "elsewhere.yaml")
+	link := filepath.Join(cfg.Root, "specs", "A-1.yaml")
+	if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Spec(cfg, "A-1", "chore", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("Spec: err = %v, want already exists", err)
+	}
+	if info, err := os.Lstat(link); err != nil || info.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("the link changed: %v", err)
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Errorf("Spec created the target of the link: %v", err)
+	}
+}
