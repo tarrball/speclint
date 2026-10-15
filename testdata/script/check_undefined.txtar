@@ -1,7 +1,7 @@
 # A rule must not report a finding when a value in its message is undefined.
 # Here AuditHelper has an unknown layer, so SV105 reports it, and SV102 does
-# not. NoLayerEngine is registered without a layer, so SR001 reports it, and
-# SV104 does not.
+# not. NoLayerEngine is registered without a layer, and NumberEngine with a
+# layer that is not a string, so SR001 reports them, and SV104 and SV102 do not.
 exits 1 specval check
 cmp stdout check.txt
 
@@ -11,6 +11,7 @@ services:
   OrderManager: { layer: manager }
   OrderAccessor: { layer: accessor }
   NoLayerEngine: {}
+  NumberEngine: { layer: 7 }
 -- specs/undefined.yaml --
 specval: 1
 id: UNDEF-1
@@ -26,9 +27,12 @@ services:
 calls:
   - { from: AuditHelper, to: OrderAccessor, op: Audit, covers: [AC1] }
   - { from: OrderManager, to: NoLayerEngine, op: Run, covers: [AC1] }
+  - { from: OrderManager, to: NumberEngine, op: Run, covers: [AC1] }
 -- check.txt --
 .specval/data/services.yaml:4 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
+.specval/data/services.yaml:5 error SR001 NumberEngine has no valid layer (got '\a') (services.NumberEngine)
+    fix: Set layer to one of: manager, engine, accessor, resource.
 specs/undefined.yaml:10 error SV105 helper is not a layer (services.new[0].layer)
     fix: Use one of: manager, engine, accessor, resource.
-1 spec(s) checked: 2 error(s), 0 warning(s)
+1 spec(s) checked: 3 error(s), 0 warning(s)

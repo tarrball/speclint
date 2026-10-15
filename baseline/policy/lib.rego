@@ -21,7 +21,9 @@ join(xs, word) := $"{concat(", ", head)} {word} {last}" if {
 	last := xs[count(xs) - 1]
 }
 
-plural(word) := $"{word}s"
+# plural is undefined if word is not a string, as concat was. Interpolation
+# would write a number such as 7 as "7s".
+plural(word) := $"{word}s" if is_string(word)
 
 # quote renders s as a quoted string with Go escapes, like "got \"x\"".
 # json.marshal is different: it escapes <, >, and & for HTML.
