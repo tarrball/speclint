@@ -33,6 +33,20 @@ exits 1 specval doctor
 stdout '^✗ registry  .specval/data/services.yaml:2 PricingThing is in the engine layer but does not end in Engine$'
 cp $WORK/services.yaml .specval/data/services.yaml
 
+# A registered layer that is not a string fails the registry rules, and doctor
+# shows the finding.
+cp $WORK/numberlayer.yaml .specval/data/services.yaml
+exits 1 specval doctor
+stdout '^✗ registry  .specval/data/services.yaml:3 NumberEngine has no valid layer'
+
+# A registry that is a list, not a mapping, is a doctor failure.
+cp $WORK/listservices.yaml .specval/data/services.yaml
+exits 1 specval doctor
+stdout '^✗ registry  data.project.services must be a mapping of service names to layers$'
+exits 1 specval doctor --format json
+stdout '"ok": false'
+cp $WORK/services.yaml .specval/data/services.yaml
+
 # A policy that does not compile is a doctor failure.
 cp $WORK/broken.rego .specval/policy/broken.rego
 exits 1 specval doctor
@@ -91,6 +105,12 @@ services:
 -- badservices.yaml --
 services:
   PricingThing: { layer: engine }
+-- numberlayer.yaml --
+services:
+  OrderManager: { layer: manager }
+  NumberEngine: { layer: 7 }
+-- listservices.yaml --
+services: []
 -- broken.rego --
 package specval.spec.broken
 
