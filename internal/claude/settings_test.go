@@ -164,3 +164,14 @@ func TestInspectSettingsWrongShape(t *testing.T) {
 		}
 	}
 }
+
+func TestInspectSettingsThatIsNotAnObject(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	for _, content := range []string{"[]", "true", `"x"`} {
+		writeFile(t, path, content)
+		_, err := InspectSettings(path)
+		if want := path + ": the settings must be a JSON object"; err == nil || err.Error() != want {
+			t.Errorf("%s: err = %v, want %q", content, err, want)
+		}
+	}
+}

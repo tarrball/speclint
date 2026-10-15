@@ -69,6 +69,10 @@ func InspectSettings(path string) (HookStatus, error) {
 		// A field with a value of the wrong type is valid JSON, so say which
 		// field it is, not that the JSON is not valid.
 		if typeErr, ok := errors.AsType[*json.UnmarshalTypeError](err); ok {
+			// An empty field is the top level, for example [] or true.
+			if typeErr.Field == "" {
+				return st, fmt.Errorf("%s: the settings must be a JSON object", path)
+			}
 			return st, fmt.Errorf("%s: the field %q has the wrong type", path, typeErr.Field)
 		}
 		return st, fmt.Errorf("%s is not valid JSON: %w", path, err)
