@@ -128,6 +128,11 @@ func TestProjectChecks(t *testing.T) {
 		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
 		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services are registered"},
 		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
+		{"registry rule warns", func(f *fixture) {
+			f.write(".specval/policy/r.rego", "package specval.registry.r\n\nimport data.specval.lib\nimport rego.v1\n\n"+
+				"# METADATA\n# title: T\n# custom:\n#   id: PRJ900\n"+
+				"warn contains lib.finding(rego.metadata.rule(), \"services.OrderManager\", \"OrderManager has no owner\", \"Add an owner.\") if true\n")
+		}, "registry", StatusWarn, "OrderManager has no owner"},
 		{"registry rule fails", func(f *fixture) {
 			f.write(".specval/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
 		}, "registry", StatusFail, ".specval/data/services.yaml:2 PricingThing is in the engine layer"},

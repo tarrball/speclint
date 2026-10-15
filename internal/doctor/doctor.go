@@ -4,9 +4,11 @@ package doctor
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/tarrball/specval/internal/claude"
@@ -152,13 +154,22 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 		return
 	}
 	var problems []string
-	for file, found := range reg {
-		for _, f := range found {
-			problems = append(problems, fmt.Sprintf("%s:%d %s", c.rel(file), f.Line, f.Msg))
+	status := StatusWarn
+	for _, file := range slices.Sorted(maps.Keys(reg)) {
+		for _, f := range reg[file] {
+			where := c.rel(file)
+			if f.Line > 0 {
+				where = fmt.Sprintf("%s:%d", where, f.Line)
+			}
+			problems = append(problems, where+" "+f.Msg)
+			if f.Severity == policy.SeverityError {
+				status = StatusFail
+			}
 		}
 	}
+	// A registry warning does not fail check, so it does not fail doctor.
 	if len(problems) > 0 {
-		c.add(StatusFail, "registry", strings.Join(problems, "; "), "Run `specval check` to see the fix for each problem.")
+		c.add(status, "registry", strings.Join(problems, "; "), "Run `specval check` to see the fix for each problem.")
 	} else {
 		c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s", len(services), c.rel(eng.DataFile("services"))), "")
 	}
