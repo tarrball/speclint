@@ -33,7 +33,8 @@ Usage:
   specval doctor [--format text|json]
         Check that the setup is intact (config, rules, registry, Claude skill, hook, PATH).
   specval hook
-        Claude Code PostToolUse hook: checks a spec Claude just wrote (JSON on stdin).
+        Not run by hand: Claude Code runs it after each file write (set up by init).
+        If the file is a spec, checks it and sends any errors back to Claude to fix.
 `
 
 func main() {

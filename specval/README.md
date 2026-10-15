@@ -10,7 +10,7 @@ specval new ORD-150 --title "Customer can cancel an order"
 specval check                # every spec in specs/; exit 1 on errors (--format json, --strict)
 specval context              # spec format + layers + registry + rules, for an agent (~750 tokens)
 specval schema               # the spec JSON Schema
-specval hook                 # Claude Code PostToolUse hook (JSON on stdin)
+specval hook                 # run by Claude Code after each file write; checks the spec it just saved (see below)
 ```
 
 ## How rules are layered
@@ -51,11 +51,37 @@ deny contains f if {
 
 ## Claude Code
 
-`specval init` writes `.claude/skills/spec/SKILL.md` (tells Claude to run
-`specval context`, write the spec, and fix findings) and a PostToolUse hook in
-`.claude/settings.json`. When Claude writes a file under the specs dir, the hook
-runs the check; errors go back to Claude (exit 2) with their fixes, and warnings
-are passed along as context.
+`specval init` sets up two things:
+
+- **A skill** (`.claude/skills/spec/SKILL.md`) that tells Claude, while
+  planning, to run `specval context`, write the spec, and fix every finding
+  before writing code.
+- **A hook** in `.claude/settings.json` that makes Claude Code run
+  `specval hook` after every Write, Edit, or MultiEdit.
+
+### What `specval hook` does
+
+Claude Code pipes a JSON event describing the tool call to its stdin.
+`specval hook` reads the edited file's path from it, then:
+
+1. **Ignores anything that isn't a spec.** If the file isn't `.yaml`/`.yml`,
+   isn't under a `.specval.yaml` project, or isn't in that project's
+   `specs_dir`, it exits 0 silently (~20ms, Claude sees nothing).
+2. **Checks the spec,** exactly like `specval check <file>`.
+3. **Reports back through its exit code:**
+
+| Result | Exit | Effect |
+|---|---|---|
+| Errors | 2 | Findings and their `fix:` lines go to stderr, which Claude Code hands to Claude, along with an instruction to fix the spec before writing code. |
+| Warnings only | 0 | Warnings are passed to Claude as extra context; nothing is blocked. |
+| Passes | 0 | Nothing. |
+| specval itself fails (e.g. a broken policy) | 1 | Claude Code shows the error to the user, and Claude carries on. |
+
+It's feedback, not a gate. The hook runs after the file is saved, so a failing
+spec stays on disk, and nothing *forces* Claude to stop before writing code;
+the message and the skill tell it to. A hard gate (a PreToolUse hook that blocks
+writes outside `specs/`, or a Stop hook that won't let Claude finish while a
+spec fails) is possible, and worth A/B testing against this.
 
 ## Keeping the setup healthy
 
