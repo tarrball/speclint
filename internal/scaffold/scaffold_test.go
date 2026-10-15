@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -133,5 +134,51 @@ func TestSpec(t *testing.T) {
 
 	if _, err := Spec(cfg, "BUG-7", "bugfix", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Errorf("second Spec: err = %v, want already exists", err)
+	}
+}
+
+func TestSpecTitleRoundTrips(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	for i, title := range []string{
+		"",
+		`Fix the "total" field`,
+		`C:\path\to\file`,
+		"key: value # not a comment",
+		"two\nlines",
+		"tab\there",
+		"bell\a and nul\x00",
+		"émoji 🎉 and \u2028",
+		"'single' quotes",
+		"- not a list",
+	} {
+		path, err := Spec(cfg, fmt.Sprintf("T-%d", i), "chore", title)
+		if err != nil {
+			t.Errorf("%q: %v", title, err)
+			continue
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var spec struct {
+			Title string `yaml:"title"`
+		}
+		if err := yaml.Unmarshal(b, &spec); err != nil {
+			t.Errorf("%q: the spec is not valid YAML: %v", title, err)
+			continue
+		}
+		if spec.Title != title {
+			t.Errorf("title %q was read back as %q", title, spec.Title)
+		}
+	}
+}
+
+func TestSpecRejectsATitleThatIsNotUTF8(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	if _, err := Spec(cfg, "T-1", "chore", "bad \xff byte"); err == nil {
+		t.Error("Spec accepted a title that is not valid UTF-8")
+	}
+	if _, err := os.Stat(filepath.Join(cfg.Root, "specs", "T-1.yaml")); !os.IsNotExist(err) {
+		t.Errorf("Spec wrote a file: %v", err)
 	}
 }
