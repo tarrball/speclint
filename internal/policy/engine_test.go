@@ -348,3 +348,16 @@ func TestServicesWithNoRegistry(t *testing.T) {
 		t.Errorf("Services = %v, %v; want none and no error", services, err)
 	}
 }
+
+func TestAnEmptySpecReportsLineOne(t *testing.T) {
+	cfg := project(t, map[string]string{"specs/empty.yaml": ""})
+	found := check(t, cfg, "empty.yaml")
+	if len(found) == 0 {
+		t.Fatal("no findings for an empty spec")
+	}
+	for _, f := range found {
+		if f.Line != 1 {
+			t.Errorf("%s %s: line %d, want 1", f.Rule, f.Msg, f.Line)
+		}
+	}
+}

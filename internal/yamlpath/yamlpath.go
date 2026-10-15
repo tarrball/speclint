@@ -19,10 +19,11 @@ func Line(doc *yaml.Node, path string) int {
 	if n == nil {
 		return 0
 	}
+	// An empty file gives a zero node, or a document with no content.
+	if n.Kind == 0 || (n.Kind == yaml.DocumentNode && len(n.Content) == 0) {
+		return 1
+	}
 	if n.Kind == yaml.DocumentNode {
-		if len(n.Content) == 0 {
-			return 1
-		}
 		n = n.Content[0]
 	}
 	line := n.Line
