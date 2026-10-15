@@ -11,7 +11,7 @@ import (
 func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
 	fl := newFlagSet("doctor", env)
 	format := fl.String("format", "text", "output format: text or json")
-	if _, err := parseArgs(fl, args); err != nil {
+	if err := parseNoArgs(fl, args); err != nil {
 		return exitError, err
 	}
 	dir, err := env.workDir()

@@ -4,9 +4,11 @@ package doctor
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/tarrball/specval/internal/claude"
@@ -84,6 +86,12 @@ func (c *checker) rel(p string) string {
 	return p
 }
 
+// relText removes the project root from text, so that the paths in an error
+// message are relative to the project, as in the other checks.
+func (c *checker) relText(text string) string {
+	return strings.ReplaceAll(text, c.cfg.Root+string(filepath.Separator), "")
+}
+
 // checkSpecs makes sure that the specs directory exists, and counts the specs.
 func (c *checker) checkSpecs() {
 	if info, err := os.Stat(c.cfg.Abs(c.cfg.SpecsDir)); err != nil || !info.IsDir() {
@@ -115,7 +123,7 @@ func (c *checker) checkPaths() {
 func (c *checker) checkRules(ctx context.Context) *policy.Engine {
 	eng, err := policy.New(ctx, c.cfg)
 	if err != nil {
-		c.add(StatusFail, "rules", strings.ReplaceAll(err.Error(), c.cfg.Root+string(filepath.Separator), ""), "Fix the file in the error. Until you fix it, `specval check` fails.")
+		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `specval check` fails.")
 		return nil
 	}
 	docs := eng.RuleDocs()
@@ -143,7 +151,7 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 		return
 	case len(services) == 0:
 		c.add(StatusWarn, "registry", "no services are registered (data.project.services is empty)",
-			"Add each service and its layer to .specval/data/services.yaml. Until you do, each call fails SV101.")
+			"Add each service and its layer to "+c.registryFile(eng)+". Until you do, each call fails SV101.")
 		return
 	}
 	reg, err := eng.CheckRegistry(ctx)
@@ -152,16 +160,38 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 		return
 	}
 	var problems []string
-	for file, found := range reg {
-		for _, f := range found {
-			problems = append(problems, fmt.Sprintf("%s:%d %s", c.rel(file), f.Line, f.Msg))
+	status := StatusWarn
+	for _, file := range slices.Sorted(maps.Keys(reg)) {
+		for _, f := range reg[file] {
+			where := c.rel(file)
+			if f.Line > 0 {
+				where = fmt.Sprintf("%s:%d", where, f.Line)
+			}
+			problems = append(problems, where+" "+f.Msg)
+			if f.Severity == policy.SeverityError {
+				status = StatusFail
+			}
 		}
 	}
+	// A registry warning does not fail check, so it does not fail doctor.
 	if len(problems) > 0 {
-		c.add(StatusFail, "registry", strings.Join(problems, "; "), "Run `specval check` to see the fix for each problem.")
+		c.add(status, "registry", strings.Join(problems, "; "), "Run `specval check` to see the fix for each problem.")
 	} else {
 		c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s", len(services), c.rel(eng.DataFile("services"))), "")
 	}
+}
+
+// registryFile returns the data file that holds the registry: the file that
+// defines services, or else the first data path of the configuration. If the
+// configuration has no data path, it describes the file.
+func (c *checker) registryFile(eng *policy.Engine) string {
+	if f := eng.DataFile("services"); f != "" {
+		return c.rel(f)
+	}
+	if len(c.cfg.Data) > 0 {
+		return c.cfg.Data[0]
+	}
+	return "a data file that " + config.FileName + " lists"
 }
 
 // checkSkill makes sure that the project or the user has the specval skill,
@@ -203,8 +233,8 @@ func (c *checker) checkHook() {
 	for _, p := range paths {
 		st, err := claude.InspectSettings(p)
 		if err != nil {
-			c.add(StatusFail, "hook", strings.ReplaceAll(err.Error(), c.cfg.Root+string(filepath.Separator), ""), "Fix the JSON. Claude Code ignores a settings file that is not valid JSON.")
-			continue
+			c.add(StatusFail, "hook", c.relText(err.Error()), "Correct the file. Claude Code ignores a settings file that it cannot read.")
+			return
 		}
 		if st.Disabled && disabledIn == "" {
 			disabledIn = p

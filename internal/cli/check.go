@@ -40,26 +40,28 @@ func (r *Report) add(file string, found []policy.Finding) {
 	}
 }
 
-// run checks the registry and the given spec files. The spec files must be
-// absolute paths. run reports paths relative to base.
-func run(ctx context.Context, cfg *config.Config, files []string, base string) (*Report, error) {
+// run checks the given spec files and, if registry is true, the registry. The
+// spec files must be absolute paths. run reports paths relative to base.
+func run(ctx context.Context, cfg *config.Config, files []string, base string, registry bool) (*Report, error) {
 	eng, err := policy.New(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 	rel := func(p string) string { return relTo(base, p) }
 	r := &Report{Files: []FileReport{}}
-	reg, err := eng.CheckRegistry(ctx)
-	if err != nil {
-		return nil, err
-	}
-	regFiles := make([]string, 0, len(reg))
-	for f := range reg {
-		regFiles = append(regFiles, f)
-	}
-	sort.Strings(regFiles)
-	for _, f := range regFiles {
-		r.add(rel(f), reg[f])
+	if registry {
+		reg, err := eng.CheckRegistry(ctx)
+		if err != nil {
+			return nil, err
+		}
+		regFiles := make([]string, 0, len(reg))
+		for f := range reg {
+			regFiles = append(regFiles, f)
+		}
+		sort.Strings(regFiles)
+		for _, f := range regFiles {
+			r.add(rel(f), reg[f])
+		}
 	}
 	for _, f := range files {
 		found, err := eng.CheckSpec(ctx, f)
@@ -104,7 +106,7 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 			return exitError, err
 		}
 	}
-	r, err := run(ctx, cfg, files, dir)
+	r, err := run(ctx, cfg, files, dir, true)
 	if err != nil {
 		return exitError, err
 	}

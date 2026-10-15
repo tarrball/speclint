@@ -20,7 +20,9 @@ the file that the tool wrote. `specval hook` then does these steps:
 1. It ignores a file that is not a spec. A file is a spec if it is a `.yaml`
    or `.yml` file in the specs directory of a specval project. For any other
    file, the hook exits 0 and writes nothing.
-2. It checks the spec, as `specval check <file>` does.
+2. It checks the spec with the spec rules. It does not report the registry
+   rules, because a registry problem is not a problem in the spec.
+   `specval check` and `specval doctor` report the registry.
 3. It gives the result to Claude Code through its exit status:
 
 | Result | Exit status | What Claude Code does |

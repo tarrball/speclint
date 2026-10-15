@@ -25,6 +25,9 @@ var (
 	//go:embed templates/services.yaml
 	servicesTemplate string
 
+	//go:embed templates/services.json
+	servicesJSONTemplate string
+
 	//go:embed templates/project.rego
 	projectTemplate string
 
@@ -49,21 +52,49 @@ func Init(dir string, w io.Writer) error {
 	if _, err := claude.InspectSettings(settings); err != nil {
 		return err
 	}
-	specsDir := filepath.Join(dir, "specs")
-	if cfg, err := config.Find(dir); err == nil && sameDir(cfg.Root, dir) {
-		specsDir = cfg.Abs(cfg.SpecsDir)
+	// A configuration in dir gives the paths for the other parts. Init does
+	// not use the configuration of a parent directory.
+	cfg := config.Default(dir)
+	if _, err := os.Stat(filepath.Join(dir, config.FileName)); err == nil {
+		if cfg, err = config.Find(dir); err != nil {
+			return err
+		}
+	}
+	// A data file can already define the registry. Then Init must not write a
+	// second one, because two files cannot define the same key.
+	registry, err := registryFile(cfg)
+	if err != nil {
+		return err
+	}
+	services := firstFile(cfg, cfg.Data, "services.yaml", ".yaml", ".yml", ".json")
+	servicesContent := servicesTemplate
+	if strings.HasSuffix(services, ".json") {
+		servicesContent = servicesJSONTemplate
+	}
+	if registry != "" {
+		services, servicesContent = registry, ""
 	}
 	files := []struct{ path, content string }{
 		{config.FileName, configTemplate},
-		{".specval/data/services.yaml", servicesTemplate},
-		{".specval/policy/project.rego", projectTemplate},
+		{services, servicesContent},
+		{firstFile(cfg, cfg.Policy, "project.rego", ".rego"), projectTemplate},
 		{claude.SkillPath, claude.Skill()},
 	}
 	for _, f := range files {
+		switch f.path {
+		case "":
+			continue
+		case registry:
+			if _, err := fmt.Fprintln(w, "exists  ", relPath(dir, registry), "(services)"); err != nil {
+				return err
+			}
+			continue
+		}
 		if err := writeIfMissing(dir, f.path, f.content, w); err != nil {
 			return err
 		}
 	}
+	specsDir := cfg.Abs(cfg.SpecsDir)
 	if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
 	}
@@ -79,8 +110,70 @@ func Init(dir string, w io.Writer) error {
 	return err
 }
 
+// firstFile returns the file that Init writes for the first of paths. If that
+// path is a directory, the file is name in it. If it is a file, it is the
+// file. If it does not exist, firstFile uses its extension: with one of exts,
+// it is the file, and without one, it is a directory. firstFile returns "" if
+// there are no paths.
+func firstFile(cfg *config.Config, paths []string, name string, exts ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	p := paths[0]
+	if info, err := os.Stat(cfg.Abs(p)); err == nil {
+		if info.IsDir() {
+			return filepath.Join(p, name)
+		}
+		return p
+	}
+	for _, ext := range exts {
+		if strings.HasSuffix(p, ext) {
+			return p
+		}
+	}
+	return filepath.Join(p, name)
+}
+
+// registryFile returns the project data file that defines services, or "" if
+// no data file does.
+func registryFile(cfg *config.Config) (string, error) {
+	files, err := cfg.DataFiles()
+	if err != nil {
+		return "", err
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			return "", err
+		}
+		var doc map[string]any
+		// Init does not check the data files. If a file is not valid, check
+		// reports it, and Init looks at the next file.
+		if yaml.Unmarshal(b, &doc) != nil {
+			continue
+		}
+		if _, ok := doc["services"]; ok {
+			return f, nil
+		}
+	}
+	return "", nil
+}
+
+// relPath returns p relative to dir, if that is possible.
+func relPath(dir, p string) string {
+	if r, err := filepath.Rel(dir, p); err == nil {
+		return r
+	}
+	return p
+}
+
+// writeIfMissing writes content to path, relative to dir, if the file does
+// not exist. It writes one line about the file to w.
 func writeIfMissing(dir, path, content string, w io.Writer) error {
-	full := filepath.Join(dir, path)
+	full := path
+	if !filepath.IsAbs(path) {
+		full = filepath.Join(dir, path)
+	}
 	if _, err := os.Stat(full); err == nil {
 		_, err = fmt.Fprintln(w, "exists  ", path)
 		return err
@@ -105,12 +198,6 @@ func quote(s string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(string(b), "\n"), nil
-}
-
-func sameDir(a, b string) bool {
-	a, _ = filepath.Abs(a)
-	b, _ = filepath.Abs(b)
-	return a == b
 }
 
 // ValidID reports whether id can be the ID of a spec.

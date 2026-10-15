@@ -5,6 +5,7 @@ package claude
 import (
 	_ "embed" // The templates are embedded.
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -65,6 +66,15 @@ func InspectSettings(path string) (HookStatus, error) {
 	st.Exists = true
 	var s settingsFile
 	if err := json.Unmarshal(b, &s); err != nil {
+		// A field with a value of the wrong type is valid JSON, so say which
+		// field it is, not that the JSON is not valid.
+		if typeErr, ok := errors.AsType[*json.UnmarshalTypeError](err); ok {
+			// An empty field is the top level, for example [] or true.
+			if typeErr.Field == "" {
+				return st, fmt.Errorf("%s: the settings must be a JSON object", path)
+			}
+			return st, fmt.Errorf("%s: the field %q has the wrong type", path, typeErr.Field)
+		}
 		return st, fmt.Errorf("%s is not valid JSON: %w", path, err)
 	}
 	st.Disabled = s.DisableAllHooks
