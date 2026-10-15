@@ -47,12 +47,7 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string) (
 	if err != nil {
 		return nil, err
 	}
-	rel := func(p string) string {
-		if r, err := filepath.Rel(base, p); err == nil {
-			return r
-		}
-		return p
-	}
+	rel := func(p string) string { return relTo(base, p) }
 	r := &Report{}
 	reg, err := eng.CheckRegistry(ctx)
 	if err != nil {
@@ -101,6 +96,9 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 	if err != nil {
 		return exitError, err
 	}
+	if err := sameProject(cfg, files, env.Dir); err != nil {
+		return exitError, err
+	}
 	if len(files) == 0 {
 		if files, err = cfg.SpecFiles(); err != nil {
 			return exitError, err
@@ -126,6 +124,30 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 		return exitFindings, nil
 	}
 	return exitOK, nil
+}
+
+// sameProject returns an error if a file is not in the project of cfg. The
+// rules and registry of one project do not apply to the specs of another.
+func sameProject(cfg *config.Config, files []string, base string) error {
+	for _, f := range files[min(1, len(files)):] {
+		other, err := config.Find(filepath.Dir(f))
+		if err != nil {
+			return err
+		}
+		if other.Root != cfg.Root {
+			return fmt.Errorf("%s and %s are in different specval projects; check each project separately",
+				relTo(base, files[0]), relTo(base, f))
+		}
+	}
+	return nil
+}
+
+// relTo returns p relative to base. If that is not possible, it returns p.
+func relTo(base, p string) string {
+	if r, err := filepath.Rel(base, p); err == nil {
+		return r
+	}
+	return p
 }
 
 func printText(w io.Writer, r *Report, specs int) {

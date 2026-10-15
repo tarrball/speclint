@@ -86,6 +86,33 @@ func TestCheckExitCodes(t *testing.T) {
 	}
 }
 
+func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
+	dir := t.TempDir()
+	for _, p := range []string{"a", "b", "a/sub"} {
+		if err := os.MkdirAll(filepath.Join(dir, p, "specs"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, p := range []string{"a", "b"} {
+		if err := os.WriteFile(filepath.Join(dir, p, ".specval.yaml"), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, p := range []string{"a/specs/x.yaml", "a/sub/specs/z.yaml", "b/specs/y.yaml"} {
+		if err := os.WriteFile(filepath.Join(dir, p), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code, out, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "b/specs/y.yaml")
+	if code != exitError || out != "" || !strings.Contains(errOut, "a/specs/x.yaml and b/specs/y.yaml are in different specval projects") {
+		t.Errorf("code %d, stdout %q, stderr %q", code, out, errOut)
+	}
+	// Files in two directories of the same project are permitted.
+	if code, _, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "a/sub/specs/z.yaml"); code != exitFindings {
+		t.Errorf("same project: code %d, stderr %q", code, errOut)
+	}
+}
+
 func TestSchema(t *testing.T) {
 	code, out, _ := runCLI(t, t.TempDir(), "", "schema")
 	if code != exitOK || !strings.Contains(out, `"title": "specval spec"`) {
