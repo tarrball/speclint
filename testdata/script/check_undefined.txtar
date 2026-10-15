@@ -5,6 +5,12 @@
 exits 1 specval check
 cmp stdout check.txt
 
+# A registry that is a list, not a mapping, gives no suggestions, so SV101
+# does not report the unknown service.
+cd list
+exits 0 specval check
+cmp stdout $WORK/list.txt
+
 -- .specval.yaml --
 -- .specval/data/services.yaml --
 services:
@@ -24,10 +30,26 @@ services:
   new:
     - { name: AuditHelper, layer: helper, purpose: Calls a service from an unknown layer. }
     - { name: NoLayerEngine, layer: engine, purpose: Is registered without a layer. }
+    - { name: NumberEngine, layer: engine, purpose: Is registered with the layer 7. }
 calls:
   - { from: AuditHelper, to: OrderAccessor, op: Audit, covers: [AC1] }
   - { from: OrderManager, to: NoLayerEngine, op: Run, covers: [AC1] }
   - { from: OrderManager, to: NumberEngine, op: Run, covers: [AC1] }
+-- list/.specval.yaml --
+-- list/.specval/data/services.yaml --
+services: []
+-- list/specs/list.yaml --
+specval: 1
+id: LIST-1
+kind: feature
+title: A spec for a registry that is a list
+summary: Nobody is not registered.
+acceptance:
+  - { id: AC1, text: Covered. }
+calls:
+  - { from: Nobody, to: Somebody, op: Run, covers: [AC1] }
+-- list.txt --
+1 spec(s) checked: 0 error(s), 0 warning(s)
 -- check.txt --
 .specval/data/services.yaml:4 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
     fix: Set layer to one of: manager, engine, accessor, resource.
@@ -35,4 +57,6 @@ calls:
     fix: Set layer to one of: manager, engine, accessor, resource.
 specs/undefined.yaml:10 error SV105 helper is not a layer (services.new[0].layer)
     fix: Use one of: manager, engine, accessor, resource.
-1 spec(s) checked: 3 error(s), 0 warning(s)
+specs/undefined.yaml:12 error SV104 NumberEngine is already registered (%!s(int64=7) layer) (services.new[2].name)
+    fix: Move NumberEngine from services.new to services.changed.
+1 spec(s) checked: 4 error(s), 0 warning(s)

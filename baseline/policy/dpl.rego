@@ -74,10 +74,13 @@ layer_fix(from, to, target) := msg if {
 }
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
+# It is undefined if the registry is not an object, as sprintf was.
 unknown_fix(name, action) := concat(" ", [
 	$"If {name} is new, {action} services.new with a layer and purpose.",
-	$"Otherwise use a registered service: {concat(", ", suggestions(name))}.",
-])
+	$"Otherwise use a registered service: {names}.",
+]) if {
+	names := concat(", ", suggestions(name))
+}
 
 # METADATA
 # title: Calls use known services
@@ -144,7 +147,9 @@ deny contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.new[{i}].name",
-		$"{s.name} is already registered ({layer} layer)",
+		# sprintf keeps the output for a layer that is not a string.
+		# regal ignore:prefer-string-interpolation
+		sprintf("%s is already registered (%s layer)", [s.name, layer]),
 		$"Move {s.name} from services.new to services.changed.",
 	)
 }
