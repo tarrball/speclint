@@ -487,3 +487,37 @@ func TestKeysThatAreNotStrings(t *testing.T) {
 		t.Errorf("got %+v, want one SV001 error for the key 1 at line 8", found)
 	}
 }
+
+// Two keys can be different in YAML but the same as text, for example 0x1
+// and "1". specval must not keep one of them by chance.
+func TestKeysThatAreTheSameAsText(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/limits.yaml": "limits: {0x1: a, \"1\": b}\n"})
+	if _, err := New(context.Background(), cfg); err == nil || !strings.Contains(err.Error(), `limits.yaml: two keys are "1" as text (limits.1)`) {
+		t.Errorf("data file: err = %v", err)
+	}
+	cfg = project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n" +
+			"out_of_scope: [{0x1: a, \"1\": b}]\n",
+	})
+	found := check(t, cfg, "a.yaml")
+	if len(found) != 1 || found[0].Rule != "SV000" || found[0].Path != "out_of_scope[0].1" || found[0].Line != 8 {
+		t.Errorf("spec: got %+v, want one SV000 at out_of_scope[0].1, line 8", found)
+	}
+}
+
+func TestNestedRulePackagesInBracketNotation(t *testing.T) {
+	nested := project(t, map[string]string{
+		".specval/policy/a.rego": "package specval.spec.team[\"pricing-rules\"]\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
+	})
+	if _, err := New(context.Background(), nested); err == nil || !strings.Contains(err.Error(), "is too deep") {
+		t.Errorf("nested: err = %v, want a package depth error", err)
+	}
+	// One level in bracket notation is a rule package, so it needs custom.id.
+	noID := project(t, map[string]string{
+		".specval/policy/a.rego": "package specval.spec[\"pricing-rules\"]\n\nimport rego.v1\n\ndeny contains \"x\" if true\n",
+	})
+	if _, err := New(context.Background(), noID); err == nil || !strings.Contains(err.Error(), "custom.id") {
+		t.Errorf("one level: err = %v, want a custom.id error", err)
+	}
+}
