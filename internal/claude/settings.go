@@ -3,7 +3,7 @@
 package claude
 
 import (
-	_ "embed" // The templates are embedded.
+	_ "embed" // For the go:embed directives.
 	"encoding/json"
 	"errors"
 	"fmt"

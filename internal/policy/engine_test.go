@@ -389,7 +389,7 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 		var errors int
 		for line := range strings.SplitSeq(err.Error(), "\n") {
 			if strings.HasPrefix(line, "\t") {
-				continue // the source line and the marker under it
+				continue // This line shows the source and a marker under it.
 			}
 			errors++
 			if !strings.HasPrefix(line, file) {

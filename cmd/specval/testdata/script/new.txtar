@@ -4,7 +4,7 @@ exits 0 specval new ORD-1
 stdout '^.*/specs/ORD-1.yaml$'
 cmp specs/ORD-1.yaml $WORK/want/ORD-1.yaml
 
-# Flags can come after the id. The title is quoted.
+# Flags can come after the id. new quotes the title.
 exits 0 specval new BUG-2 --title 'Fix the "total" field' --kind bugfix
 cmp specs/BUG-2.yaml $WORK/want/BUG-2.yaml
 

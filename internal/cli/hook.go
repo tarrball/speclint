@@ -61,7 +61,7 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 	}
 	if r.Errors > 0 {
 		printText(env.Stderr, r, 1)
-		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above, then save the spec again. Do not write code until the spec passes.")
+		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above. Then save the spec again. Do not write code until the spec passes.")
 		return hookBlock
 	}
 	if r.Warnings > 0 {

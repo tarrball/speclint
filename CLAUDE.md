@@ -46,7 +46,7 @@ exception: doctor reads PATH, because the hook runs the `specval` on PATH.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branches, commits, and pull requests.
 - Do not ignore an error. Do not add a `//nolint` without a linter name and a reason.
 - A change in behavior needs a test that fails without it.
-- If you change CLI output, update the scripts with `UPDATE_SCRIPTS=1`, then read
+- If you change CLI output, update the scripts with `UPDATE_SCRIPTS=1`. Then read
   the diff of `testdata/script` line by line. The diff is the change in behavior.
 - If you add a built-in rule, add it to the rule tables in docs/specs.md.
   A test fails if a rule ID is not there.
@@ -73,7 +73,7 @@ Do not change these without a migration note in the pull request:
 - `specval doctor` runs the `specval` binary on PATH. Its tests must not depend on
   the software on the machine. The doctor tests put a fake `specval` on PATH.
 - Rego string interpolation writes an undefined value as `<undefined>`. `sprintf`
-  made the whole expression undefined. In a rule, bind each value that can be
+  makes the whole expression undefined. In a rule, bind each value that can be
   undefined before you interpolate it. `check_undefined.txtar` covers the cases.
 - OPA reads a comment line that starts with the word `METADATA` as an annotation.
   Do not start a comment line in a Rego file or template with that word.

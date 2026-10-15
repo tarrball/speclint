@@ -217,7 +217,7 @@ func TestPrintChecks(t *testing.T) {
     fix: Add services.
 ✗ hook      missing
     fix: Run init.
-1 problem(s), 1 warning(s).
+1 failure(s), 1 warning(s).
 `
 	if b.String() != want {
 		t.Errorf("printChecks:\n%s\nwant:\n%s", b.String(), want)

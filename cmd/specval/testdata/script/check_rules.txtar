@@ -181,7 +181,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV103",
-          "title": "New services are named for their layer",
+          "title": "Each new service has the suffix of its layer",
           "severity": "error",
           "path": "services.new[0].name",
           "line": 11,
@@ -190,7 +190,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV103",
-          "title": "New services are named for their layer",
+          "title": "Each new service has the suffix of its layer",
           "severity": "error",
           "path": "services.new[1].name",
           "line": 12,
@@ -199,7 +199,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV104",
-          "title": "New services are actually new",
+          "title": "A new service is not in the registry",
           "severity": "error",
           "path": "services.new[2].name",
           "line": 13,
@@ -217,7 +217,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV106",
-          "title": "New services are used",
+          "title": "Each new service is in a call",
           "severity": "error",
           "path": "services.new[3]",
           "line": 14,
@@ -226,7 +226,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV106",
-          "title": "New services are used",
+          "title": "Each new service is in a call",
           "severity": "error",
           "path": "services.new[4]",
           "line": 15,
@@ -235,7 +235,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV109",
-          "title": "Changed services are registered",
+          "title": "Each changed service is in the registry",
           "severity": "error",
           "path": "services.changed[0]",
           "line": 17,
@@ -271,7 +271,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
         },
         {
           "rule": "SV108",
-          "title": "Calls cover real acceptance criteria",
+          "title": "Each call covers acceptance criteria of the spec",
           "severity": "error",
           "path": "calls[3].covers[0]",
           "line": 22,

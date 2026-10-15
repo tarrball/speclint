@@ -11,7 +11,7 @@ code. For the rules of the code, see [style.md](style.md).
 | `internal/cli` | The commands. Each command has its own file. The commands get their input and output only from `cli.Env`. |
 | `internal/config` | Finds `.specval.yaml` and lists the spec, data, and policy files. |
 | `internal/policy` | The `Engine`. It loads the data and the rules, evaluates them, and returns findings. |
-| `internal/baseline` | The built-in schema, layer data, format example, and Rego rules. They are embedded in the binary. |
+| `internal/baseline` | The built-in schema, layer data, format example, and Rego rules. The binary contains them. |
 | `internal/yamlpath` | Finds the line of a path such as `calls[2].to` in a YAML document. |
 | `internal/claude` | Reads and changes the Claude Code settings file, reads the hook event, and holds the skill. |
 | `internal/scaffold` | Writes the files of `specval init` and `specval new`. |
@@ -32,9 +32,9 @@ cmd/specval ─> cli ─┬─> policy ──> baseline, config, yamlpath
    or from a parent directory. All specs must be in the same project.
 2. `policy.New` makes an `Engine`:
    1. `baseline.Data` makes `data.dpl`. It holds the layer rules from
-      `dpl.yaml`, the schema, and two tables that the schema rule uses to
-      write fixes: the permitted keys at each path, and the description of
-      each path.
+      `dpl.yaml` and the schema. It also holds two tables that the schema
+      rule uses to write fixes: the permitted keys at each path, and the
+      description of each path.
    2. The engine loads each project data file. Each top-level key becomes
       `data.project.<key>`. The engine keeps the YAML nodes of each file, so
       that it can find the line of a registry finding.

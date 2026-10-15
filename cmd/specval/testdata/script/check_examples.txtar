@@ -75,7 +75,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV109",
-          "title": "Changed services are registered",
+          "title": "Each changed service is in the registry",
           "severity": "error",
           "path": "services.changed[1]",
           "line": 10,
@@ -111,7 +111,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV108",
-          "title": "Calls cover real acceptance criteria",
+          "title": "Each call covers acceptance criteria of the spec",
           "severity": "error",
           "path": "calls[3].covers[1]",
           "line": 15,
@@ -125,7 +125,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
       "findings": [
         {
           "rule": "SV001",
-          "title": "Spec matches the specval format",
+          "title": "The spec matches the schema",
           "severity": "error",
           "path": "",
           "line": 1,
@@ -134,7 +134,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV001",
-          "title": "Spec matches the specval format",
+          "title": "The spec matches the schema",
           "severity": "error",
           "path": "",
           "line": 1,
@@ -143,7 +143,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV001",
-          "title": "Spec matches the specval format",
+          "title": "The spec matches the schema",
           "severity": "error",
           "path": "",
           "line": 1,
@@ -152,7 +152,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV001",
-          "title": "Spec matches the specval format",
+          "title": "The spec matches the schema",
           "severity": "error",
           "path": "",
           "line": 1,
@@ -161,7 +161,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV001",
-          "title": "Spec matches the specval format",
+          "title": "The spec matches the schema",
           "severity": "error",
           "path": "",
           "line": 1,
@@ -170,7 +170,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
         },
         {
           "rule": "SV001",
-          "title": "Spec matches the specval format",
+          "title": "The spec matches the schema",
           "severity": "error",
           "path": "id",
           "line": 2,

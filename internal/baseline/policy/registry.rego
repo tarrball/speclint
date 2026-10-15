@@ -47,7 +47,7 @@ deny contains f if {
 }
 
 # METADATA
-# title: Registered services are named for their layer
+# title: Each registered service has the suffix of its layer
 # custom:
 #   id: SR002
 deny contains f if {

@@ -57,7 +57,7 @@ Each layer can call only the layers after its arrow.
 - engine -> accessor
 - accessor -> resource
 - resource -> nothing
-The name of each service ends with the name of its layer: Manager, Engine, Accessor, Resource.
+The name of each service ends with the suffix of its layer: Manager, Engine, Accessor, Resource.
 
 ## Registered services
 - manager: OrderManager
@@ -66,14 +66,14 @@ The name of each service ends with the name of its layer: Manager, Engine, Acces
 
 ## Rules
 - ORD001 (error) Only OrderManager calls PricingEngine: One service controls pricing, so that all discounts apply in the same way.
-- SV001 (error) Spec matches the specval format: The spec has the fields, the field names, and the value types that the schema (`specval schema`) gives. The other rules run only after this rule passes.
-- SV101 (error) Calls use known services: The `from` and the `to` of each call is a registered service or a service in `services.new`.
+- SV001 (error) The spec matches the schema: The spec has the fields, the field names, and the value types that the schema (`specval schema`) gives. The other rules run only after this rule passes.
+- SV101 (error) Calls use known services: The `from` and the `to` of each call are registered services or services in `services.new`.
 - SV102 (error) Calls follow the layer rules: A service can call only the layers that its layer can call (see Layers).
-- SV103 (error) New services are named for their layer: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).
-- SV104 (error) New services are actually new: A service that is in the registry goes under `services.changed`, not under `services.new`.
-- SV105 (error) New services use a known layer: The `layer` of a new service is one of the DPL layers.
-- SV106 (error) New services are used: Each service in `services.new` is in one or more calls.
-- SV107 (error) A call implements each acceptance criterion: The ID of each acceptance criterion is in the `covers` list of one or more calls. Thus each requirement shows the services that implement it.
-- SV108 (error) Calls cover real acceptance criteria: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
-- SV109 (error) Changed services are registered: Each name in `services.changed` is in the registry.
+- SV103 (error) Each new service has the suffix of its layer: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).
+- SV104 (error) A new service is not in the registry: A service that is in the registry goes under `services.changed`, not under `services.new`.
+- SV105 (error) New services use a known layer: The `layer` of a new service is one of the layers.
+- SV106 (error) Each new service is in a call: Each service in `services.new` is in one or more calls.
+- SV107 (error) A call implements each acceptance criterion: The ID of each acceptance criterion is in the `covers` list of one or more calls. Thus each acceptance criterion shows the services that implement it.
+- SV108 (error) Each call covers acceptance criteria of the spec: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
+- SV109 (error) Each changed service is in the registry: Each name in `services.changed` is in the registry.
 - SV201 (warning) Changed services take part in a call: Each service in `services.changed` is in one or more calls.

@@ -63,6 +63,6 @@ func printChecks(w io.Writer, checks []doctor.Check) {
 	if fails+warns == 0 {
 		fmt.Fprintln(w, "The specval setup has no problems.")
 	} else {
-		fmt.Fprintf(w, "%d problem(s), %d warning(s).\n", fails, warns)
+		fmt.Fprintf(w, "%d failure(s), %d warning(s).\n", fails, warns)
 	}
 }
