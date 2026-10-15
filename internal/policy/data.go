@@ -2,6 +2,7 @@ package policy
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -31,12 +32,28 @@ func (e *Engine) Architecture() (Architecture, error) {
 	return a, err
 }
 
-// Services returns the service registry, by service name.
+// Services returns the service registry, by service name. It returns an
+// error only if the registry is not a mapping. An entry without a layer that
+// is a string has an empty Layer; the registry rules report such an entry.
 func (e *Engine) Services() (map[string]Service, error) {
 	project, _ := e.data["project"].(map[string]any)
-	var s map[string]Service
-	err := roundTrip(project["services"], &s)
-	return s, err
+	raw, ok := project["services"]
+	if !ok {
+		return nil, nil
+	}
+	entries, ok := raw.(map[string]any)
+	if !ok {
+		return nil, errors.New("data.project.services must be a mapping of service names to layers")
+	}
+	services := make(map[string]Service, len(entries))
+	for name, v := range entries {
+		var s Service
+		if entry, ok := v.(map[string]any); ok {
+			s.Layer, _ = entry["layer"].(string) // A layer that is not a string stays "".
+		}
+		services[name] = s
+	}
+	return services, nil
 }
 
 // DataFile returns the project data file that defines the top-level key.
