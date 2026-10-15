@@ -31,8 +31,8 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./...   # rewrite expected CLI output
 - `internal/doctor/`: the checks that `specval doctor` runs.
 - `examples/refund/`: a sample project. The tests use its specs.
 
-Some code still writes to `os.Stdout` and reads `os.Getwd` outside `cmd/specval`.
-A later change removes this (see docs/style.md).
+`cmd/specval` reads the process state (stdio, working directory, home directory)
+into a `cli.Env`. Code in `internal/` gets that state only from its parameters.
 
 ## Rules
 

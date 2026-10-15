@@ -5,7 +5,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
+	"io"
+)
+
+// Exit codes of specval.
+const (
+	exitOK       = 0 // The command succeeded.
+	exitFindings = 1 // check found an error (or a warning with --strict), or doctor found a failure.
+	exitError    = 2 // The command was not correct, or specval could not do it.
 )
 
 const usage = `specval validates specs against architecture rules before code is written.
@@ -29,42 +36,55 @@ Usage:
         If the file is a spec, checks it and sends any errors back to Claude to fix.
 `
 
-// Run runs the command in args, which excludes the program name, and
-// returns the exit code.
-func Run(args []string) int {
+// Env holds what a command reads from its process and writes to it.
+type Env struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+	// Dir is the working directory. It must be an absolute path.
+	Dir string
+	// Home is the home directory of the user.
+	Home string
+	// Executable is the path of the specval binary that runs the command.
+	// It is "" if the path is not known.
+	Executable string
+}
+
+// Run runs the command in args, which does not include the program name.
+// It returns the exit code.
+func Run(ctx context.Context, args []string, env *Env) int {
 	if len(args) < 1 {
-		fmt.Fprint(os.Stderr, usage)
-		return 2
+		fmt.Fprint(env.Stderr, usage)
+		return exitError
 	}
-	ctx := context.Background()
 	rest := args[1:]
 	var code int
 	var err error
 	switch args[0] {
 	case "check":
-		code, err = cmdCheck(ctx, rest)
+		code, err = cmdCheck(ctx, env, rest)
 	case "context":
-		err = cmdContext(ctx, os.Stdout)
+		err = cmdContext(ctx, env)
 	case "new":
-		err = cmdNew(rest)
+		err = cmdNew(env, rest)
 	case "schema":
-		err = cmdSchema(os.Stdout)
+		err = cmdSchema(env)
 	case "init":
-		err = cmdInit()
+		err = cmdInit(env)
 	case "doctor":
-		code, err = cmdDoctor(ctx, rest)
+		code, err = cmdDoctor(ctx, env, rest)
 	case "hook":
-		code = cmdHook(ctx, os.Stdin)
+		code = cmdHook(ctx, env)
 	case "-h", "--help", "help":
-		fmt.Print(usage)
+		fmt.Fprint(env.Stdout, usage)
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q\n\n%s", args[0], usage)
-		code = 2
+		fmt.Fprintf(env.Stderr, "unknown command %q\n\n%s", args[0], usage)
+		code = exitError
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "specval:", err)
-		if code == 0 {
-			code = 2
+		fmt.Fprintln(env.Stderr, "specval:", err)
+		if code == exitOK {
+			code = exitError
 		}
 	}
 	return code
@@ -83,4 +103,11 @@ func parseArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 		}
 		pos, args = append(pos, args[0]), args[1:]
 	}
+}
+
+// newFlagSet returns a flag set that writes its messages to env.Stderr.
+func newFlagSet(name string, env *Env) *flag.FlagSet {
+	fl := flag.NewFlagSet(name, flag.ContinueOnError)
+	fl.SetOutput(env.Stderr)
+	return fl
 }

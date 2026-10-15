@@ -3,8 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"sort"
 	"strings"
 
@@ -13,12 +11,8 @@ import (
 	"github.com/tarrball/specval/internal/policy"
 )
 
-func cmdContext(ctx context.Context, w io.Writer) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	cfg, err := config.Find(cwd)
+func cmdContext(ctx context.Context, env *Env) error {
+	cfg, err := config.Find(env.Dir)
 	if err != nil {
 		return err
 	}
@@ -34,6 +28,7 @@ func cmdContext(ctx context.Context, w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	w := env.Stdout
 
 	fmt.Fprintf(w, "# Spec rules (specval)\n\nEvery change needs a passing spec at %s/<id>.yaml before code is written. Scaffold: `specval new <id>`. Validate: `specval check <file>`. Each finding includes a fix.\n\n", cfg.SpecsDir)
 	fmt.Fprintf(w, "## Format\n```yaml\n%s```\n\n", baseline.Format())

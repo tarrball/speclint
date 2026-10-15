@@ -30,7 +30,7 @@ exists changes
 # init stops if the settings file is not valid JSON.
 cd $WORK/badjson
 exits 2 specval init
-stderr '^specval: .claude/settings.json is not valid JSON: '
+stderr '^specval: .*/badjson/.claude/settings.json is not valid JSON: '
 
 -- merge/.claude/settings.json --
 {"model": "opus", "hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}]}}

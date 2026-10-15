@@ -3,10 +3,8 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"sort"
 
@@ -33,16 +31,17 @@ func (r *Report) add(file string, found []policy.Finding) {
 	}
 	r.Files = append(r.Files, FileReport{File: file, Findings: found})
 	for _, f := range found {
-		if f.Severity == "error" {
+		switch f.Severity {
+		case policy.SeverityError:
 			r.Errors++
-		} else {
+		case policy.SeverityWarning:
 			r.Warnings++
 		}
 	}
 }
 
-// run checks the registry and the given spec files. It reports paths
-// relative to base.
+// run checks the registry and the given spec files. The spec files must be
+// absolute paths. run reports paths relative to base.
 func run(ctx context.Context, cfg *config.Config, files []string, base string) (*Report, error) {
 	eng, err := policy.New(ctx, cfg)
 	if err != nil {
@@ -68,64 +67,61 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string) (
 		r.add(rel(f), reg[f])
 	}
 	for _, f := range files {
-		abs, err := filepath.Abs(f)
+		found, err := eng.CheckSpec(ctx, f)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", rel(f), err)
 		}
-		found, err := eng.CheckSpec(ctx, abs)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f, err)
-		}
-		r.add(rel(abs), found)
+		r.add(rel(f), found)
 	}
 	return r, nil
 }
 
-func cmdCheck(ctx context.Context, args []string) (int, error) {
-	fl := flag.NewFlagSet("check", flag.ContinueOnError)
+func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
+	fl := newFlagSet("check", env)
 	format := fl.String("format", "text", "output format: text or json")
 	strict := fl.Bool("strict", false, "fail on warnings too")
 	files, err := parseArgs(fl, args)
 	if err != nil {
-		return 2, err
+		return exitError, err
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return 2, err
+	for i, f := range files {
+		if !filepath.IsAbs(f) {
+			files[i] = filepath.Join(env.Dir, f)
+		}
 	}
-	start := cwd
+	start := env.Dir
 	if len(files) > 0 {
 		start = filepath.Dir(files[0])
 	}
 	cfg, err := config.Find(start)
 	if err != nil {
-		return 2, err
+		return exitError, err
 	}
 	if len(files) == 0 {
 		if files, err = cfg.SpecFiles(); err != nil {
-			return 2, err
+			return exitError, err
 		}
 	}
-	r, err := run(ctx, cfg, files, cwd)
+	r, err := run(ctx, cfg, files, env.Dir)
 	if err != nil {
-		return 2, err
+		return exitError, err
 	}
 	switch *format {
 	case "json":
-		enc := json.NewEncoder(os.Stdout)
+		enc := json.NewEncoder(env.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(r); err != nil {
-			return 2, err
+			return exitError, err
 		}
 	case "text":
-		printText(os.Stdout, r, len(files))
+		printText(env.Stdout, r, len(files))
 	default:
-		return 2, fmt.Errorf("unknown format %q", *format)
+		return exitError, fmt.Errorf("unknown format %q", *format)
 	}
 	if r.Errors > 0 || (*strict && r.Warnings > 0) {
-		return 1, nil
+		return exitFindings, nil
 	}
-	return 0, nil
+	return exitOK, nil
 }
 
 func printText(w io.Writer, r *Report, specs int) {
