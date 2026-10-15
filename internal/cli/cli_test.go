@@ -161,6 +161,16 @@ b.yaml:5 warning SV201 Y is unused
 	}
 }
 
+func TestPrintTextWithoutALine(t *testing.T) {
+	r := &Report{}
+	r.add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
+	var b strings.Builder
+	printText(&b, r, 0)
+	if want := "(data) warning PRJ900 m (x)\n"; !strings.HasPrefix(b.String(), want) {
+		t.Errorf("printText:\n%s\nwant it to start with:\n%s", b.String(), want)
+	}
+}
+
 func TestPrintChecks(t *testing.T) {
 	var b strings.Builder
 	printChecks(&b, []doctor.Check{

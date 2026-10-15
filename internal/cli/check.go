@@ -131,11 +131,15 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 func printText(w io.Writer, r *Report, specs int) {
 	for _, fr := range r.Files {
 		for _, f := range fr.Findings {
+			where := fr.File
+			if f.Line > 0 {
+				where = fmt.Sprintf("%s:%d", fr.File, f.Line)
+			}
 			at := ""
 			if f.Path != "" {
 				at = " (" + f.Path + ")"
 			}
-			fmt.Fprintf(w, "%s:%d %s %s %s%s\n    fix: %s\n", fr.File, f.Line, f.Severity, f.Rule, f.Msg, at, f.Fix)
+			fmt.Fprintf(w, "%s %s %s %s%s\n    fix: %s\n", where, f.Severity, f.Rule, f.Msg, at, f.Fix)
 		}
 	}
 	fmt.Fprintf(w, "%d spec(s) checked: %d error(s), %d warning(s)\n", specs, r.Errors, r.Warnings)
