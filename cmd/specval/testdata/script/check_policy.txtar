@@ -14,10 +14,10 @@ exits 2 specval check
 stderr 'syntax.rego:'
 rm .specval/policy/syntax.rego
 
-# A finding that is not an object is an error.
+# A finding that does not have the correct format is an error.
 cp malformed.rego .specval/policy/malformed.rego
 exits 2 specval check
-stderr 'a rule returned a finding that is not an object'
+stderr 'a rule returned a finding that does not have the correct format'
 
 -- .specval.yaml --
 -- .specval/data/services.yaml --
