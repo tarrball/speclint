@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/open-policy-agent/opa/v1/util"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // Architecture is the baseline layer data, data.dpl.
