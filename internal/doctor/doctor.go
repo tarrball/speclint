@@ -220,7 +220,7 @@ func (c *checker) checkHook() {
 	for _, p := range paths {
 		st, err := claude.InspectSettings(p)
 		if err != nil {
-			c.add(StatusFail, "hook", c.relText(err.Error()), "Fix the JSON. Claude Code ignores a settings file that is not valid JSON.")
+			c.add(StatusFail, "hook", c.relText(err.Error()), "Correct the file. Claude Code ignores a settings file that it cannot read.")
 			return
 		}
 		if st.Disabled && disabledIn == "" {
