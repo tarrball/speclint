@@ -457,3 +457,17 @@ func TestRuleDocsMarkTheBaselineRules(t *testing.T) {
 		}
 	}
 }
+
+// The queries read only the packages one level under specval.spec and
+// specval.registry. A deeper package would load but never run.
+func TestNestedRulePackagesAreRejected(t *testing.T) {
+	for _, pkg := range []string{"specval.spec.team.pricing", "specval.registry.team.owners"} {
+		cfg := project(t, map[string]string{
+			".specval/policy/a.rego": "package " + pkg + "\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
+		})
+		_, err := New(context.Background(), cfg)
+		if err == nil || !strings.Contains(err.Error(), "package "+pkg+" is too deep") {
+			t.Errorf("%s: err = %v, want a package depth error", pkg, err)
+		}
+	}
+}

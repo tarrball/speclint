@@ -140,7 +140,13 @@ func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 		return nil, err
 	}
 	pkg := m.Package.Path.String()
-	if strings.HasPrefix(pkg, "data.specval.spec.") || strings.HasPrefix(pkg, "data.specval.registry.") {
+	if name, ok := rulePackage(pkg); ok {
+		// The queries read only the packages one level under specval.spec and
+		// specval.registry, so a deeper package would load but never run.
+		if strings.Contains(name, ".") {
+			return nil, fmt.Errorf("%s: package %s is too deep; use specval.spec.<name> or specval.registry.<name>",
+				m.Package.Location, strings.TrimPrefix(pkg, "data."))
+		}
 		for _, r := range m.Rules {
 			kind := r.Head.Ref().String()
 			if _, ok := ruleSeverity[kind]; !ok {
@@ -153,6 +159,17 @@ func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 	}
 	e.modules = append(e.modules, m)
 	return m, nil
+}
+
+// rulePackage reports whether pkg is under data.specval.spec or
+// data.specval.registry, and returns the part of pkg after that prefix.
+func rulePackage(pkg string) (string, bool) {
+	for _, prefix := range []string{"data.specval.spec.", "data.specval.registry."} {
+		if name, ok := strings.CutPrefix(pkg, prefix); ok {
+			return name, true
+		}
+	}
+	return "", false
 }
 
 // ruleAnnotation returns the METADATA annotation of r that has a custom.id.

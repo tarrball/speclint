@@ -36,7 +36,8 @@ services:
 ## Write a spec rule
 
 A spec rule is in a package `specval.spec.<name>`. specval runs it one time for
-each spec, with the spec as `input`.
+each spec, with the spec as `input`. The name must be one word: specval does
+not load a package such as `specval.spec.team.pricing`.
 
 ```rego
 package specval.spec.project
