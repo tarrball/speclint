@@ -246,3 +246,23 @@ func TestInitAndNew(t *testing.T) {
 		t.Errorf("new with a bad id: code %d, stderr %q", code, errOut)
 	}
 }
+
+func TestCheckJSONOutput(t *testing.T) {
+	dir := t.TempDir()
+	if code, _, errOut := runCLI(t, dir, "", "init"); code != exitOK {
+		t.Fatalf("init: code %d, stderr %q", code, errOut)
+	}
+	// With nothing to report, files is an empty list, not null.
+	if _, out, _ := runCLI(t, dir, "", "check", "--format", "json"); !strings.Contains(out, `"files": []`) {
+		t.Errorf("check --format json with no specs:\n%s", out)
+	}
+	// The JSON output does not escape <, >, and & for HTML.
+	spec := "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\n" +
+		"calls: [{ from: OrderManager, to: \"A<B&C>\", op: Get, covers: [AC1] }]\n"
+	if err := os.WriteFile(filepath.Join(dir, "specs", "a.yaml"), []byte(spec), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, out, _ := runCLI(t, dir, "", "check", "--format", "json"); !strings.Contains(out, `"A<B&C> is not a registered service"`) {
+		t.Errorf("check --format json escaped the message:\n%s", out)
+	}
+}

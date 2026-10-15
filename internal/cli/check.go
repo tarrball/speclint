@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -49,7 +48,7 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string) (
 		return nil, err
 	}
 	rel := func(p string) string { return relTo(base, p) }
-	r := &Report{}
+	r := &Report{Files: []FileReport{}}
 	reg, err := eng.CheckRegistry(ctx)
 	if err != nil {
 		return nil, err
@@ -111,9 +110,7 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 	}
 	switch *format {
 	case "json":
-		enc := json.NewEncoder(env.Stdout)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(r); err != nil {
+		if err := writeJSON(env.Stdout, r); err != nil {
 			return exitError, err
 		}
 	case "text":
