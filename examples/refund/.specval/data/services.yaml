@@ -1,4 +1,4 @@
-# Service registry (CODEOWNERS-protected)
+# The service registry. CODEOWNERS protects this file.
 services:
   OrderManager: { layer: manager }
   PricingEngine: { layer: engine }

@@ -119,7 +119,7 @@ func cmdCheck(ctx context.Context, env *Env, args []string) (int, error) {
 	case "text":
 		printText(env.Stdout, r, len(files))
 	default:
-		return exitError, fmt.Errorf("unknown format %q", *format)
+		return exitError, fmt.Errorf("unknown format %q; use text or json", *format)
 	}
 	if r.Errors > 0 || (*strict && r.Warnings > 0) {
 		return exitFindings, nil
@@ -176,5 +176,5 @@ func printText(w io.Writer, r *Report, specs int) {
 			fmt.Fprintf(w, "%s %s %s %s%s\n    fix: %s\n", where, f.Severity, f.Rule, f.Msg, at, f.Fix)
 		}
 	}
-	fmt.Fprintf(w, "%d spec(s) checked: %d error(s), %d warning(s)\n", specs, r.Errors, r.Warnings)
+	fmt.Fprintf(w, "specval checked %d spec(s) and found %d error(s) and %d warning(s).\n", specs, r.Errors, r.Warnings)
 }

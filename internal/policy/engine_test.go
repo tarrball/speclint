@@ -223,12 +223,12 @@ func TestNewErrors(t *testing.T) {
 		{
 			"a data key in two files",
 			map[string]string{".specval/data/a.yaml": "services: {}", ".specval/data/b.json": `{"services": {}}`},
-			`data key "services" is defined in both`,
+			`two data files define the key "services"`,
 		},
 		{
 			"a data file that is not a mapping",
 			map[string]string{".specval/data/a.yaml": "- a\n"},
-			"data files must be a mapping",
+			"a data file must be a mapping",
 		},
 		{
 			"a data file that is not valid YAML",
@@ -265,22 +265,22 @@ func TestRulesOutsideTheSpecvalPackagesNeedNoID(t *testing.T) {
 }
 
 func TestAMalformedFindingIsAnError(t *testing.T) {
-	cfg := project(t, map[string]string{
-		".specval/policy/a.rego": `package specval.spec.a
-
-import rego.v1
-
-# METADATA
-# title: Returns a number
-# custom:
-#   id: BAD001
-deny contains 42 if true
-`,
-		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
-	})
-	_, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
-	if err == nil || !strings.Contains(err.Error(), "malformed finding") {
-		t.Errorf("err = %v, want a malformed finding error", err)
+	for name, value := range map[string]string{
+		"a number":                               "42",
+		"an object with a field of a wrong type": `{"rule": "BAD001", "msg": 42}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := project(t, map[string]string{
+				".specval/policy/a.rego": "package specval.spec.a\n\nimport rego.v1\n\n" +
+					"# METADATA\n# title: Returns a bad finding\n# custom:\n#   id: BAD001\n" +
+					"deny contains " + value + " if true\n",
+				"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+			})
+			_, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
+			if err == nil || !strings.Contains(err.Error(), "a rule returned a finding that does not have the correct format") {
+				t.Errorf("err = %v, want a format error", err)
+			}
+		})
 	}
 }
 

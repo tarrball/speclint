@@ -1,6 +1,6 @@
-# Project-specific spec rules. Each deny (error) or warn rule needs a METADATA
-# block with a title and custom.id, and should build its result with
-# lib.finding(rego.metadata.rule(), path, msg, fix). Example:
+# The spec rules of this project. Each deny (error) or warn rule needs a
+# block of METADATA with a title and a custom.id. Make each finding with
+# lib.finding(rego.metadata.rule(), path, msg, fix). For example:
 #
 # # METADATA
 # # title: Only OrderManager calls PricingEngine
@@ -11,8 +11,8 @@
 # 	c.to == "PricingEngine"
 # 	c.from != "OrderManager"
 # 	f := lib.finding(rego.metadata.rule(), $"calls[{i}]",
-# 		$"{c.from} may not call PricingEngine",
-# 		"Have OrderManager call PricingEngine and pass the result along.")
+# 		$"{c.from} cannot call PricingEngine",
+# 		"Make OrderManager call PricingEngine, and give the price to the services that need it.")
 # }
 package specval.spec.project
 

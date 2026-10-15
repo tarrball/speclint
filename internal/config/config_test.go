@@ -54,7 +54,7 @@ func TestFindReadsValuesFromAParentDirectory(t *testing.T) {
 
 func TestFindErrors(t *testing.T) {
 	dir := t.TempDir()
-	if _, err := Find(dir); err == nil || !strings.Contains(err.Error(), "no .specval.yaml found") {
+	if _, err := Find(dir); err == nil || !strings.Contains(err.Error(), "no .specval.yaml in ") {
 		t.Errorf("Find with no config: err = %v", err)
 	}
 	writeFiles(t, dir, map[string]string{FileName: "specs_dir: [unclosed\n"})

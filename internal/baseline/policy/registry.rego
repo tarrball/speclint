@@ -19,7 +19,7 @@ deny contains f if {
 		rego.metadata.rule(),
 		"services",
 		$"services is not a mapping (type: {type_name(registry)})",
-		"Write services as a mapping from each service name to its layer, for example: OrderManager: { layer: manager }.",
+		"Write services as a mapping from each service name to its layer, for example OrderManager: { layer: manager }.",
 	)
 }
 
@@ -51,6 +51,6 @@ deny contains f if {
 		rego.metadata.rule(),
 		$"services.{name}",
 		$"{name} is in the {s.layer} layer but does not end in {sfx}",
-		$"Rename it to end in {sfx}, or fix its layer.",
+		$"Change its name so that it ends in {sfx}, or change its layer.",
 	)
 }

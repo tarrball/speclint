@@ -84,7 +84,7 @@ func TestData(t *testing.T) {
 		}
 	}
 	// A hint comes from the description in the schema.
-	if !strings.HasPrefix(hints["calls.*.op"], "PascalCase operation name") {
+	if !strings.HasPrefix(hints["calls.*.op"], "The name of the operation") {
 		t.Errorf("schema_hints[calls.*.op] = %q", hints["calls.*.op"])
 	}
 }

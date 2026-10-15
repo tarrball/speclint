@@ -14,7 +14,7 @@ stderr '^specval: .*/specs/ORD-1.yaml already exists$'
 
 # The id must be one argument of letters, digits, '.', '_', and '-'.
 exits 2 specval new 'bad id'
-stderr '^specval: usage: specval new <id> \(letters, digits, . _ -\)$'
+stderr '^specval: usage: specval new <id>; the id can contain letters, digits, ''.'', ''_'', and ''-''$'
 exits 2 specval new
 stderr '^specval: usage: specval new <id>'
 exits 2 specval new A B
@@ -32,7 +32,7 @@ stderr 'flag provided but not defined: -nope'
 # Without a .specval.yaml, new exits 2.
 cd $WORK/elsewhere
 exits 2 specval new ORD-3
-stderr '^specval: no .specval.yaml found'
+stderr '^specval: no .specval.yaml in '
 
 -- proj/.specval.yaml --
 -- elsewhere/.keep --

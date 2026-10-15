@@ -119,14 +119,14 @@ func TestProjectChecks(t *testing.T) {
 		}, "rules", StatusFail, ".specval/policy/x.rego:"},
 		{"registry not checked", func(f *fixture) {
 			f.write(".specval/policy/x.rego", "package specval.spec.x\n\ndeny contains f if {\n")
-		}, "registry", StatusWarn, "not checked until the rules load"},
+		}, "registry", StatusWarn, "cannot check the registry until the rules load"},
 		{"project rule count", func(f *fixture) {
 			f.write(".specval/policy/x.rego", "package specval.spec.x\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
 		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
 		{"project rule in a baseline package", func(f *fixture) {
 			f.write(".specval/policy/x.rego", "package specval.spec.dpl\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
 		}, "rules", StatusOK, "12 spec rule(s) compile, 1 from this project"},
-		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services registered"},
+		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services are registered"},
 		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
 		{"registry rule fails", func(f *fixture) {
 			f.write(".specval/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
@@ -163,8 +163,8 @@ func TestClaudeChecks(t *testing.T) {
 		{"hook in local settings", func(f *fixture) {
 			f.remove(claude.SettingsPath)
 			f.write(claude.LocalSettingsPath, narrow)
-		}, "hook", StatusWarn, `matcher "Write" in .claude/settings.local.json doesn't fire on Edit, MultiEdit`},
-		{"hooks disabled", func(f *fixture) { f.write(claude.LocalSettingsPath, `{"disableAllHooks": true}`) }, "hook", StatusFail, "turned off by disableAllHooks in .claude/settings.local.json"},
+		}, "hook", StatusWarn, `matcher "Write" in .claude/settings.local.json does not match Edit, MultiEdit`},
+		{"hooks disabled", func(f *fixture) { f.write(claude.LocalSettingsPath, `{"disableAllHooks": true}`) }, "hook", StatusFail, "disableAllHooks in .claude/settings.local.json turns off all hooks"},
 		{"settings not JSON", func(f *fixture) { f.write(claude.LocalSettingsPath, "{not json") }, "hook", StatusFail, ".claude/settings.local.json is not valid JSON"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -209,7 +209,7 @@ func TestPathChecks(t *testing.T) {
 	t.Run("does not run", func(t *testing.T) {
 		f := newFixture(t)
 		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho broken\nexit 3\n")
-		f.want("path", StatusFail, "doesn't run: exit status 3 broken")
+		f.want("path", StatusFail, "does not run: exit status 3 broken")
 	})
 	t.Run("a different binary", func(t *testing.T) {
 		f := newFixture(t)

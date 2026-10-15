@@ -92,78 +92,78 @@ calls:
 owner: someone
 -- check.txt --
 specs/empty.yaml:1 error SV001 acceptance is required
-    fix: Add `acceptance`: Testable acceptance criteria; at least one.
+    fix: Add `acceptance`: The acceptance criteria. Give one or more, and make each one possible to test.
 specs/empty.yaml:1 error SV001 calls is required
-    fix: Add `calls`: Every service-to-service call the change adds or alters.
+    fix: Add `calls`: Each call from one service to another that this change adds or changes.
 specs/empty.yaml:1 error SV001 id is required
-    fix: Add `id`: Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/<id>.yaml.
+    fix: Add `id`: The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml.
 specs/empty.yaml:1 error SV001 kind is required
-    fix: Add `kind`: One of: feature, bugfix, chore.
+    fix: Add `kind`: The kind of change: feature, bugfix, or chore.
 specs/empty.yaml:1 error SV001 specval is required
-    fix: Add `specval`: Spec format version; always 1.
+    fix: Add `specval`: The version of the spec format. It is always 1.
 specs/empty.yaml:1 error SV001 summary is required
-    fix: Add `summary`: A short paragraph: the problem and the intended behavior.
+    fix: Add `summary`: A short paragraph that tells the problem and the new behavior.
 specs/empty.yaml:1 error SV001 title is required
-    fix: Add `title`: One-line title of the change.
-specs/rules.yaml:8 error SV107 AC2 is not covered by any call (acceptance[1])
+    fix: Add `title`: The title of the change, on one line.
+specs/rules.yaml:8 error SV107 No call covers AC2 (acceptance[1])
     fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
 specs/rules.yaml:11 error SV103 RefundCalc is in the engine layer but does not end in Engine (services.new[0].name)
-    fix: Rename it to RefundCalcEngine everywhere in the spec, or change its layer.
+    fix: Change its name to RefundCalcEngine everywhere in the spec, or change its layer.
 specs/rules.yaml:12 error SV103 TaxManager is in the engine layer but does not end in Engine (services.new[1].name)
-    fix: Rename it to TaxEngine everywhere in the spec, or change its layer.
+    fix: Change its name to TaxEngine everywhere in the spec, or change its layer.
 specs/rules.yaml:13 error SV104 PricingEngine is already registered (engine layer) (services.new[2].name)
     fix: Move PricingEngine from services.new to services.changed.
 specs/rules.yaml:14 error SV105 helper is not a layer (services.new[3].layer)
     fix: Use one of: manager, engine, accessor, resource.
-specs/rules.yaml:14 error SV106 AuditHelper is declared as new but no call uses it (services.new[3])
+specs/rules.yaml:14 error SV106 AuditHelper is in services.new, but no call uses it (services.new[3])
     fix: Add the calls to or from AuditHelper, or remove it from services.new.
-specs/rules.yaml:15 error SV106 UnusedEngine is declared as new but no call uses it (services.new[4])
+specs/rules.yaml:15 error SV106 UnusedEngine is in services.new, but no call uses it (services.new[4])
     fix: Add the calls to or from UnusedEngine, or remove it from services.new.
 specs/rules.yaml:17 error SV109 GhostManager is not a registered service (services.changed[0])
     fix: If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager.
-specs/rules.yaml:17 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[1])
+specs/rules.yaml:17 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[1])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
-specs/rules.yaml:21 error SV102 PricingEngine (engine) may not call OrderManager (manager) (calls[2])
-    fix: Engines may call only accessors. Managers are entry points; no service calls them.
-specs/rules.yaml:22 error SV102 OrderAccessor (accessor) may not call PricingEngine (engine) (calls[3])
-    fix: Accessors may call only resources. Route the call to PricingEngine through a manager instead.
+specs/rules.yaml:21 error SV102 PricingEngine (engine) cannot call OrderManager (manager) (calls[2])
+    fix: Engines can call only accessors. No service can call managers.
+specs/rules.yaml:22 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[3])
+    fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
 specs/rules.yaml:22 error SV108 AC9 is not an acceptance criterion in this spec (calls[3].covers[0])
     fix: Use one of: AC1, AC2, or add AC9 under acceptance.
-specs/rules.yaml:23 error SV102 CacheResource (resource) may not call OrderAccessor (accessor) (calls[4])
-    fix: Resources may not call other services. Route the call to OrderAccessor through a manager or engine instead.
+specs/rules.yaml:23 error SV102 CacheResource (resource) cannot call OrderAccessor (accessor) (calls[4])
+    fix: Resources cannot call other services. Send the call to OrderAccessor through a manager or engine.
 specs/rules.yaml:24 error SV101 MysteryEngine is not a registered service (calls[5].to)
     fix: If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
 specs/rules.yaml:25 error SV101 Somebody is not a registered service (calls[6].from)
     fix: If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor, OrderAccessor, OrderManager, PricingEngine.
 specs/shape.yaml:1 error SV001 Additional property owner is not allowed
-    fix: Remove `owner` or fix its name. Allowed here: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title.
+    fix: Remove `owner`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, services, specval, summary, title.
 specs/shape.yaml:1 error SV001 specval does not match: 1 (specval)
-    fix: Spec format version; always 1.
+    fix: The version of the spec format. It is always 1.
 specs/shape.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
-    fix: Ticket id, e.g. ORD-142 (letters, digits, . _ -). The file is specs/<id>.yaml.
+    fix: The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml.
 specs/shape.yaml:4 error SV001 String length must be greater than or equal to 1 (title)
-    fix: One-line title of the change.
+    fix: The title of the change, on one line.
 specs/shape.yaml:7 error SV001 Does not match pattern '^AC[0-9]+$' (acceptance[0].id)
-    fix: AC followed by a number, e.g. AC1.
+    fix: AC and a number, for example AC1.
 specs/shape.yaml:8 error SV001 Additional property removed is not allowed (services)
-    fix: Remove `removed` or fix its name. Allowed here: changed, new.
-specs/shape.yaml:10 error SV001 purpose is required (services.new[0])
-    fix: Add `purpose`: One sentence on what the service is responsible for.
+    fix: Remove `removed`, or correct its name. The permitted fields here are: changed, new.
 specs/shape.yaml:10 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (services.new[0].name)
-    fix: PascalCase name ending in its layer suffix, e.g. RefundEngine.
+    fix: A PascalCase name that ends with the suffix of its layer, for example RefundEngine.
+specs/shape.yaml:10 error SV001 purpose is required (services.new[0])
+    fix: Add `purpose`: One sentence that tells what the service does.
 specs/shape.yaml:13 error SV001 covers is required (calls[0])
-    fix: Add `covers`: Acceptance criteria this call helps satisfy, e.g. [AC1].
+    fix: Add `covers`: The acceptance criteria that this call helps to satisfy, for example [AC1].
 specs/shape.yaml:13 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (calls[0].op)
-    fix: PascalCase operation name, e.g. CalculateRefund.
-specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[0])
+    fix: The name of the operation, in PascalCase, for example CalculateRefund.
+specs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
 specs/yaml.yaml:1 error SV000 yaml: line 1: did not find expected ',' or ']'
     fix: Fix the YAML syntax at this line.
-6 spec(s) checked: 32 error(s), 2 warning(s)
+specval checked 6 spec(s) and found 32 error(s) and 2 warning(s).
 -- warn.txt --
-specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call involves it (services.changed[0])
+specs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
-1 spec(s) checked: 0 error(s), 1 warning(s)
+specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
 -- rules.json --
 {
   "files": [
@@ -172,11 +172,11 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
       "findings": [
         {
           "rule": "SV107",
-          "title": "Every acceptance criterion is implemented by a call",
+          "title": "A call implements each acceptance criterion",
           "severity": "error",
           "path": "acceptance[1]",
           "line": 8,
-          "msg": "AC2 is not covered by any call",
+          "msg": "No call covers AC2",
           "fix": "Add AC2 to `covers` on the call(s) that implement it, or add the missing call."
         },
         {
@@ -186,7 +186,7 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "path": "services.new[0].name",
           "line": 11,
           "msg": "RefundCalc is in the engine layer but does not end in Engine",
-          "fix": "Rename it to RefundCalcEngine everywhere in the spec, or change its layer."
+          "fix": "Change its name to RefundCalcEngine everywhere in the spec, or change its layer."
         },
         {
           "rule": "SV103",
@@ -195,7 +195,7 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "path": "services.new[1].name",
           "line": 12,
           "msg": "TaxManager is in the engine layer but does not end in Engine",
-          "fix": "Rename it to TaxEngine everywhere in the spec, or change its layer."
+          "fix": "Change its name to TaxEngine everywhere in the spec, or change its layer."
         },
         {
           "rule": "SV104",
@@ -221,7 +221,7 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "severity": "error",
           "path": "services.new[3]",
           "line": 14,
-          "msg": "AuditHelper is declared as new but no call uses it",
+          "msg": "AuditHelper is in services.new, but no call uses it",
           "fix": "Add the calls to or from AuditHelper, or remove it from services.new."
         },
         {
@@ -230,7 +230,7 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "severity": "error",
           "path": "services.new[4]",
           "line": 15,
-          "msg": "UnusedEngine is declared as new but no call uses it",
+          "msg": "UnusedEngine is in services.new, but no call uses it",
           "fix": "Add the calls to or from UnusedEngine, or remove it from services.new."
         },
         {
@@ -248,7 +248,7 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "severity": "warning",
           "path": "services.changed[1]",
           "line": 17,
-          "msg": "BillingAccessor is listed as changed but no call involves it",
+          "msg": "BillingAccessor is in services.changed, but no call uses it",
           "fix": "Add the calls that change BillingAccessor, or remove it from services.changed."
         },
         {
@@ -257,8 +257,8 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "severity": "error",
           "path": "calls[2]",
           "line": 21,
-          "msg": "PricingEngine (engine) may not call OrderManager (manager)",
-          "fix": "Engines may call only accessors. Managers are entry points; no service calls them."
+          "msg": "PricingEngine (engine) cannot call OrderManager (manager)",
+          "fix": "Engines can call only accessors. No service can call managers."
         },
         {
           "rule": "SV102",
@@ -266,8 +266,8 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "severity": "error",
           "path": "calls[3]",
           "line": 22,
-          "msg": "OrderAccessor (accessor) may not call PricingEngine (engine)",
-          "fix": "Accessors may call only resources. Route the call to PricingEngine through a manager instead."
+          "msg": "OrderAccessor (accessor) cannot call PricingEngine (engine)",
+          "fix": "Accessors can call only resources. Send the call to PricingEngine through a manager."
         },
         {
           "rule": "SV108",
@@ -284,8 +284,8 @@ specs/warn.yaml:9 warning SV201 BillingAccessor is listed as changed but no call
           "severity": "error",
           "path": "calls[4]",
           "line": 23,
-          "msg": "CacheResource (resource) may not call OrderAccessor (accessor)",
-          "fix": "Resources may not call other services. Route the call to OrderAccessor through a manager or engine instead."
+          "msg": "CacheResource (resource) cannot call OrderAccessor (accessor)",
+          "fix": "Resources cannot call other services. Send the call to OrderAccessor through a manager or engine."
         },
         {
           "rule": "SV101",

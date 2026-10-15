@@ -34,10 +34,10 @@ func cmdContext(ctx context.Context, env *Env) error {
 	}
 	w := env.Stdout
 
-	fmt.Fprintf(w, "# Spec rules (specval)\n\nEvery change needs a passing spec at %s/<id>.yaml before code is written. Scaffold: `specval new <id>`. Validate: `specval check <file>`. Each finding includes a fix.\n\n", cfg.SpecsDir)
+	fmt.Fprintf(w, "# Spec rules (specval)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `specval new <id>`. To check a spec, run `specval check <file>`. Each finding has a fix.\n\n", cfg.SpecsDir)
 	fmt.Fprintf(w, "## Format\n```yaml\n%s```\n\n", baseline.Format())
 
-	fmt.Fprint(w, "## Layers (caller -> may call)\n")
+	fmt.Fprint(w, "## Layers\nEach layer can call only the layers after its arrow.\n")
 	var suffixes []string
 	for _, l := range arch.LayerOrder {
 		targets := strings.Join(arch.Layers[l], ", ")
@@ -47,7 +47,7 @@ func cmdContext(ctx context.Context, env *Env) error {
 		fmt.Fprintf(w, "- %s -> %s\n", l, targets)
 		suffixes = append(suffixes, arch.Suffix[l])
 	}
-	fmt.Fprintf(w, "Service names end with their layer: %s.\n\n", strings.Join(suffixes, ", "))
+	fmt.Fprintf(w, "The name of each service ends with the name of its layer: %s.\n\n", strings.Join(suffixes, ", "))
 
 	fmt.Fprint(w, "## Registered services\n")
 	byLayer := map[string][]string{}
@@ -61,7 +61,7 @@ func cmdContext(ctx context.Context, env *Env) error {
 		}
 	}
 	if len(registry) == 0 {
-		fmt.Fprint(w, "(none yet)\n")
+		fmt.Fprint(w, "(none)\n")
 	}
 
 	fmt.Fprint(w, "\n## Rules\n")

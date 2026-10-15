@@ -54,7 +54,7 @@ func TestRunReportsErrors(t *testing.T) {
 			args = append(args, "X-1")
 		}
 		code, _, errOut := runCLI(t, t.TempDir(), "", args...)
-		if code != exitError || !strings.HasPrefix(errOut, "specval: no .specval.yaml found") {
+		if code != exitError || !strings.HasPrefix(errOut, "specval: no .specval.yaml in ") {
 			t.Errorf("%s: code %d, stderr %q", cmd, code, errOut)
 		}
 	}
@@ -188,7 +188,7 @@ func TestReportAndPrintText(t *testing.T) {
     fix: Register X.
 b.yaml:5 warning SV201 Y is unused
     fix: Remove Y.
-2 spec(s) checked: 1 error(s), 1 warning(s)
+specval checked 2 spec(s) and found 1 error(s) and 1 warning(s).
 `
 	if b.String() != want {
 		t.Errorf("printText:\n%s\nwant:\n%s", b.String(), want)
@@ -224,7 +224,7 @@ func TestPrintChecks(t *testing.T) {
 	}
 	b.Reset()
 	printChecks(&b, []doctor.Check{{Status: doctor.StatusOK, Name: "config", Detail: "x"}})
-	if !strings.HasSuffix(b.String(), "specval setup looks good.\n") {
+	if !strings.HasSuffix(b.String(), "The specval setup has no problems.\n") {
 		t.Errorf("printChecks with no problems:\n%s", b.String())
 	}
 }

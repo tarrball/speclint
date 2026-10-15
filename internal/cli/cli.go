@@ -16,25 +16,28 @@ const (
 	exitError    = 2 // The command was not correct, or specval could not do it.
 )
 
-const usage = `specval validates specs against architecture rules before code is written.
+const usage = `specval checks change specs against architecture rules before you write code.
 
 Usage:
   specval check [--format text|json] [--strict] [files...]
-        Validate specs (default: every spec in the specs dir). Exit 1 on errors.
+        Check the given specs, or each spec in the specs directory.
+        The exit status is 1 if a spec has an error, or a warning with --strict.
   specval context
-        Print the spec format, layer rules, registry, and rules (for an agent's context).
+        Print the spec format, the layers, the registry, and the rules.
+        An agent reads this text before it writes a spec.
   specval new <id> [--kind feature|bugfix|chore] [--title "..."]
-        Scaffold <specs dir>/<id>.yaml.
+        Make the spec <specs dir>/<id>.yaml from the template.
   specval schema
-        Print the spec JSON Schema.
+        Print the JSON Schema of a spec.
   specval init
-        Set up specval and the Claude Code skill + hook in the current directory.
-        Safe to re-run: it only adds what's missing.
+        Set up specval, the Claude Code skill, and the hook in this directory.
+        You can run it again. It adds only the parts that are missing.
   specval doctor [--format text|json]
-        Check that the setup is intact (config, rules, registry, Claude skill, hook, PATH).
+        Check the setup: the configuration, the rules, the registry, the
+        Claude Code skill and hook, and the specval binary on PATH.
   specval hook
-        Not run by hand: Claude Code runs it after each file write (set up by init).
-        If the file is a spec, checks it and sends any errors back to Claude to fix.
+        Claude Code runs this command after each file write. Do not run it yourself.
+        If the file is a spec, specval checks it and sends the errors to Claude.
 `
 
 // Env holds what a command reads from its process and writes to it.

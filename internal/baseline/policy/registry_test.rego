@@ -52,5 +52,5 @@ test_sr002_name_suffix if {
 	some f in dpl.deny with data.project as project
 	f.rule == "SR002"
 	f.msg == "PricingThing is in the engine layer but does not end in Engine"
-	f.fix == "Rename it to end in Engine, or fix its layer."
+	f.fix == "Change its name so that it ends in Engine, or change its layer."
 }

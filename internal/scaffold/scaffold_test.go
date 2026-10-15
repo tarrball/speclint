@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/open-policy-agent/opa/v1/ast"
 	"go.yaml.in/yaml/v3"
 
 	"github.com/tarrball/specval/internal/claude"
@@ -44,6 +45,14 @@ hooked   .claude/settings.json
 	}
 	if cfg.SpecsDir != "specs" || len(cfg.Policy) != 1 || len(cfg.Data) != 1 {
 		t.Errorf("config = %+v", cfg)
+	}
+}
+
+func TestProjectTemplateCompiles(t *testing.T) {
+	// A comment line that starts with the word METADATA is an annotation for
+	// OPA. Thus a change to the comments of the template can break it.
+	if _, err := ast.ParseModuleWithOpts("project.rego", projectTemplate, ast.ParserOptions{ProcessAnnotation: true, RegoVersion: ast.RegoV1}); err != nil {
+		t.Fatal(err)
 	}
 }
 

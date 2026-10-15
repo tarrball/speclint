@@ -9,7 +9,7 @@ exists .specval/data/services.yaml .specval/policy/project.rego .claude/skills/s
 
 # The new project passes check.
 exits 0 specval check
-stdout '^0 spec\(s\) checked: 0 error\(s\), 0 warning\(s\)$'
+stdout '^specval checked 0 spec\(s\) and found 0 error\(s\) and 0 warning\(s\).$'
 
 # A second init changes nothing.
 exits 0 specval init
@@ -53,12 +53,13 @@ exists   .specval/policy/project.rego
 exists   .claude/skills/spec/SKILL.md
 exists   .claude/settings.json (specval hook)
 -- want/config.yaml --
-# specval config. Paths are relative to this file.
+# The specval configuration. A path is relative to this file.
 specs_dir: specs
-# Project rules: Rego files whose packages are specval.spec.<name> (per spec)
-# or specval.registry.<name> (once per run, against data only).
+# The project rules: Rego files with the package specval.spec.<name> (specval
+# runs it for each spec) or specval.registry.<name> (specval runs it one time,
+# with the data only).
 policy: [.specval/policy]
-# Project data: YAML/JSON files; each top-level key is available as data.project.<key>.
+# The project data: YAML or JSON files. Each top-level key is data.project.<key>.
 data: [.specval/data]
 -- want/settings.json --
 {

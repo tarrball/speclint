@@ -65,9 +65,9 @@ test_sv102_layer_rules if {
 	s := spec({"calls": [
 		call("OrderManager", "PricingEngine"), # allowed
 		call("PricingEngine", "OrderAccessor"), # allowed
-		call("PricingEngine", "OrderManager"), # engines may not call managers
-		call("OrderAccessor", "PricingEngine"), # accessors may not call engines
-		call("OrderManager", "OrderManager"), # managers may not call managers
+		call("PricingEngine", "OrderManager"), # engines cannot call managers
+		call("OrderAccessor", "PricingEngine"), # accessors cannot call engines
+		call("OrderManager", "OrderManager"), # managers cannot call managers
 	]})
 	findings := dpl.deny with input as s with data.project as project
 	{f.path | some f in findings; f.rule == "SV102"} == {"calls[2]", "calls[3]", "calls[4]"}
@@ -77,14 +77,14 @@ test_sv102_fix_names_the_layers_that_can_make_the_call if {
 	s := spec({"calls": [call("OrderAccessor", "PricingEngine")]})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV102"
-	f.fix == "Accessors may call only resources. Route the call to PricingEngine through a manager instead."
+	f.fix == "Accessors can call only resources. Send the call to PricingEngine through a manager."
 }
 
 test_sv102_fix_for_a_layer_that_no_one_calls if {
 	s := spec({"calls": [call("PricingEngine", "OrderManager")]})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV102"
-	f.fix == "Engines may call only accessors. Managers are entry points; no service calls them."
+	f.fix == "Engines can call only accessors. No service can call managers."
 }
 
 test_sv102_fix_for_a_layer_that_calls_nothing if {
@@ -94,7 +94,7 @@ test_sv102_fix_for_a_layer_that_calls_nothing if {
 	})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV102"
-	startswith(f.fix, "Resources may not call other services.")
+	startswith(f.fix, "Resources cannot call other services.")
 }
 
 test_sv102_uses_the_layer_of_a_new_service if {
@@ -131,8 +131,8 @@ test_sv103_name_suffix if {
 	findings := dpl.deny with input as s with data.project as project
 	fixes := {f.fix | some f in findings; f.rule == "SV103"}
 	fixes == {
-		"Rename it to RefundCalcEngine everywhere in the spec, or change its layer.",
-		"Rename it to TaxEngine everywhere in the spec, or change its layer.",
+		"Change its name to RefundCalcEngine everywhere in the spec, or change its layer.",
+		"Change its name to TaxEngine everywhere in the spec, or change its layer.",
 	}
 }
 
