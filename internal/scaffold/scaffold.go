@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -174,17 +176,15 @@ func writeIfMissing(dir, path, content string, w io.Writer) error {
 	if !filepath.IsAbs(path) {
 		full = filepath.Join(dir, path)
 	}
-	if _, err := os.Stat(full); err == nil {
+	created, err := createFile(full, content)
+	if err != nil {
+		return err
+	}
+	if created {
+		_, err = fmt.Fprintln(w, "created ", path)
+	} else {
 		_, err = fmt.Fprintln(w, "exists  ", path)
-		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-		return err
-	}
-	if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-		return err
-	}
-	_, err := fmt.Fprintln(w, "created ", path)
 	return err
 }
 
@@ -206,23 +206,49 @@ func ValidID(id string) bool {
 }
 
 // Spec writes a new spec, made from the template, to <specs dir>/<id>.yaml.
-// It returns the path of the spec. It does not overwrite a file. The caller
-// must make sure that id is valid and that kind is one of baseline.Kinds.
+// It returns the path of the spec. It does not overwrite a file.
 func Spec(cfg *config.Config, id, kind, title string) (string, error) {
-	path := filepath.Join(cfg.Abs(cfg.SpecsDir), id+".yaml")
-	if _, err := os.Stat(path); err == nil {
-		return "", fmt.Errorf("%s already exists", path)
+	// A valid ID cannot contain a path separator, so the file is in the specs
+	// directory.
+	if !ValidID(id) {
+		return "", fmt.Errorf("the id %q is not valid; it must start with a letter or a digit, and contain only letters, digits, '.', '_', and '-'", id)
+	}
+	if kinds := baseline.Kinds(); !slices.Contains(kinds, kind) {
+		return "", fmt.Errorf("the kind %q is not valid; use one of: %s", kind, strings.Join(kinds, ", "))
 	}
 	quoted, err := quote(title)
 	if err != nil {
 		return "", fmt.Errorf("title: %w", err)
 	}
 	out := strings.NewReplacer("{{ID}}", id, "{{KIND}}", kind, "{{TITLE}}", quoted).Replace(specTemplate)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	path := filepath.Join(cfg.Abs(cfg.SpecsDir), id+".yaml")
+	created, err := createFile(path, out)
+	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(path, []byte(out), 0o644); err != nil {
-		return "", err
+	if !created {
+		return "", fmt.Errorf("%s already exists", path)
 	}
 	return path, nil
+}
+
+// createFile writes content to a new file at path, and makes its parent
+// directories. If the file exists, createFile does not change it, and returns
+// false. It checks and creates the file in one step, so that it cannot
+// overwrite a file that another process creates at the same time.
+func createFile(path, content string) (bool, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return false, err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if errors.Is(err, fs.ErrExist) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	if _, err := f.WriteString(content); err != nil {
+		_ = f.Close() // The write error is the one to report.
+		return false, err
+	}
+	return true, f.Close()
 }

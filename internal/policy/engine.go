@@ -318,7 +318,7 @@ func (e *Engine) RuleDocs() []RuleDoc {
 			seen[id] = true
 			docs = append(docs, RuleDoc{
 				ID: id, Title: a.Title, Description: a.Description,
-				Package: m.Package.Path.String(), Severity: sev, Baseline: e.baseline[m],
+				Severity: sev, Baseline: e.baseline[m],
 			})
 		}
 	}

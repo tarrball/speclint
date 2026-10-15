@@ -339,3 +339,18 @@ func TestInitWritesTheSpecsDirIntoTheSkill(t *testing.T) {
 		t.Errorf("the skill does not use the configured specs_dir:\n%s", b)
 	}
 }
+
+func TestSpecValidatesItsArguments(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	for _, c := range []struct{ id, kind, want string }{
+		{"../escape", "chore", `the id "../escape" is not valid`},
+		{"A-1", "epic", `the kind "epic" is not valid; use one of: feature, bugfix, chore`},
+	} {
+		if _, err := Spec(cfg, c.id, c.kind, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("Spec(%q, %q): err = %v, want %q", c.id, c.kind, err, c.want)
+		}
+	}
+	if entries, _ := os.ReadDir(cfg.Root); len(entries) != 0 {
+		t.Errorf("Spec wrote files: %v", entries)
+	}
+}

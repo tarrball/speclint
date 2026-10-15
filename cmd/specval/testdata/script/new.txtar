@@ -22,7 +22,7 @@ stderr '^specval: usage: specval new <id>'
 
 # The kind must be one of the kinds in the schema.
 exits 2 specval new X-1 --kind epic
-stderr '^specval: --kind must be one of: feature, bugfix, chore$'
+stderr '^specval: the kind "epic" is not valid; use one of: feature, bugfix, chore$'
 ! exists specs/X-1.yaml
 
 # An unknown flag is a usage error.

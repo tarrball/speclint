@@ -34,8 +34,8 @@ type Finding struct {
 
 // RuleDoc describes one rule, from its METADATA annotation.
 type RuleDoc struct {
-	ID, Title, Description, Package string
-	Severity                        Severity
+	ID, Title, Description string
+	Severity               Severity
 	// Baseline is true for a rule that is built into specval.
 	Baseline bool
 }
@@ -66,11 +66,10 @@ var yamlLineRe = regexp.MustCompile(`line (\d+)`)
 // the line only in the error text. For some errors, such as a flow sequence
 // that is not closed, that line is where the enclosing node starts, which can
 // be before the error.
-
 func yamlError(err error) Finding {
 	f := Finding{Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError, Msg: err.Error(), Fix: "Fix the YAML syntax at this line."}
 	if m := yamlLineRe.FindStringSubmatch(err.Error()); m != nil {
-		f.Line, _ = strconv.Atoi(m[1])
+		f.Line, _ = strconv.Atoi(m[1]) // m[1] is only digits, so Atoi can fail only on overflow, and then the line is 0.
 	}
 	return f
 }

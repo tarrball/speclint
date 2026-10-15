@@ -210,9 +210,14 @@ func (c *checker) checkSkill() {
 			break
 		}
 	}
-	switch b, _ := os.ReadFile(skill); {
-	case skill == "":
+	if skill == "" {
 		c.add(StatusWarn, "skill", claude.SkillPath+" is missing, so Claude does not know that it must read the rules before it plans", repair)
+		return
+	}
+	b, err := os.ReadFile(skill)
+	switch {
+	case err != nil:
+		c.add(StatusFail, "skill", c.relText(err.Error()), "Make sure that specval can read the skill.")
 	case !strings.Contains(string(b), "specval context"):
 		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `specval context`", "Delete it, then run `specval init` to write it again from the template.")
 	default:
