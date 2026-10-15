@@ -119,6 +119,9 @@ A `//nolint` directive must name the linter and give a reason:
 - Give each `deny` or `warn` rule a `METADATA` block with a `title` and a `custom.id`.
   specval does not load a rule that has no `custom.id`.
 - Make each finding with `lib.finding(rego.metadata.rule(), path, msg, fix)`.
+- Bind each value that can be undefined before you use it in string interpolation.
+  `$"{x}"` writes an undefined `x` as `<undefined>`. It does not make the rule
+  undefined, as `sprintf` does.
 - Write `msg` as a statement of the problem.
   Write `fix` as one or more instructions in STE.
 - `opa fmt` must not change the file. `mise run fmt` applies it.

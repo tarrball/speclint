@@ -1,0 +1,34 @@
+# A rule must not report a finding when a value in its message is undefined.
+# Here AuditHelper has an unknown layer, so SV105 reports it, and SV102 does
+# not. NoLayerEngine is registered without a layer, so SR001 reports it, and
+# SV104 does not.
+exits 1 specval check
+cmp stdout check.txt
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+  NoLayerEngine: {}
+-- specs/undefined.yaml --
+specval: 1
+id: UNDEF-1
+kind: feature
+title: A spec where a rule has an undefined value
+summary: AuditHelper has an unknown layer. NoLayerEngine is registered without a layer.
+acceptance:
+  - { id: AC1, text: Covered. }
+services:
+  new:
+    - { name: AuditHelper, layer: helper, purpose: Calls a service from an unknown layer. }
+    - { name: NoLayerEngine, layer: engine, purpose: Is registered without a layer. }
+calls:
+  - { from: AuditHelper, to: OrderAccessor, op: Audit, covers: [AC1] }
+  - { from: OrderManager, to: NoLayerEngine, op: Run, covers: [AC1] }
+-- check.txt --
+.specval/data/services.yaml:4 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
+    fix: Set layer to one of: manager, engine, accessor, resource.
+specs/undefined.yaml:10 error SV105 helper is not a layer (services.new[0].layer)
+    fix: Use one of: manager, engine, accessor, resource.
+1 spec(s) checked: 2 error(s), 0 warning(s)

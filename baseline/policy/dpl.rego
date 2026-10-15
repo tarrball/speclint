@@ -59,11 +59,18 @@ can_call(l) := $"{lib.capitalize(lib.plural(l))} may call only {targets}" if {
 
 can_call(l) := $"{lib.capitalize(lib.plural(l))} may not call other services" if count(layers[l]) == 0
 
+# layer_fix is undefined if the layer of the caller is not known (SV105).
+# String interpolation writes an undefined value as "<undefined>", so the
+# rules bind each value that can be undefined before they use it.
 layer_fix(from, to, target) := msg if {
+	rule := can_call(from)
 	callers := lib.ordered([l | some l, targets in layers; to in targets])
 	count(callers) > 0
-	msg := $"{can_call(from)}. Route the call to {target} through a {lib.join(callers, "or")} instead."
-} else := $"{can_call(from)}. {lib.capitalize(lib.plural(to))} are entry points; no service calls them."
+	msg := $"{rule}. Route the call to {target} through a {lib.join(callers, "or")} instead."
+} else := msg if {
+	rule := can_call(from)
+	msg := $"{rule}. {lib.capitalize(lib.plural(to))} are entry points; no service calls them."
+}
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
 unknown_fix(name, action) := concat(" ", [
@@ -132,11 +139,11 @@ deny contains f if {
 #   id: SV104
 deny contains f if {
 	some i, s in new_list
-	reg := registry[s.name]
+	layer := registry[s.name].layer
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.new[{i}].name",
-		$"{s.name} is already registered ({reg.layer} layer)",
+		$"{s.name} is already registered ({layer} layer)",
 		$"Move {s.name} from services.new to services.changed.",
 	)
 }
