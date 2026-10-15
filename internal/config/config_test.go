@@ -164,3 +164,16 @@ func TestFileListsHaveNoDuplicates(t *testing.T) {
 		t.Errorf("DataFiles = %v, want %v", got, want)
 	}
 }
+
+func TestFileListsCleanAbsolutePaths(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"data/services.yaml": ""})
+	c := &Config{Root: dir, Data: []string{filepath.Join(dir, "data"), dir + "/data/./services.yaml"}}
+	got, err := c.DataFiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{filepath.Join(dir, "data", "services.yaml")}; !slices.Equal(got, want) {
+		t.Errorf("DataFiles = %v, want %v", got, want)
+	}
+}

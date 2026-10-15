@@ -74,7 +74,7 @@ func parse(b []byte) (*Config, error) {
 // Abs returns p as an absolute path. A relative p is relative to Root.
 func (c *Config) Abs(p string) string {
 	if filepath.IsAbs(p) {
-		return p
+		return filepath.Clean(p)
 	}
 	return filepath.Join(c.Root, p)
 }
