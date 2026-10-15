@@ -25,6 +25,7 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./...   # rewrite expected CLI output
 - `internal/policy/`: the `Engine`. It loads data and Rego rules, evaluates specs
   and the registry, and returns findings.
 - `internal/baseline/`: the built-in schema, layer data, and Rego rules (embedded).
+  `policy/*_test.rego` are Rego unit tests. `policy_test.go` runs them.
 - `internal/yamlpath/`: finds the line of a path such as `calls[2].to` in YAML.
 - `internal/claude/`: the Claude Code settings file, hook event, and skill.
 - `internal/scaffold/`: the files that `specval init` and `specval new` write.
