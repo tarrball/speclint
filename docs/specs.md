@@ -99,7 +99,8 @@ specval also runs these rules on the service registry, one time for each
 |---|---|---|
 | SR001 | error | Each registered service has a known layer. |
 | SR002 | error | The name of each registered service ends with the name of its layer. |
-| SR003 | error | The registry is a mapping from service names to layers. |
+| SR003 | error | The registry is a mapping from service names to entries. |
+| SR004 | error | Each entry in the registry is a mapping with a layer, for example `{ layer: manager }`. |
 
 `specval context` prints the spec rules with their full descriptions. To add
 rules for your project, see [rules.md](rules.md).

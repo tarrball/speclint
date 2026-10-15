@@ -38,3 +38,13 @@ func TestWriteContext(t *testing.T) {
 		t.Errorf("WriteContext wrote %s", b.String())
 	}
 }
+
+func TestWriteContextDoesNotEscapeHTML(t *testing.T) {
+	var b bytes.Buffer
+	if err := WriteContext(&b, "A<B&C>"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), "A<B&C>") {
+		t.Errorf("WriteContext wrote %s", b.String())
+	}
+}

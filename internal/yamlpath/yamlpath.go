@@ -3,6 +3,7 @@
 package yamlpath
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func Line(doc *yaml.Node, path string) int {
 		switch n.Kind {
 		case yaml.MappingNode:
 			for i := 0; i+1 < len(n.Content); i += 2 {
-				if n.Content[i].Value == seg {
+				if keyText(n.Content[i]) == seg {
 					line, next = n.Content[i].Line, n.Content[i+1]
 					break
 				}
@@ -54,4 +55,18 @@ func Line(doc *yaml.Node, path string) int {
 		n = next
 	}
 	return line
+}
+
+// keyText returns the text of a mapping key, as specval writes it when it
+// converts YAML to JSON: the key 0x1 is "1". A key that is a string is its
+// value.
+func keyText(key *yaml.Node) string {
+	var v any
+	if key.Kind != yaml.ScalarNode || key.Decode(&v) != nil {
+		return key.Value
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return fmt.Sprint(v)
 }

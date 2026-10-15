@@ -2,7 +2,10 @@
 package config
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -34,13 +37,19 @@ func Find(start string) (*Config, error) {
 	}
 	for {
 		p := filepath.Join(dir, FileName)
-		if b, err := os.ReadFile(p); err == nil {
-			c := &Config{SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
-			if err := yaml.Unmarshal(b, c); err != nil {
+		b, err := os.ReadFile(p)
+		if err == nil {
+			c, err := parse(b)
+			if err != nil {
 				return nil, fmt.Errorf("%s: %w", p, err)
 			}
 			c.Root = dir
 			return c, nil
+		}
+		// A configuration file that exists but cannot be read must not let the
+		// search continue to a parent directory, which has other rules.
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -50,10 +59,22 @@ func Find(start string) (*Config, error) {
 	}
 }
 
+// parse reads a configuration. A key that it does not know is an error, so
+// that a typing error such as "spec_dir" does not go unseen.
+func parse(b []byte) (*Config, error) {
+	c := &Config{SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
+	dec := yaml.NewDecoder(bytes.NewReader(b))
+	dec.KnownFields(true)
+	if err := dec.Decode(c); err != nil && !errors.Is(err, io.EOF) { // An empty file gives io.EOF.
+		return nil, err
+	}
+	return c, nil
+}
+
 // Abs returns p as an absolute path. A relative p is relative to Root.
 func (c *Config) Abs(p string) string {
 	if filepath.IsAbs(p) {
-		return p
+		return filepath.Clean(p)
 	}
 	return filepath.Join(c.Root, p)
 }
@@ -89,11 +110,21 @@ func isPolicy(path string) bool {
 	return strings.HasSuffix(path, ".rego") && !strings.HasSuffix(path, "_test.rego")
 }
 
-// collect returns the files at paths, in lexical order. Each path can be a
-// file or a directory. In a directory, collect returns only the files that
-// have one of the extensions in exts. A path that does not exist gives no files.
+// collect returns the files at paths. Each path can be a file or a directory.
+// In a directory, collect returns only the files that have one of the
+// extensions in exts, in lexical order. A path that does not exist gives no
+// files. collect returns each file one time.
 func (c *Config) collect(paths, exts []string) ([]string, error) {
 	var out []string
+	seen := map[string]bool{}
+	add := func(path string) {
+		// Two configured paths can give the same file, for example a
+		// directory and a file in it.
+		if !seen[path] {
+			seen[path] = true
+			out = append(out, path)
+		}
+	}
 	for _, p := range paths {
 		root := c.Abs(p)
 		info, err := os.Stat(root)
@@ -103,7 +134,7 @@ func (c *Config) collect(paths, exts []string) ([]string, error) {
 			return nil, err
 		}
 		if !info.IsDir() {
-			out = append(out, root)
+			add(root)
 			continue
 		}
 		err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -112,7 +143,7 @@ func (c *Config) collect(paths, exts []string) ([]string, error) {
 			}
 			for _, ext := range exts {
 				if strings.HasSuffix(path, ext) {
-					out = append(out, path)
+					add(path)
 					break
 				}
 			}

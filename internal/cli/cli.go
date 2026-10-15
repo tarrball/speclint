@@ -3,6 +3,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -101,6 +102,15 @@ func (env *Env) workDir() (string, error) {
 		return "", errors.New("the working directory is not known")
 	}
 	return env.Dir, nil
+}
+
+// writeJSON writes v to w as indented JSON. It does not escape <, >, and &,
+// because the output is not HTML, and the messages can contain them.
+func writeJSON(w io.Writer, v any) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	return enc.Encode(v)
 }
 
 // parseArgs parses flags that come before or after the positional arguments.

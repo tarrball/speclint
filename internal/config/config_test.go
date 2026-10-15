@@ -127,3 +127,53 @@ func TestSpecFilesWithNoSpecsDir(t *testing.T) {
 		t.Errorf("SpecFiles = %v, %v; want no files and no error", got, err)
 	}
 }
+
+func TestFindRejectsUnknownKeys(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{FileName: "spec_dir: changes\n"})
+	if _, err := Find(dir); err == nil || !strings.Contains(err.Error(), "spec_dir") {
+		t.Errorf("err = %v, want an error that names spec_dir", err)
+	}
+}
+
+func TestFindStopsAtAConfigThatItCannotRead(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root can read a file with mode 0")
+	}
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{FileName: "", "sub/" + FileName: "specs_dir: changes\n"})
+	sub := filepath.Join(dir, "sub", FileName)
+	if err := os.Chmod(sub, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(sub, 0o600) }) // So that t.TempDir can remove it.
+	if c, err := Find(filepath.Join(dir, "sub")); err == nil {
+		t.Errorf("Find = %+v, want the read error, not the parent configuration", c)
+	}
+}
+
+func TestFileListsHaveNoDuplicates(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"data/services.yaml": ""})
+	c := &Config{Root: dir, Data: []string{"data", "data/services.yaml", "./data"}}
+	got, err := c.DataFiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{filepath.Join(dir, "data", "services.yaml")}; !slices.Equal(got, want) {
+		t.Errorf("DataFiles = %v, want %v", got, want)
+	}
+}
+
+func TestFileListsCleanAbsolutePaths(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"data/services.yaml": ""})
+	c := &Config{Root: dir, Data: []string{filepath.Join(dir, "data"), dir + "/data/./services.yaml"}}
+	got, err := c.DataFiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{filepath.Join(dir, "data", "services.yaml")}; !slices.Equal(got, want) {
+		t.Errorf("DataFiles = %v, want %v", got, want)
+	}
+}

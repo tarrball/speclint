@@ -457,3 +457,81 @@ func TestRuleDocsMarkTheBaselineRules(t *testing.T) {
 		}
 	}
 }
+
+// The queries read only the packages one level under specval.spec and
+// specval.registry. A deeper package would load but never run.
+func TestNestedRulePackagesAreRejected(t *testing.T) {
+	for _, pkg := range []string{"specval.spec.team.pricing", "specval.registry.team.owners"} {
+		cfg := project(t, map[string]string{
+			".specval/policy/a.rego": "package " + pkg + "\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
+		})
+		_, err := New(context.Background(), cfg)
+		if err == nil || !strings.Contains(err.Error(), "package "+pkg+" is too deep") {
+			t.Errorf("%s: err = %v, want a package depth error", pkg, err)
+		}
+	}
+}
+
+// YAML permits keys that are not strings. The schema reports such a key in a
+// spec, with its line. In a data file, the key becomes a string.
+func TestKeysThatAreNotStrings(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		".specval/data/limits.yaml":   "limits: {1: a}\n",
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\n" +
+			"acceptance: [{ id: AC1, text: T }]\n" +
+			"calls:\n  - { from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1], 1: x }\n",
+	})
+	found := check(t, cfg, "a.yaml")
+	if len(found) != 1 || found[0].Rule != "SV001" || found[0].Line != 8 || !strings.Contains(found[0].Msg, "1") {
+		t.Errorf("got %+v, want one SV001 error for the key 1 at line 8", found)
+	}
+}
+
+// Two keys can be different in YAML but the same as text, for example 0x1
+// and "1". specval must not keep one of them by chance.
+func TestKeysThatAreTheSameAsText(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/limits.yaml": "limits: {0x1: a, \"1\": b}\n"})
+	if _, err := New(context.Background(), cfg); err == nil || !strings.Contains(err.Error(), `limits.yaml: two keys are "1" as text (limits.1)`) {
+		t.Errorf("data file: err = %v", err)
+	}
+	cfg = project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n" +
+			"out_of_scope: [{0x1: a, \"1\": b}]\n",
+	})
+	found := check(t, cfg, "a.yaml")
+	if len(found) != 1 || found[0].Rule != "SV000" || found[0].Path != "out_of_scope[0].1" || found[0].Line != 8 {
+		t.Errorf("spec: got %+v, want one SV000 at out_of_scope[0].1, line 8", found)
+	}
+}
+
+func TestNestedRulePackagesInBracketNotation(t *testing.T) {
+	nested := project(t, map[string]string{
+		".specval/policy/a.rego": "package specval.spec.team[\"pricing-rules\"]\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
+	})
+	if _, err := New(context.Background(), nested); err == nil || !strings.Contains(err.Error(), "is too deep") {
+		t.Errorf("nested: err = %v, want a package depth error", err)
+	}
+	// One level in bracket notation is a rule package, so it needs custom.id.
+	noID := project(t, map[string]string{
+		".specval/policy/a.rego": "package specval.spec[\"pricing-rules\"]\n\nimport rego.v1\n\ndeny contains \"x\" if true\n",
+	})
+	if _, err := New(context.Background(), noID); err == nil || !strings.Contains(err.Error(), "custom.id") {
+		t.Errorf("one level: err = %v, want a custom.id error", err)
+	}
+}
+
+// A registry finding for a key that is not a string has the line of the key,
+// not the line of its parent.
+func TestRegistryLineForAKeyThatIsNotAString(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  0x1: manager\n"})
+	got, err := newEngine(t, cfg).CheckRegistry(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := got[filepath.Join(cfg.Root, ".specval", "data", "services.yaml")]
+	if len(found) != 1 || found[0].Rule != "SR004" || found[0].Path != "services.1" || found[0].Line != 3 {
+		t.Errorf("got %+v, want one SR004 at services.1, line 3", found)
+	}
+}

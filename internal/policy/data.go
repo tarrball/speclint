@@ -33,8 +33,9 @@ func (e *Engine) Architecture() (Architecture, error) {
 }
 
 // Services returns the service registry, by service name. It returns an
-// error only if the registry is not a mapping. An entry without a layer that
-// is a string has an empty Layer; the registry rules report such an entry.
+// error only if the registry is not a mapping. An entry that is not a mapping,
+// or that has no layer that is a string, has an empty Layer. The registry
+// rules SR001 and SR004 report such an entry.
 func (e *Engine) Services() (map[string]Service, error) {
 	project, _ := e.data["project"].(map[string]any)
 	raw, ok := project["services"]
@@ -79,11 +80,75 @@ func (e *Engine) loadDataFile(path string, project map[string]any) error {
 		if prev, ok := e.dataFile[k]; ok {
 			return fmt.Errorf("two data files define the key %q: %s and %s", k, prev, path)
 		}
+		v, err := stringKeys(v, k)
+		if err != nil {
+			return fmt.Errorf("%s: %w", path, err)
+		}
 		project[k] = v
 		e.dataFile[k] = path
 	}
 	e.nodes[path] = &node
 	return nil
+}
+
+// keyError reports two keys in a mapping that are the same as text, for
+// example 0x1 and "1".
+type keyError struct {
+	key  string
+	path string // the path of the key, for example "calls[0].1"
+}
+
+func (e keyError) Error() string {
+	return fmt.Sprintf("two keys are %q as text (%s)", e.key, e.path)
+}
+
+// stringKeys returns v with each mapping key as a string. YAML permits a key
+// such as 1, but JSON, and thus OPA, needs string keys. path is the path of v,
+// for error messages. If two keys of a mapping are the same as text, so that
+// one value would be lost, stringKeys returns a keyError.
+func stringKeys(v any, path string) (any, error) {
+	join := func(key string) string {
+		if path == "" {
+			return key
+		}
+		return path + "." + key
+	}
+	switch v := v.(type) {
+	case map[any]any:
+		out := make(map[string]any, len(v))
+		for k, e := range v {
+			key := fmt.Sprint(k)
+			if _, dup := out[key]; dup {
+				return nil, keyError{key: key, path: join(key)}
+			}
+			conv, err := stringKeys(e, join(key))
+			if err != nil {
+				return nil, err
+			}
+			out[key] = conv
+		}
+		return out, nil
+	case map[string]any:
+		for k, e := range v {
+			conv, err := stringKeys(e, join(k))
+			if err != nil {
+				return nil, err
+			}
+			v[k] = conv
+		}
+		return v, nil
+	case []any:
+		for i, e := range v {
+			conv, err := stringKeys(e, fmt.Sprintf("%s[%d]", path, i))
+			if err != nil {
+				return nil, err
+			}
+			v[i] = conv
+		}
+		return v, nil
+	default:
+		return v, nil
+	}
 }
 
 // roundTrip converts values from the YAML decoder to the JSON types that OPA uses.

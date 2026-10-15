@@ -37,7 +37,7 @@ test_sr001_layer_that_is_not_a_string if {
 }
 
 test_sr003_registry_must_be_a_mapping if {
-	every services in [[], "x", 5] {
+	every services in [[], ["manager"], [{"layer": "manager"}], "x", 5] {
 		findings := dpl.deny with data.project as {"services": services}
 		{[f.rule, f.path] | some f in findings} == {["SR003", "services"]}
 	}
@@ -53,4 +53,19 @@ test_sr002_name_suffix if {
 	f.rule == "SR002"
 	f.msg == "PricingThing is in the engine layer but does not end in Engine"
 	f.fix == "Change its name so that it ends in Engine, or change its layer."
+}
+
+test_sr004_entry_that_is_not_a_mapping if {
+	project := {"services": {"OrderManager": "manager", "Odd": 7}}
+	findings := dpl.deny with data.project as project
+	{[f.rule, f.path, f.msg, f.fix] | some f in findings} == {
+		[
+			"SR004", "services.OrderManager", "OrderManager is not a mapping (got \"manager\")",
+			"Write the entry as OrderManager: { layer: manager }.",
+		],
+		[
+			"SR004", "services.Odd", "Odd is not a mapping (got 7)",
+			"Write the entry as Odd: { layer: <layer> }, with one of: manager, engine, accessor, resource.",
+		],
+	}
 }

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -26,9 +25,7 @@ func cmdDoctor(ctx context.Context, env *Env, args []string) (int, error) {
 	}
 	switch *format {
 	case "json":
-		enc := json.NewEncoder(env.Stdout)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(map[string]any{"checks": checks, "ok": !failed}); err != nil {
+		if err := writeJSON(env.Stdout, map[string]any{"checks": checks, "ok": !failed}); err != nil {
 			return exitError, err
 		}
 	case "text":

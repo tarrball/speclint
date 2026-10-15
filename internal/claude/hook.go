@@ -25,7 +25,9 @@ func ReadEvent(r io.Reader) (Event, error) {
 // WriteContext writes a PostToolUse hook result that gives text to Claude as
 // additional context.
 func WriteContext(w io.Writer, text string) error {
-	return json.NewEncoder(w).Encode(map[string]any{
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false) // The text can contain <, >, and &. It is not HTML.
+	return enc.Encode(map[string]any{
 		"hookSpecificOutput": map[string]any{
 			"hookEventName":     "PostToolUse",
 			"additionalContext": text,

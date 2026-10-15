@@ -174,7 +174,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
           "path": "id",
           "line": 2,
           "msg": "Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$'",
-          "fix": "The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is \u003cid\u003e.yaml."
+          "fix": "The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. The name of the spec file is <id>.yaml."
         }
       ]
     }

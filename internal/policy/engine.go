@@ -139,8 +139,13 @@ func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	pkg := m.Package.Path.String()
-	if strings.HasPrefix(pkg, "data.specval.spec.") || strings.HasPrefix(pkg, "data.specval.registry.") {
+	if kind := ruleKind(m.Package.Path); kind != "" {
+		// The queries read only the packages one level under specval.spec and
+		// specval.registry, so a deeper package would load but never run.
+		if len(m.Package.Path) > 4 {
+			return nil, fmt.Errorf("%s: package %s is too deep; use specval.%s.<name>",
+				m.Package.Location, strings.TrimPrefix(m.Package.Path.String(), "data."), kind)
+		}
 		for _, r := range m.Rules {
 			kind := r.Head.Ref().String()
 			if _, ok := ruleSeverity[kind]; !ok {
@@ -153,6 +158,22 @@ func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 	}
 	e.modules = append(e.modules, m)
 	return m, nil
+}
+
+// ruleKind returns "spec" for a package under data.specval.spec, "registry"
+// for a package under data.specval.registry, and "" for any other package.
+// It reads the parts of the path, so a part in bracket notation, such as
+// specval.spec["pricing-rules"], counts as one part.
+func ruleKind(path ast.Ref) string {
+	if len(path) < 4 || !path[1].Equal(ast.StringTerm("specval")) {
+		return ""
+	}
+	for _, kind := range []string{"spec", "registry"} {
+		if path[2].Equal(ast.StringTerm(kind)) {
+			return kind
+		}
+	}
+	return ""
 }
 
 // ruleAnnotation returns the METADATA annotation of r that has a custom.id.
@@ -199,6 +220,14 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 	}
 	if doc == nil {
 		doc = map[string]any{}
+	}
+	doc, err = stringKeys(doc, "")
+	if keyErr, ok := errors.AsType[keyError](err); ok {
+		return []Finding{{
+			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError,
+			Path: keyErr.path, Line: yamlpath.Line(&node, keyErr.path),
+			Msg: err.Error(), Fix: "Give each key in this mapping a different name.",
+		}}, nil
 	}
 	var input any
 	if err := roundTrip(doc, &input); err != nil {
@@ -273,8 +302,7 @@ func (e *Engine) RuleDocs() []RuleDoc {
 	var docs []RuleDoc
 	seen := map[string]bool{}
 	for _, m := range e.modules {
-		pkg := m.Package.Path.String()
-		if !strings.HasPrefix(pkg, "data.specval.spec.") {
+		if ruleKind(m.Package.Path) != "spec" {
 			continue
 		}
 		for _, r := range m.Rules {
@@ -290,7 +318,7 @@ func (e *Engine) RuleDocs() []RuleDoc {
 			seen[id] = true
 			docs = append(docs, RuleDoc{
 				ID: id, Title: a.Title, Description: a.Description,
-				Package: pkg, Severity: sev, Baseline: e.baseline[m],
+				Package: m.Package.Path.String(), Severity: sev, Baseline: e.baseline[m],
 			})
 		}
 	}

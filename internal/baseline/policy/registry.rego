@@ -8,6 +8,12 @@ import rego.v1
 
 registry := object.get(data.project, "services", {})
 
+# entries is the registry if it is a mapping. If it is not, SR003 reports it,
+# and the other rules have no entries to check.
+default entries := {}
+
+entries := registry if is_object(registry)
+
 # METADATA
 # title: The registry is a mapping
 # description: data.project.services maps each service name to its layer.
@@ -28,7 +34,8 @@ deny contains f if {
 # custom:
 #   id: SR001
 deny contains f if {
-	some name, s in registry
+	some name, s in entries
+	is_object(s)
 	layer := object.get(s, "layer", "")
 	not data.dpl.layers[layer]
 	f := lib.finding(
@@ -44,7 +51,7 @@ deny contains f if {
 # custom:
 #   id: SR002
 deny contains f if {
-	some name, s in registry
+	some name, s in entries
 	sfx := data.dpl.suffix[s.layer]
 	not endswith(name, sfx)
 	f := lib.finding(
@@ -54,3 +61,25 @@ deny contains f if {
 		$"Change its name so that it ends in {sfx}, or change its layer.",
 	)
 }
+
+# METADATA
+# title: Each registry entry is a mapping
+# description: Each service in the registry maps to an entry that has a layer.
+# custom:
+#   id: SR004
+deny contains f if {
+	some name, s in entries
+	not is_object(s)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"services.{name}",
+		$"{name} is not a mapping (got {lib.quote(s)})",
+		entry_fix(name, s),
+	)
+}
+
+# entry_fix tells how to write a registry entry. If the entry is the name of
+# a layer, the fix uses it.
+entry_fix(name, s) := $"Write the entry as {name}: \{ layer: {s} }." if data.dpl.layers[s]
+
+else := $"Write the entry as {name}: \{ layer: <layer> }, with one of: {concat(", ", data.dpl.layer_order)}."

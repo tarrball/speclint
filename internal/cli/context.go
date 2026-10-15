@@ -59,6 +59,17 @@ func cmdContext(ctx context.Context, env *Env) error {
 			sort.Strings(names)
 			fmt.Fprintf(w, "- %s: %s\n", l, strings.Join(names, ", "))
 		}
+		delete(byLayer, l)
+	}
+	// The registry rules report the services that are left, because their
+	// layer is not valid.
+	var invalid []string
+	for _, names := range byLayer {
+		invalid = append(invalid, names...)
+	}
+	if len(invalid) > 0 {
+		sort.Strings(invalid)
+		fmt.Fprintf(w, "- no valid layer: %s\n", strings.Join(invalid, ", "))
 	}
 	if len(registry) == 0 {
 		fmt.Fprint(w, "(none)\n")
