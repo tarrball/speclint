@@ -3,8 +3,9 @@ package specval.spec.schema
 import data.specval.lib
 import rego.v1
 
-# Generated from schema.json at load time: allowed keys and descriptions per
-# path, with array indexes written as "*" (e.g. "calls.*.op").
+# specval makes keys and hints from schema.json when it loads the rules. keys
+# gives the permitted keys at each path, and hints gives the description of
+# each path. In a path, "*" is an array index, for example "calls.*.op".
 keys := data.dpl.schema_keys
 
 hints := data.dpl.schema_hints
@@ -25,12 +26,12 @@ deny contains f if {
 
 is_root(field) if lower(field) == "(root)"
 
-# "calls.2.to" -> "calls[2].to"
+# display writes the path "calls.2.to" as "calls[2].to".
 display(field) := "" if is_root(field)
 
 display(field) := regex.replace(field, `\.(\d+)`, "[$1]") if not is_root(field)
 
-# "calls.2.to" -> "calls.*.to"
+# norm writes the path "calls.2.to" as "calls.*.to".
 norm(field) := "(root)" if is_root(field)
 
 norm(field) := regex.replace(field, `\.\d+`, ".*") if not is_root(field)

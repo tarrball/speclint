@@ -22,9 +22,10 @@ import (
 	"github.com/tarrball/specval/internal/yamlpath"
 )
 
-// The queries collect the deny and warn results of each rule package.
-// Schema errors gate the rest: if the shape is wrong, the output of the other
-// rules is noise.
+// The queries collect the deny and warn results of each rule package. The
+// spec query keeps the schema errors apart. If the schema finds an error,
+// CheckSpec does not report the other findings, because the other rules
+// expect the correct shape.
 const (
 	specQuery = `schema := [f | some f in data.specval.spec.schema.deny];
 deny := [f | some p; p != "schema"; some f in data.specval.spec[p].deny];
@@ -35,11 +36,16 @@ warn := [f | some p; some f in data.specval.registry[p].warn]`
 
 // Engine evaluates specs and the service registry for one project.
 type Engine struct {
-	data     map[string]any
-	dataFile map[string]string     // top-level project data key -> file that defines it
-	nodes    map[string]*yaml.Node // project data file -> parsed YAML, for line numbers
-	modules  []*ast.Module
-	baseline map[*ast.Module]bool // the modules that are built into specval
+	data map[string]any
+	// dataFile maps each top-level key of the project data to the file that
+	// defines it.
+	dataFile map[string]string
+	// nodes maps each project data file to its YAML nodes, which give the
+	// line numbers.
+	nodes   map[string]*yaml.Node
+	modules []*ast.Module
+	// baseline holds the modules that are built into specval.
+	baseline map[*ast.Module]bool
 	specQ    rego.PreparedEvalQuery
 	regQ     rego.PreparedEvalQuery
 }

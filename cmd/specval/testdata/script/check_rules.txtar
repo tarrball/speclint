@@ -1,10 +1,10 @@
 # This project breaks each baseline spec rule at least one time.
-# The output fixes the message and the fix text of each rule.
+# The expected output records the message and the fix text of each rule.
 exits 1 specval check
 cmp stdout check.txt
 ! stderr .
 
-# A spec with only warnings passes, unless --strict is set.
+# A spec with only warnings passes, unless you set --strict.
 exits 0 specval check specs/warn.yaml
 cmp stdout warn.txt
 exits 1 specval check --strict specs/warn.yaml

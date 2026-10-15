@@ -123,7 +123,7 @@ func TestCheckSpecReportsYAMLSyntaxErrors(t *testing.T) {
 
 func TestSchemaErrorsHideTheOtherRules(t *testing.T) {
 	// The spec has an unknown field, and also a call to a service that is
-	// not registered (SV101). Only the schema error is reported.
+	// not registered (SV101). CheckSpec reports only the schema error.
 	cfg := project(t, map[string]string{
 		".specval/data/services.yaml": registry,
 		"specs/a.yaml": `specval: 1

@@ -1,4 +1,4 @@
-# Project rules run with the baseline rules. Files named *_test.rego are not loaded.
+# Project rules run with the baseline rules. specval does not load files named *_test.rego.
 exits 1 specval check
 cmp stdout check.txt
 

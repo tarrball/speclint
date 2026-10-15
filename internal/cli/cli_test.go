@@ -107,7 +107,7 @@ func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
 	if code != exitError || out != "" || !strings.Contains(errOut, "a/specs/x.yaml and b/specs/y.yaml are in different specval projects") {
 		t.Errorf("code %d, stdout %q, stderr %q", code, out, errOut)
 	}
-	// Files in two directories of the same project are permitted.
+	// check accepts files in two directories of the same project.
 	if code, _, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "a/sub/specs/z.yaml"); code != exitFindings {
 		t.Errorf("same project: code %d, stderr %q", code, errOut)
 	}

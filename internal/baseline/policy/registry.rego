@@ -3,8 +3,8 @@ package specval.registry.dpl
 import data.specval.lib
 import rego.v1
 
-# Registry rules run once per `specval check`, not once per spec, and report
-# against the data file that defines `services`.
+# specval runs the registry rules one time for each check, not one time for
+# each spec. Their findings refer to the data file that defines `services`.
 
 registry := object.get(data.project, "services", {})
 

@@ -92,8 +92,8 @@ func TestFileLists(t *testing.T) {
 	c := &Config{
 		Root:     dir,
 		SpecsDir: "specs",
-		// A listed file is used even if its extension is not one of the
-		// usual extensions. A path that does not exist is ignored.
+		// The config uses a listed file even if its extension is not one of
+		// the usual extensions. It ignores a path that does not exist.
 		Data:   []string{"data", "extra.txt", "missing"},
 		Policy: []string{"policy", "one_test.rego"},
 	}

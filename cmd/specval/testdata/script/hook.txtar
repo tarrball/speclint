@@ -21,7 +21,7 @@ exits 0 specval hook
 ! stdout .
 ! stderr .
 
-# A relative file path is resolved against cwd.
+# The hook finds a relative file path from cwd.
 jsonexpand events/relative.json relative.json
 stdin relative.json
 exits 2 specval hook
