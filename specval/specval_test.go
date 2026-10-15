@@ -58,3 +58,31 @@ func TestRuleWithoutIDIsRejected(t *testing.T) {
 		t.Fatalf("want custom.id error, got %v", err)
 	}
 }
+
+func TestMatcherCovers(t *testing.T) {
+	for _, c := range []struct {
+		matcher, tool string
+		want          bool
+	}{{"", "Edit", true}, {"*", "Write", true}, {"Write|Edit|MultiEdit", "Edit", true}, {"Write", "MultiEdit", false}, {"Bash", "Write", false}} {
+		if got := matcherCovers(c.matcher, c.tool); got != c.want {
+			t.Errorf("matcherCovers(%q, %q) = %v", c.matcher, c.tool, got)
+		}
+	}
+}
+
+func TestAddHookKeepsExistingSettings(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	os.WriteFile(path, []byte(`{"model":"opus","hooks":{"PostToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo hi"}]}]}}`), 0o644)
+	if added, err := addHook(path); err != nil || !added {
+		t.Fatalf("addHook = %v, %v", added, err)
+	}
+	if added, _ := addHook(path); added {
+		t.Fatal("second addHook should be a no-op")
+	}
+	b, _ := os.ReadFile(path)
+	for _, want := range []string{`"model": "opus"`, `"echo hi"`, `"specval hook"`} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("settings lost %s:\n%s", want, b)
+		}
+	}
+}

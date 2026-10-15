@@ -4,7 +4,8 @@ Validate a feature/bugfix spec against architecture rules **before any code is w
 A single Go binary with OPA embedded: no conftest, Docker, or runtime to install.
 
 ```
-specval init                 # .specval.yaml, registry, project policy, Claude skill + hook
+specval init                 # .specval.yaml, registry, project policy, Claude skill + hook (re-runnable)
+specval doctor               # is the setup still intact? (--format json)
 specval new ORD-150 --title "Customer can cancel an order"
 specval check                # every spec in specs/; exit 1 on errors (--format json, --strict)
 specval context              # spec format + layers + registry + rules, for an agent (~750 tokens)
@@ -55,6 +56,24 @@ deny contains f if {
 `.claude/settings.json`. When Claude writes a file under the specs dir, the hook
 runs the check; errors go back to Claude (exit 2) with their fixes, and warnings
 are passed along as context.
+
+## Keeping the setup healthy
+
+`specval doctor` checks each piece and gives a fix for each problem (exit 1 on any failure):
+
+| Check | Fails when |
+|---|---|
+| config | no `.specval.yaml` here or in a parent |
+| specs / data / policy | a configured directory is missing (warning) |
+| rules | a data file or Rego policy won't load, or a rule has no `custom.id` |
+| registry | no services registered (warning), or registry rules (SR*) fail |
+| skill | `.claude/skills/spec/SKILL.md` is missing or no longer runs `specval context` (warning) |
+| hook | no PostToolUse hook runs `specval hook` in project, local, or user settings; `disableAllHooks` is set; a settings file is invalid JSON; the matcher misses Write/Edit/MultiEdit (warning) |
+| path | `specval` isn't on PATH or won't run, so the hook can't either; or PATH points to a different binary than the one you ran (warning) |
+
+`specval init` is the repair step. It only creates what's missing and merges the
+hook into an existing `.claude/settings.json` without dropping other settings
+(the file is rewritten with sorted keys).
 
 ## Dev
 

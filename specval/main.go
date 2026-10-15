@@ -29,6 +29,9 @@ Usage:
         Print the spec JSON Schema.
   specval init
         Set up specval and the Claude Code skill + hook in the current directory.
+        Safe to re-run: it only adds what's missing.
+  specval doctor [--format text|json]
+        Check that the setup is intact (config, rules, registry, Claude skill, hook, PATH).
   specval hook
         Claude Code PostToolUse hook: checks a spec Claude just wrote (JSON on stdin).
 `
@@ -54,6 +57,8 @@ func main() {
 		os.Stdout.Write(b)
 	case "init":
 		err = cmdInit()
+	case "doctor":
+		code, err = cmdDoctor(ctx, args)
 	case "hook":
 		code = cmdHook(ctx, os.Stdin)
 	case "-h", "--help", "help":
@@ -358,47 +363,5 @@ func cmdNew(args []string) error {
 		return err
 	}
 	fmt.Println(path)
-	return nil
-}
-
-func cmdInit() error {
-	files := []struct{ path, tmpl string }{
-		{configName, "templates/config.yaml"},
-		{".specval/data/services.yaml", "templates/services.yaml"},
-		{".specval/policy/project.rego", "templates/project.rego"},
-		{".claude/skills/spec/SKILL.md", "templates/SKILL.md"},
-	}
-	for _, f := range files {
-		if err := writeIfMissing(f.path, f.tmpl); err != nil {
-			return err
-		}
-	}
-	if err := os.MkdirAll("specs", 0o755); err != nil {
-		return err
-	}
-	settings := ".claude/settings.json"
-	if b, err := os.ReadFile(settings); err == nil {
-		if !strings.Contains(string(b), "specval hook") {
-			hook, _ := embedded.ReadFile("templates/settings.json")
-			fmt.Printf("%s exists; merge this hook into it:\n%s", settings, hook)
-		}
-		return nil
-	}
-	return writeIfMissing(settings, "templates/settings.json")
-}
-
-func writeIfMissing(path, tmpl string) error {
-	if _, err := os.Stat(path); err == nil {
-		fmt.Println("exists  ", path)
-		return nil
-	}
-	b, _ := embedded.ReadFile(tmpl)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	if err := os.WriteFile(path, b, 0o644); err != nil {
-		return err
-	}
-	fmt.Println("created ", path)
 	return nil
 }
