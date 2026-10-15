@@ -60,6 +60,11 @@ func sortFindings(found []Finding) {
 
 var yamlLineRe = regexp.MustCompile(`line (\d+)`)
 
+// yamlError makes an SV000 finding from a YAML error. The YAML library gives
+// the line only in the error text. For some errors, such as a flow sequence
+// that is not closed, that line is where the enclosing node starts, which can
+// be before the error.
+
 func yamlError(err error) Finding {
 	f := Finding{Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError, Msg: err.Error(), Fix: "Fix the YAML syntax at this line."}
 	if m := yamlLineRe.FindStringSubmatch(err.Error()); m != nil {
