@@ -151,3 +151,16 @@ func TestFindStopsAtAConfigThatItCannotRead(t *testing.T) {
 		t.Errorf("Find = %+v, want the read error, not the parent configuration", c)
 	}
 }
+
+func TestFileListsHaveNoDuplicates(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"data/services.yaml": ""})
+	c := &Config{Root: dir, Data: []string{"data", "data/services.yaml", "./data"}}
+	got, err := c.DataFiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{filepath.Join(dir, "data", "services.yaml")}; !slices.Equal(got, want) {
+		t.Errorf("DataFiles = %v, want %v", got, want)
+	}
+}

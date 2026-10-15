@@ -110,11 +110,21 @@ func isPolicy(path string) bool {
 	return strings.HasSuffix(path, ".rego") && !strings.HasSuffix(path, "_test.rego")
 }
 
-// collect returns the files at paths, in lexical order. Each path can be a
-// file or a directory. In a directory, collect returns only the files that
-// have one of the extensions in exts. A path that does not exist gives no files.
+// collect returns the files at paths. Each path can be a file or a directory.
+// In a directory, collect returns only the files that have one of the
+// extensions in exts, in lexical order. A path that does not exist gives no
+// files. collect returns each file one time.
 func (c *Config) collect(paths, exts []string) ([]string, error) {
 	var out []string
+	seen := map[string]bool{}
+	add := func(path string) {
+		// Two configured paths can give the same file, for example a
+		// directory and a file in it.
+		if !seen[path] {
+			seen[path] = true
+			out = append(out, path)
+		}
+	}
 	for _, p := range paths {
 		root := c.Abs(p)
 		info, err := os.Stat(root)
@@ -124,7 +134,7 @@ func (c *Config) collect(paths, exts []string) ([]string, error) {
 			return nil, err
 		}
 		if !info.IsDir() {
-			out = append(out, root)
+			add(root)
 			continue
 		}
 		err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -133,7 +143,7 @@ func (c *Config) collect(paths, exts []string) ([]string, error) {
 			}
 			for _, ext := range exts {
 				if strings.HasSuffix(path, ext) {
-					out = append(out, path)
+					add(path)
 					break
 				}
 			}
