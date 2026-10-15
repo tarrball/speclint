@@ -19,7 +19,7 @@ deny contains f if {
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.{name}",
-		$"{name} has no valid layer (got {json.marshal(layer)})",
+		$"{name} has no valid layer (got {lib.quote(layer)})",
 		$"Set layer to one of: {concat(", ", data.dpl.layer_order)}.",
 	)
 }

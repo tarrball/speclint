@@ -23,6 +23,11 @@ join(xs, word) := $"{concat(", ", head)} {word} {last}" if {
 
 plural(word) := $"{word}s"
 
+# quote renders s as a quoted string with Go escapes, like "got \"x\"".
+# json.marshal is different: it escapes <, >, and & for HTML.
+# regal ignore:prefer-string-interpolation
+quote(s) := sprintf("%q", [s])
+
 capitalize(s) := concat("", [upper(substring(s, 0, 1)), substring(s, 1, -1)])
 
 # ordered returns the layers in xs in architectural order (manager first).
