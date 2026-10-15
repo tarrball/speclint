@@ -110,7 +110,7 @@ func (e *Engine) addModule(name, src string) error {
 	if strings.HasPrefix(pkg, "data.specval.spec.") || strings.HasPrefix(pkg, "data.specval.registry.") {
 		for _, r := range m.Rules {
 			kind := r.Head.Ref().String()
-			if kind != "deny" && kind != "warn" {
+			if _, ok := ruleSeverity[kind]; !ok {
 				continue
 			}
 			if ruleID(r) == "" {
@@ -170,16 +170,16 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 		return nil, errors.New("policy query returned no result")
 	}
 	bind := rs[0].Bindings
-	findings, err := decodeFindings(bind["schema"], "error")
+	findings, err := decodeFindings(bind["schema"], SeverityError)
 	if err != nil {
 		return nil, err
 	}
 	if len(findings) == 0 {
-		deny, err := decodeFindings(bind["deny"], "error")
+		deny, err := decodeFindings(bind["deny"], SeverityError)
 		if err != nil {
 			return nil, err
 		}
-		warn, err := decodeFindings(bind["warn"], "warning")
+		warn, err := decodeFindings(bind["warn"], SeverityWarning)
 		if err != nil {
 			return nil, err
 		}
@@ -203,8 +203,8 @@ func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error
 	if len(rs) == 0 {
 		return out, nil
 	}
-	for _, b := range []struct{ name, sev string }{{"deny", "error"}, {"warn", "warning"}} {
-		found, err := decodeFindings(rs[0].Bindings[b.name], b.sev)
+	for _, name := range []string{"deny", "warn"} {
+		found, err := decodeFindings(rs[0].Bindings[name], ruleSeverity[name])
 		if err != nil {
 			return nil, err
 		}
@@ -234,15 +234,11 @@ func (e *Engine) RuleDocs() []RuleDoc {
 			continue
 		}
 		for _, r := range m.Rules {
-			kind := r.Head.Ref().String()
-			if kind != "deny" && kind != "warn" {
+			sev, ok := ruleSeverity[r.Head.Ref().String()]
+			if !ok {
 				continue
 			}
 			for _, a := range r.Annotations {
-				sev := "error"
-				if kind == "warn" {
-					sev = "warning"
-				}
 				docs = append(docs, RuleDoc{ID: ruleID(r), Title: a.Title, Description: a.Description, Severity: sev, Package: pkg})
 			}
 		}

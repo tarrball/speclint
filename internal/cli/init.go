@@ -1,11 +1,11 @@
 package cli
 
-import (
-	"os"
+import "github.com/tarrball/specval/internal/scaffold"
 
-	"github.com/tarrball/specval/internal/scaffold"
-)
-
-func cmdInit() error {
-	return scaffold.Init(".", os.Stdout)
+func cmdInit(env *Env) error {
+	dir, err := env.workDir()
+	if err != nil {
+		return err
+	}
+	return scaffold.Init(dir, env.Stdout)
 }

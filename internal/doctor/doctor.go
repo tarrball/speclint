@@ -14,26 +14,48 @@ import (
 	"github.com/tarrball/specval/internal/policy"
 )
 
+// Status is the result of a check.
+type Status string
+
+// The values of Status.
+const (
+	StatusOK   Status = "ok"   // The part works.
+	StatusWarn Status = "warn" // The part can cause a problem.
+	StatusFail Status = "fail" // The part does not work.
+)
+
 // Check is the result of one check.
 type Check struct {
-	Status string `json:"status"` // ok, warn, fail
+	Status Status `json:"status"`
 	Name   string `json:"name"`
 	Detail string `json:"detail"`
 	Fix    string `json:"fix,omitempty"`
 }
 
+// Env is what the checks read from the system.
+type Env struct {
+	// Dir is the directory to check from. The checks find the project
+	// configuration in Dir or in a parent of Dir.
+	Dir string
+	// Home is the home directory of the user. The checks look there for the
+	// user-level skill and settings.
+	Home string
+	// Executable is the path of the specval binary that runs the checks.
+	Executable string
+}
+
 const repair = "Run `specval init` in the project root; it restores missing pieces without overwriting anything."
 
-// Run checks the project that contains cwd.
-func Run(ctx context.Context, cwd string) []Check {
+// Run checks the project that contains env.Dir.
+func Run(ctx context.Context, env Env) []Check {
 	var checks []Check
-	add := func(status, name, detail, fix string) {
+	add := func(status Status, name, detail, fix string) {
 		checks = append(checks, Check{status, name, detail, fix})
 	}
 
-	cfg, err := config.Find(cwd)
+	cfg, err := config.Find(env.Dir)
 	if err != nil {
-		add("fail", "config", err.Error(), "Run `specval init` in the project root.")
+		add(StatusFail, "config", err.Error(), "Run `specval init` in the project root.")
 		return checks
 	}
 	rel := func(p string) string {
@@ -42,16 +64,16 @@ func Run(ctx context.Context, cwd string) []Check {
 		}
 		return p
 	}
-	add("ok", "config", filepath.Join(cfg.Root, config.FileName), "")
+	add(StatusOK, "config", filepath.Join(cfg.Root, config.FileName), "")
 
 	// specs dir
 	specsDir := cfg.Abs(cfg.SpecsDir)
 	if info, err := os.Stat(specsDir); err != nil || !info.IsDir() {
-		add("warn", "specs", cfg.SpecsDir+" does not exist", repair)
+		add(StatusWarn, "specs", cfg.SpecsDir+" does not exist", repair)
 	} else if specs, err := cfg.SpecFiles(); err != nil {
-		add("fail", "specs", err.Error(), "")
+		add(StatusFail, "specs", err.Error(), "")
 	} else {
-		add("ok", "specs", fmt.Sprintf("%s (%d spec(s))", cfg.SpecsDir, len(specs)), "")
+		add(StatusOK, "specs", fmt.Sprintf("%s (%d spec(s))", cfg.SpecsDir, len(specs)), "")
 	}
 
 	// configured data/policy paths
@@ -61,7 +83,7 @@ func Run(ctx context.Context, cwd string) []Check {
 	}{{"data", cfg.Data}, {"policy", cfg.Policy}} {
 		for _, p := range group.paths {
 			if _, err := os.Stat(cfg.Abs(p)); err != nil {
-				add("warn", group.name, p+" (listed in "+config.FileName+") does not exist", repair)
+				add(StatusWarn, group.name, p+" (listed in "+config.FileName+") does not exist", repair)
 			}
 		}
 	}
@@ -69,8 +91,8 @@ func Run(ctx context.Context, cwd string) []Check {
 	// rules + data load and compile
 	eng, err := policy.New(ctx, cfg)
 	if err != nil {
-		add("fail", "rules", strings.ReplaceAll(err.Error(), cfg.Root+string(filepath.Separator), ""), "Fix the file named above; `specval check` will fail until then.")
-		add("warn", "registry", "not checked until the rules load", "")
+		add(StatusFail, "rules", strings.ReplaceAll(err.Error(), cfg.Root+string(filepath.Separator), ""), "Fix the file named above; `specval check` will fail until then.")
+		add(StatusWarn, "registry", "not checked until the rules load", "")
 	} else {
 		var project int
 		for _, d := range eng.RuleDocs() {
@@ -78,19 +100,19 @@ func Run(ctx context.Context, cwd string) []Check {
 				project++
 			}
 		}
-		add("ok", "rules", fmt.Sprintf("%d spec rule(s) compile, %d from this project", len(eng.RuleDocs()), project), "")
+		add(StatusOK, "rules", fmt.Sprintf("%d spec rule(s) compile, %d from this project", len(eng.RuleDocs()), project), "")
 
 		services, err := eng.Services()
 		switch {
 		case err != nil:
-			add("fail", "registry", err.Error(), "")
+			add(StatusFail, "registry", err.Error(), "")
 		case len(services) == 0:
-			add("warn", "registry", "no services registered (data.project.services is empty)",
+			add(StatusWarn, "registry", "no services registered (data.project.services is empty)",
 				"Add your services and their layers to .specval/data/services.yaml; until then every call fails SV101.")
 		default:
 			reg, err := eng.CheckRegistry(ctx)
 			if err != nil {
-				add("fail", "registry", err.Error(), "")
+				add(StatusFail, "registry", err.Error(), "")
 				break
 			}
 			var problems []string
@@ -100,15 +122,15 @@ func Run(ctx context.Context, cwd string) []Check {
 				}
 			}
 			if len(problems) > 0 {
-				add("fail", "registry", strings.Join(problems, "; "), "Run `specval check` for the fix for each problem.")
+				add(StatusFail, "registry", strings.Join(problems, "; "), "Run `specval check` for the fix for each problem.")
 			} else {
-				add("ok", "registry", fmt.Sprintf("%d service(s), %s", len(services), rel(eng.DataFile("services"))), "")
+				add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s", len(services), rel(eng.DataFile("services"))), "")
 			}
 		}
 	}
 
 	// Claude skill (project or user level)
-	home, _ := os.UserHomeDir() // Without a home directory, only the project files are checked.
+	home := env.Home
 	skill := ""
 	for _, p := range []string{filepath.Join(cfg.Root, claude.SkillPath), filepath.Join(home, claude.SkillPath)} {
 		if _, err := os.Stat(p); err == nil {
@@ -118,11 +140,11 @@ func Run(ctx context.Context, cwd string) []Check {
 	}
 	switch b, _ := os.ReadFile(skill); {
 	case skill == "":
-		add("warn", "skill", claude.SkillPath+" is missing; Claude won't know to load the rules while planning", repair)
+		add(StatusWarn, "skill", claude.SkillPath+" is missing; Claude won't know to load the rules while planning", repair)
 	case !strings.Contains(string(b), "specval context"):
-		add("warn", "skill", rel(skill)+" no longer tells Claude to run `specval context`", "Restore it from the template: delete it and run `specval init`.")
+		add(StatusWarn, "skill", rel(skill)+" no longer tells Claude to run `specval context`", "Restore it from the template: delete it and run `specval init`.")
 	default:
-		add("ok", "skill", rel(skill), "")
+		add(StatusOK, "skill", rel(skill), "")
 	}
 
 	// Claude hook: project, local, then user settings
@@ -136,7 +158,7 @@ func Run(ctx context.Context, cwd string) []Check {
 	} {
 		st, err := claude.InspectSettings(p)
 		if err != nil {
-			add("fail", "hook", strings.ReplaceAll(err.Error(), cfg.Root+string(filepath.Separator), ""), "Fix the JSON; Claude Code ignores a settings file it can't parse.")
+			add(StatusFail, "hook", strings.ReplaceAll(err.Error(), cfg.Root+string(filepath.Separator), ""), "Fix the JSON; Claude Code ignores a settings file it can't parse.")
 			continue
 		}
 		if st.Disabled && disabledIn == "" {
@@ -148,9 +170,9 @@ func Run(ctx context.Context, cwd string) []Check {
 	}
 	switch {
 	case hookFile == "":
-		add("fail", "hook", "no PostToolUse hook runs `specval hook`; specs Claude writes won't be checked", repair)
+		add(StatusFail, "hook", "no PostToolUse hook runs `specval hook`; specs Claude writes won't be checked", repair)
 	case disabledIn != "":
-		add("fail", "hook", "hooks are turned off by disableAllHooks in "+rel(disabledIn), "Remove disableAllHooks from that file.")
+		add(StatusFail, "hook", "hooks are turned off by disableAllHooks in "+rel(disabledIn), "Remove disableAllHooks from that file.")
 	default:
 		var missed []string
 		for _, tool := range []string{"Write", "Edit", "MultiEdit"} {
@@ -159,24 +181,24 @@ func Run(ctx context.Context, cwd string) []Check {
 			}
 		}
 		if len(missed) > 0 {
-			add("warn", "hook", fmt.Sprintf("matcher %q in %s doesn't fire on %s", hook.Matcher, rel(hookFile), strings.Join(missed, ", ")),
+			add(StatusWarn, "hook", fmt.Sprintf("matcher %q in %s doesn't fire on %s", hook.Matcher, rel(hookFile), strings.Join(missed, ", ")),
 				`Set the matcher to "Write|Edit|MultiEdit".`)
 		} else {
-			add("ok", "hook", rel(hookFile), "")
+			add(StatusOK, "hook", rel(hookFile), "")
 		}
 	}
 
 	// The hook runs whatever `specval` is on PATH.
 	onPath, err := exec.LookPath("specval")
 	if err != nil {
-		add("fail", "path", "specval is not on PATH, so the hook command `specval hook` can't run",
+		add(StatusFail, "path", "specval is not on PATH, so the hook command `specval hook` can't run",
 			"Put the specval binary on PATH (the same PATH Claude Code starts with).")
 	} else if out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput(); err != nil { //nolint:gosec // This check must run the specval binary that is on PATH.
-		add("fail", "path", fmt.Sprintf("%s doesn't run: %v %s", onPath, err, strings.TrimSpace(string(out))), "Reinstall specval.")
-	} else if self, _ := os.Executable(); !sameFile(self, onPath) {
-		add("warn", "path", fmt.Sprintf("the hook will run %s, but you ran %s", onPath, self), "Make sure they're the same version, or fix PATH.")
+		add(StatusFail, "path", fmt.Sprintf("%s doesn't run: %v %s", onPath, err, strings.TrimSpace(string(out))), "Reinstall specval.")
+	} else if !sameFile(env.Executable, onPath) {
+		add(StatusWarn, "path", fmt.Sprintf("the hook will run %s, but you ran %s", onPath, env.Executable), "Make sure they're the same version, or fix PATH.")
 	} else {
-		add("ok", "path", onPath, "")
+		add(StatusOK, "path", onPath, "")
 	}
 	return checks
 }
