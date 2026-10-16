@@ -111,8 +111,18 @@ unknown_fix(name, action) := concat(" ", [
 	$"If {name} is new, {action} services.new with a layer and purpose.",
 	$"Otherwise use a registered service: {names}.",
 ]) if {
-	names := concat(", ", suggestions(name))
+	# Bind the list first. If the registry is not an object, suggestions is
+	# undefined, and so is this fix (SR003 reports the registry).
+	list := suggestions(name)
+	names := concat(", ", [label | some n in list; label := with_layer(n)])
 }
+
+# with_layer writes a registered service with its layer, for example
+# "OrderManager (manager)", so that an agent can choose the correct service.
+with_layer(name) := $"{name} ({layer})" if {
+	layer := registry[name].layer
+	is_string(layer)
+} else := name
 
 # permits is true if list has the service name or the layer of the service.
 # A value that is the name of a layer always means the layer, as in SR006.
@@ -462,6 +472,15 @@ kept_call_finding(meta, i, name, to) := lib.finding(
 	$"{name} calls {to} in the registry, but {call_problem(name, to)}",
 	concat(" ", [
 		$"This spec changes {name}, so fix the call.",
-		$"Add \{ from: {name}, to: {to} } to removed_calls, and move the work to a service that {name} can call.",
+		$"Add \{ from: {name}, to: {to} } to removed_calls (a top-level list of the spec).",
+		move_work(name),
 	]),
 )
+
+# move_work tells where the work of a removed call can go: the layers that the
+# caller can call.
+move_work(name) := $"Then move the work to a {targets} that {name} can call." if {
+	callable := lib.ordered(object.get(layers, layer_of(name), []))
+	count(callable) > 0
+	targets := lib.join(callable, "or")
+} else := $"{name} cannot call other services, so move the work out of {name}."

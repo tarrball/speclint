@@ -93,9 +93,14 @@ func Modules() ([]Module, error) {
 }
 
 // Data returns the document that the rules see as data.dpl. It contains the
-// layer rules from dpl.yaml and the schema. It also contains the permitted
-// keys and the description of each path in the schema, which the schema rule
-// uses to write fixes.
+// layer rules from dpl.yaml and the schema. It also contains tables of the
+// schema that the schema rule uses to write fixes. Each table maps a path, for
+// example "calls.*.op" ("*" is an array index), to a value:
+//
+//   - schema_keys: the permitted keys of the object at the path
+//   - schema_hints: the description of the path
+//   - schema_types: the type of the path, for example "object"
+//   - schema_required: the required keys of the object at the path
 func Data() (map[string]any, error) {
 	var d map[string]any
 	if err := yaml.Unmarshal([]byte(dpl), &d); err != nil {
@@ -105,35 +110,55 @@ func Data() (map[string]any, error) {
 	if err := json.Unmarshal([]byte(schema), &s); err != nil {
 		return nil, err
 	}
-	keys, hints := map[string][]string{}, map[string]string{}
-	walkSchema(s, "", keys, hints)
-	d["schema"], d["schema_keys"], d["schema_hints"] = s, keys, hints
+	t := schemaTables{keys: map[string][]string{}, hints: map[string]string{}, types: map[string]string{}, required: map[string][]string{}}
+	t.walk(s, "")
+	d["schema"], d["schema_keys"], d["schema_hints"] = s, t.keys, t.hints
+	d["schema_types"], d["schema_required"] = t.types, t.required
 	return d, nil
 }
 
-func walkSchema(node map[string]any, prefix string, keys map[string][]string, hints map[string]string) {
+// schemaTables holds the tables that Data makes from the schema.
+type schemaTables struct {
+	keys     map[string][]string
+	hints    map[string]string
+	types    map[string]string
+	required map[string][]string
+}
+
+func (t schemaTables) walk(node map[string]any, prefix string) {
 	join := func(seg string) string {
 		if prefix == "" {
 			return seg
 		}
 		return prefix + "." + seg
 	}
-	if props, ok := node["properties"].(map[string]any); ok {
-		k := prefix
-		if k == "" {
-			k = "(root)"
+	k := prefix
+	if k == "" {
+		k = "(root)"
+	}
+	if typ, ok := node["type"].(string); ok {
+		t.types[k] = typ
+	}
+	if req, ok := node["required"].([]any); ok {
+		for _, r := range req {
+			if name, ok := r.(string); ok {
+				t.required[k] = append(t.required[k], name)
+			}
 		}
+		sort.Strings(t.required[k])
+	}
+	if props, ok := node["properties"].(map[string]any); ok {
 		for name, p := range props {
-			keys[k] = append(keys[k], name)
+			t.keys[k] = append(t.keys[k], name)
 			child, _ := p.(map[string]any)
 			if d, ok := child["description"].(string); ok {
-				hints[join(name)] = d
+				t.hints[join(name)] = d
 			}
-			walkSchema(child, join(name), keys, hints)
+			t.walk(child, join(name))
 		}
-		sort.Strings(keys[k])
+		sort.Strings(t.keys[k])
 	}
 	if items, ok := node["items"].(map[string]any); ok {
-		walkSchema(items, join("*"), keys, hints)
+		t.walk(items, join("*"))
 	}
 }

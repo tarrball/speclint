@@ -62,10 +62,23 @@ test_wrong_value_fix_uses_the_hint if {
 	f.fix == "Correct the value of `acceptance[0].id`. AC and a number, for example AC1."
 }
 
-test_fix_without_a_hint if {
-	# out_of_scope items have no description in the schema.
-	spec := object.union(valid, {"out_of_scope": [1]})
+test_wrong_type_fix_gives_the_shape if {
+	# The fix tells the correct form from the schema, so that an agent does
+	# not need `sv schema`.
+	spec := object.union(valid, {
+		"services": ["CheckManager"],
+		"acceptance": ["The output does not change."],
+		"out_of_scope": [1],
+	})
+	fixes := {f.path: f.fix | some f in schema.deny with input as spec}
+	fixes.services == "Write `services` as an object with the fields changed, new."
+	fixes["acceptance[0]"] == "Write `acceptance[0]` as an object with the fields id, text (required: id, text)."
+	fixes["out_of_scope[0]"] == "Write `out_of_scope[0]` as a text value."
+}
+
+test_wrong_type_fix_for_a_list_has_the_hint if {
+	spec := object.union(valid, {"calls": [{"from": "A", "to": "B", "op": "X", "covers": "AC1"}]})
 	some f in schema.deny with input as spec
-	f.path == "out_of_scope[0]"
-	f.fix == "Run `sv schema` to see the correct format."
+	f.path == "calls[0].covers"
+	startswith(f.fix, "Write `calls[0].covers` as a list. Each item is a text value. The acceptance criteria")
 }

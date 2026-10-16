@@ -51,14 +51,15 @@ test_sv101_suggests_services_of_the_same_layer if {
 	s := spec({"calls": [call("OrderManager", "GhostEngine")]})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV101"
-	endswith(f.fix, "Otherwise use a registered service: PricingEngine.")
+	endswith(f.fix, "Otherwise use a registered service: PricingEngine (engine).")
 }
 
 test_sv101_suggests_all_services_without_a_layer_suffix if {
 	s := spec({"calls": [call("Somebody", "OrderAccessor")]})
+	every_service := "BillingAccessor (accessor), OrderAccessor (accessor), OrderManager (manager), PricingEngine (engine)"
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV101"
-	endswith(f.fix, "BillingAccessor, OrderAccessor, OrderManager, PricingEngine.")
+	endswith(f.fix, $"{every_service}.")
 }
 
 test_sv102_layer_rules if {
@@ -373,8 +374,8 @@ test_sv202_a_changed_service_keeps_a_call_that_breaks_the_layers if {
 	some f in findings
 	f.fix == concat(" ", [
 		"This spec changes HookCommand, so fix the call.",
-		"Add { from: HookCommand, to: ConfigAccessor } to removed_calls,",
-		"and move the work to a service that HookCommand can call.",
+		"Add { from: HookCommand, to: ConfigAccessor } to removed_calls (a top-level list of the spec).",
+		"Then move the work to a manager or utility that HookCommand can call.",
 	])
 }
 

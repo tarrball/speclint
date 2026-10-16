@@ -61,7 +61,7 @@ func TestData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"layer_order", "layers", "suffix", "schema", "schema_keys", "schema_hints"} {
+	for _, key := range []string{"layer_order", "layers", "suffix", "schema", "schema_keys", "schema_hints", "schema_types", "schema_required"} {
 		if _, ok := d[key]; !ok {
 			t.Errorf("Data has no %q", key)
 		}
@@ -86,5 +86,16 @@ func TestData(t *testing.T) {
 	// A hint comes from the description in the schema.
 	if !strings.HasPrefix(hints["calls.*.op"], "The name of the operation") {
 		t.Errorf("schema_hints[calls.*.op] = %q", hints["calls.*.op"])
+	}
+	// The types and the required keys give the shape of a value in a fix.
+	types := d["schema_types"].(map[string]string)
+	for path, want := range map[string]string{"(root)": "object", "services": "object", "acceptance": "array", "acceptance.*": "object", "calls.*.covers.*": "string"} {
+		if types[path] != want {
+			t.Errorf("schema_types[%q] = %q, want %q", path, types[path], want)
+		}
+	}
+	required := d["schema_required"].(map[string][]string)
+	if got := required["acceptance.*"]; !slices.Equal(got, []string{"id", "text"}) {
+		t.Errorf("schema_required[acceptance.*] = %v, want [id text]", got)
 	}
 }

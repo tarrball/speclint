@@ -10,6 +10,12 @@ keys := data.dpl.schema_keys
 
 hints := data.dpl.schema_hints
 
+# types gives the type of each path, and required gives the required keys of
+# each object, for the fix of a value that has the wrong type.
+types := data.dpl.schema_types
+
+required := data.dpl.schema_required
+
 # METADATA
 # title: The spec matches the schema
 # description: >-
@@ -53,6 +59,50 @@ fix(e) := msg if {
 	permitted := concat(", ", keys[norm(e.field)])
 	msg := $"Remove `{p}`, or correct its name. The permitted fields here are: {permitted}."
 } else := msg if {
+	e.type == "invalid_type"
+	want := shape(norm(e.field))
+	msg := with_hint($"Write {name(e.field)} as {want}.", norm(e.field))
+} else := msg if {
 	hint := hints[norm(e.field)]
 	msg := $"Correct the value of `{display(e.field)}`. {hint}"
 } else := "Run `sv schema` to see the correct format."
+
+# name writes a path for a fix: the spec itself, or the path in backticks.
+name(field) := "the spec" if is_root(field)
+
+name(field) := $"`{display(field)}`" if not is_root(field)
+
+# shape tells the correct form of the value at a normalized path, from the
+# schema. For example: "a list. Each item is an object with the fields id, text".
+shape(path) := $"a list. Each item is {item}" if {
+	types[path] == "array"
+	item := simple_shape(child(path, "*"))
+}
+
+shape(path) := "a list" if {
+	types[path] == "array"
+	not simple_shape(child(path, "*"))
+}
+
+shape(path) := simple_shape(path) if types[path] != "array"
+
+# simple_shape tells the form of a value that is not a list. Rego does not
+# permit a recursive rule, so a list in a list is only "a list".
+simple_shape(path) := $"an object with the fields {fields(path)}" if types[path] == "object"
+
+simple_shape(path) := "a text value" if types[path] == "string"
+
+simple_shape(path) := "a number" if types[path] in {"integer", "number"}
+
+simple_shape(path) := "true or false" if types[path] == "boolean"
+
+# fields lists the keys of the object at path, and tells which are required.
+fields(path) := $"{concat(", ", keys[path])} (required: {concat(", ", req)})" if {
+	req := required[path]
+	count(req) > 0
+} else := concat(", ", keys[path])
+
+# with_hint adds the description of path to text, if the schema has one.
+with_hint(text, path) := $"{text} {hint}" if {
+	hint := hints[path]
+} else := text
