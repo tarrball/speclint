@@ -12,7 +12,7 @@ services:
   ContextCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor, ConfigAccessor, PolicyEngine] }
   DoctorCommand: { layer: client, package: internal/cli, calls: [DoctorManager] }
   # The hook uses the function run of internal/cli/check.go, which calls the policy engine.
-  HookCommand: { layer: client, package: internal/cli, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
+  HookCommand: { layer: client, package: internal/cli, calls: [ClaudeHook, ConfigAccessor, PolicyEngine] }
   InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
   NewCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, ScaffoldManager] }
   SchemaCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor] }
@@ -23,6 +23,7 @@ services:
   PolicyEngine: { layer: engine, package: internal/policy, calls: [BaselineAccessor, ConfigAccessor, YamlPath] }
 
   BaselineAccessor: { layer: accessor, package: internal/baseline, calls: [] }
+  # The settings file and the skill of Claude Code (internal/claude/settings.go).
   ClaudeAccessor: { layer: accessor, package: internal/claude, calls: [] }
   ConfigAccessor: { layer: accessor, package: internal/config, calls: [] }
 
@@ -30,4 +31,8 @@ services:
   FileSystemResource: { layer: resource }
   ProcessResource: { layer: resource }
 
+  # The hook protocol of Claude Code (internal/claude/hook.go). It decodes the
+  # event and encodes the result. The caller gives the reader and the writer, so
+  # it stores no data. Thus it is a utility, not an accessor.
+  ClaudeHook: { layer: utility, package: internal/claude, may_call: [], calls: [] }
   YamlPath: { layer: utility, package: internal/yamlpath, may_call: [], calls: [] }

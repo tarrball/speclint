@@ -90,7 +90,8 @@ rules do not permit.
 ### 4. Move the code to the target, one spec for each PR
 
 - [ ] Extract `CheckManager`. Move the file reads from `policy` to `ProjectDataAccessor`.
-- [ ] Put the Claude Code parts behind an accessor.
+- [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
+      ClaudeHook (a utility for the hook protocol). Only the registry changed.
 - [ ] Fix the bugs from the review: `settings.json` order and escapes, multi-document specs.
 - [ ] Use one table for the commands. Get the kinds and the ID text from the schema.
 - [ ] Add a `version` command, signal handling, and a time limit for evaluation.
@@ -162,16 +163,77 @@ Changes because of experiment 1:
       ConfigAccessor: the gap that became a bug.
 - [ ] Better fixes: the shape for a wrong type, the layer of each registered
       service, and a note that more rules run after the schema passes.
-- [ ] Run experiment 1 again after these changes.
+- [x] Run experiment 1 again after these changes (experiment 1b, below).
 
 Questions from the work on these changes:
 
 - The hook reads the event of Claude Code with `internal/claude`, so HookCommand
   calls ClaudeAccessor, and SV202 reports it. The event is a format, not stored
   data. Thus a part of `internal/claude` can be a utility, not an accessor.
+  Decision: yes. The registry now has `ClaudeHook`, a utility (see 1b).
 - `sv context` does not show the calls of each service. A change to it is a
   change to ContextCommand, and ContextCommand calls accessors and the policy
   engine today. Thus such a spec must first move that work to a manager.
+
+### Experiment 1b: call tracking only
+
+The same blind task as experiment 1, with SV202. The fixes did not change, so
+the result shows the effect of call tracking only.
+
+| | Spec: runs / time / tokens | Code: time / tokens / tool calls | Copilot | Configuration | Claude Code event |
+|---|---|---|---|---|---|
+| A | (not valid) | 211 s / 81.9k / 22 | 0 | in the manager | in the hook |
+| B | 4 / 70 s / 47.7k | 247 s / 82.3k / 33 | 1 high | in the hook | in the hook |
+| 1b | 5 / 129 s / 59.6k | 266 s / 90.9k / 44 | 0 | in the manager | in the manager |
+
+Results:
+
+- **Call tracking closed the gap.** SV202 told the blind agent which calls to
+  remove. The commands in 1b import only the new manager, and a test checks it.
+- **SV202 forced a decision that the registry made wrong.** The registry had the
+  hook protocol in ClaudeAccessor. Thus the agent moved the reading and writing
+  of the event into CheckManager. The manager got stdin, stdout, and stderr,
+  and two `//nolint:nilerr` lines. The spec showed this
+  (`CheckManager -> ClaudeAccessor ReadEvent`), but no rule found it.
+- specval does not make an architecture. If the registry is wrong, specval makes
+  the code follow the wrong design. Upfront design and a review of the spec stay
+  necessary. A team also needs a reviewed way to change the architecture.
+- The fixes of SV202 did not tell which services the caller can use, or where
+  `removed_calls` goes.
+
+Changes because of experiment 1b:
+
+- [x] The registry has `ClaudeHook`, a utility for the hook protocol.
+      ClaudeAccessor keeps the settings and the skill.
+- [ ] SV202: name the services that the caller can call, and tell that
+      `removed_calls` is a top-level field.
+- [ ] A spec can change the architecture, for example
+      `services.relayered: [{ name, layer, reason }]`. specval checks each
+      registered call of the service with the new layer. The fix of SV202 can
+      then offer this change, which a reviewer sees in the spec.
+
+### The next experiments
+
+The experiments in this repository have two problems:
+
+- The agents are not blind: the task is about specval, and the code and
+  CLAUDE.md tell about specs and layers.
+- specval is a CLI in the DPL layers. The DPL layers are for services.
+
+Copilot is also not a controlled measure: it reads the whole repository, and
+its result can change from one run to the next.
+
+When specval works well for its own code, we move the experiments:
+
+- [ ] Make a separate repository with a small DPL service: HTTP endpoints as
+      clients, managers, engines, accessors, and a database as a resource. Later,
+      add an old version with layer violations for the brownfield features.
+- [ ] Measure with our own checks: the tests pass, the imports agree with the
+      registry after the change, and the code has each call of the spec and no
+      other calls. Also record the time, tokens, tool calls, and diff size.
+- [ ] Use a reviewer agent with a fixed list of checks. It sees only the diff and
+      the target architecture. Copilot is a second opinion only.
+- [ ] Run each arm 3 or more times.
 
 ## Ideas for later
 
