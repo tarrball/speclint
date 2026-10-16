@@ -83,6 +83,8 @@ Follow these rules:
   for example `http.send`, `time.now_ns`, `rand.intn`, or `uuid.rfc4122`.
   specval does not load a rule that uses one. Thus a spec gets the same
   findings each time, and a rule cannot use the network.
+- Do not use `json.match_schema` or `json.verify_schema`. A schema can load a
+  remote `$ref`. Only the built-in rule SV001 can use these functions.
 
 The schema rule runs first. If a spec does not match the schema, specval does
 not report the findings of your rules. Thus a rule can expect the fields that
