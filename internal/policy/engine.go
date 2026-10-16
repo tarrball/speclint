@@ -268,20 +268,23 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) (SpecResult, error)
 	}
 	var node yaml.Node
 	var doc any
+	// specval cannot read the status of a spec that is not valid YAML, so it
+	// does not know if the spec is done.
 	if err := yaml.Unmarshal(b, &node); err != nil {
-		return stopped(yamlError(err)), nil
+		return stopped(false, yamlError(err)), nil
 	}
 	if len(node.Content) > 0 {
 		if err := node.Decode(&doc); err != nil {
-			return stopped(yamlError(err)), nil
+			return stopped(false, yamlError(err)), nil
 		}
 	}
 	if doc == nil {
 		doc = map[string]any{}
 	}
+	done := isDone(doc)
 	doc, err = stringKeys(doc, "")
 	if keyErr, ok := errors.AsType[keyError](err); ok {
-		return stopped(Finding{
+		return stopped(done, Finding{
 			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError,
 			Path: keyErr.path, Line: yamlpath.Line(&node, keyErr.path),
 			Msg: err.Error(), Fix: "Give each key in this mapping a different name.",
@@ -289,9 +292,8 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) (SpecResult, error)
 	}
 	var input any
 	if err := roundTrip(doc, &input); err != nil {
-		return stopped(yamlError(err)), nil
+		return stopped(done, yamlError(err)), nil
 	}
-	done := isDone(input)
 	query := e.specQ
 	if done {
 		// The other rules do not run. Thus an error in one of them cannot
@@ -333,9 +335,10 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) (SpecResult, error)
 }
 
 // stopped returns the result for a spec that is not valid YAML. The rules
-// cannot run on it.
-func stopped(found ...Finding) SpecResult {
-	return SpecResult{Findings: found, Stopped: true}
+// cannot run on it. If the spec is done, the other rules never run, so
+// Stopped is false.
+func stopped(done bool, found ...Finding) SpecResult {
+	return SpecResult{Findings: found, Stopped: !done}
 }
 
 // statusDone is the status of a spec whose change is implemented.

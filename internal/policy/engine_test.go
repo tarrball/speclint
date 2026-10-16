@@ -643,6 +643,16 @@ func TestKeysThatAreTheSameAsText(t *testing.T) {
 	if len(found) != 1 || found[0].Rule != "SV000" || found[0].Path != "out_of_scope[0].1" || found[0].Line != 8 {
 		t.Errorf("spec: got %+v, want one SV000 at out_of_scope[0].1, line 8", found)
 	}
+	// The other rules never run on a done spec, so the check did not stop
+	// before them.
+	cfg = project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/a.yaml":                "specval: 1\nstatus: done\nout_of_scope: [{0x1: a, \"1\": b}]\n",
+	})
+	res, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
+	if err != nil || len(res.Findings) != 1 || res.Findings[0].Rule != "SV000" || res.Stopped {
+		t.Errorf("done spec: got %+v, %v; want one SV000 and Stopped false", res, err)
+	}
 }
 
 func TestNestedRulePackagesInBracketNotation(t *testing.T) {
