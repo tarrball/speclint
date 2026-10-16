@@ -12,6 +12,10 @@
       "description": "The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml."
     },
     "kind": { "enum": ["feature", "bugfix", "chore"], "description": "The kind of change: feature, bugfix, or chore." },
+    "status": {
+      "enum": ["draft", "done"],
+      "description": "draft until the change is implemented. Set done in the change that implements the spec. Then specval checks only the format of the spec."
+    },
     "title": { "type": "string", "minLength": 1, "description": "The title of the change, on one line." },
     "summary": { "type": "string", "minLength": 1, "description": "A short paragraph that tells the problem and the new behavior." },
     "acceptance": {

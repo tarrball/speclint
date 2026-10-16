@@ -40,6 +40,7 @@ stderr '^specval: no .specval.yaml in '
 specval: 1
 id: ORD-1
 kind: feature
+status: draft
 title: ""
 summary: ""
 acceptance:
@@ -54,6 +55,7 @@ out_of_scope: []
 specval: 1
 id: BUG-2
 kind: bugfix
+status: draft
 title: "Fix the \"total\" field"
 summary: ""
 acceptance:

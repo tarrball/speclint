@@ -71,7 +71,11 @@ runs the `specval` that is on `PATH`.
    specval check
    ```
 
-5. Make sure that the setup works:
+5. When you implement the change, add its new services to the registry.
+   In the same change, set `status: done` in the spec. specval then checks
+   only the format of the spec.
+
+6. Make sure that the setup works:
 
    ```
    specval doctor

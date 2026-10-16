@@ -1,6 +1,7 @@
 specval: 1
 id: {{ID}}
 kind: {{KIND}}
+status: draft
 title: {{TITLE}}
 summary: ""
 acceptance:

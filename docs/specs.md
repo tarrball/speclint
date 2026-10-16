@@ -48,6 +48,7 @@ out_of_scope:
 | `specval` | yes | The version of the spec format. It is always `1`. |
 | `id` | yes | The ID of the ticket, for example `ORD-142`. Use letters, digits, `.`, `_`, and `-`. |
 | `kind` | yes | `feature`, `bugfix`, or `chore`. |
+| `status` | no | `draft` or `done`. A spec without a status is a draft. See [The life of a spec](#the-life-of-a-spec). |
 | `title` | yes | The title of the change, on one line. |
 | `summary` | yes | A short paragraph that tells the problem and the new behavior. |
 | `acceptance` | yes | One or more acceptance criteria. Each has an `id` (`AC1`, `AC2`, ...) and a `text` that you can test. |
@@ -55,6 +56,24 @@ out_of_scope:
 | `services.changed` | no | The registered services whose behavior changes. |
 | `calls` | yes | Each call from one service to another that the change adds or changes. Each call has `from`, `to`, `op` (the operation, in PascalCase), and `covers` (the acceptance criteria that the call helps to satisfy). |
 | `out_of_scope` | no | The things that the change does not do, but that a reader could expect it to do. |
+
+## The life of a spec
+
+A spec describes one change at one time. specval checks it against the
+service registry as the registry is now. Thus a spec has two states:
+
+1. `draft`: you plan the change, and then you implement it. specval checks
+   the spec with all of the rules.
+2. `done`: the change is implemented. specval checks only the format of the
+   spec (SV000 and SV001).
+
+When you implement a spec, do these steps in the same change:
+
+1. Add each service in `services.new` to the service registry.
+2. Set `status: done` in the spec.
+
+If the spec stays a draft, its new services are now in the registry, so
+SV104 reports each one.
 
 ## Layers
 

@@ -141,6 +141,88 @@ extra: true
 	}
 }
 
+func TestDoneSpecsGetOnlyTheSchemaRules(t *testing.T) {
+	// The spec adds PricingEngine, which is now in the registry. A draft
+	// gets SV104 for it. A done spec gets only the schema rules.
+	spec := func(status, extra string) string {
+		return `specval: 1
+id: A-1
+kind: feature
+` + status + `title: T
+summary: S
+acceptance: [{ id: AC1, text: T }]
+services:
+  new: [{ name: PricingEngine, layer: engine, purpose: P }]
+calls: [{ from: OrderManager, to: PricingEngine, op: Price, covers: [AC1] }]
+` + extra
+	}
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/none.yaml":             spec("", ""),
+		"specs/draft.yaml":            spec("status: draft\n", ""),
+		"specs/done.yaml":             spec("status: done\n", ""),
+		"specs/done-bad.yaml":         spec("status: done\n", "extra: true\n"),
+		"specs/unknown.yaml":          spec("status: finished\n", ""),
+	})
+	for name, want := range map[string][]string{
+		"none.yaml":     {"SV104"},
+		"draft.yaml":    {"SV104"},
+		"done.yaml":     {},
+		"done-bad.yaml": {"SV001"},
+		"unknown.yaml":  {"SV001"},
+	} {
+		if got := rules(check(t, cfg, name)); !slices.Equal(got, want) {
+			t.Errorf("%s: got %v, want %v", name, got, want)
+		}
+	}
+}
+
+func TestDoneSpecsDoNotRunTheOtherRules(t *testing.T) {
+	// The project rule has a conflict at evaluation time. It stops the check
+	// of a draft, but it must not stop the check of a done spec.
+	spec := func(status string) string {
+		return `specval: 1
+id: A-1
+kind: feature
+status: ` + status + `
+title: T
+summary: S
+acceptance: [{ id: AC1, text: T }]
+calls: [{ from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1] }]
+`
+	}
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		".specval/policy/conflict.rego": `package specval.spec.conflict
+
+import rego.v1
+
+value := input.id
+
+value := "other"
+
+# METADATA
+# title: Conflict
+# custom:
+#   id: PRJ001
+deny contains f if {
+	value == "x"
+	f := {"rule": "PRJ001", "path": "", "msg": "", "fix": ""}
+}
+`,
+		"specs/draft.yaml": spec("draft"),
+		"specs/done.yaml":  spec("done"),
+	})
+	eng := newEngine(t, cfg)
+	if _, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "draft.yaml")); err == nil {
+		t.Error("draft: got no error, want the conflict")
+	}
+	found, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "done.yaml"))
+	if err != nil || len(found) != 0 {
+		t.Errorf("done: got %v, %v, want no findings and no error", found, err)
+	}
+}
+
 func TestCheckSpecSortsFindingsAndSetsSeverity(t *testing.T) {
 	cfg := project(t, map[string]string{
 		".specval/data/services.yaml": registry,
