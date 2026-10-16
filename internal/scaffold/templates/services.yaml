@@ -1,6 +1,6 @@
-# The service registry: each service in the system, and its layer (manager,
-# engine, accessor, or resource). We recommend that you protect this file with
-# CODEOWNERS.
+# The service registry: each service in the system, and its layer (client,
+# manager, engine, accessor, resource, or utility). We recommend that you
+# protect this file with CODEOWNERS.
 services: {}
 #  OrderManager: { layer: manager }
 #  PricingEngine: { layer: engine }

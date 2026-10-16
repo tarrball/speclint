@@ -12,11 +12,13 @@ import (
 
 // Architecture is the baseline layer data, data.dpl.
 type Architecture struct {
-	// LayerOrder lists the layers from the top (manager) to the bottom.
+	// LayerOrder lists the layers from the top (client) to the bottom. The
+	// utility layer is last.
 	LayerOrder []string `json:"layer_order"`
 	// Layers maps each layer to the layers that it can call.
 	Layers map[string][]string `json:"layers"`
-	// Suffix maps each layer to the end of the name of its services.
+	// Suffix maps a layer to the end of the name of its services. A layer
+	// without a suffix is not in the map.
 	Suffix map[string]string `json:"suffix"`
 }
 

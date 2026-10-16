@@ -133,7 +133,9 @@ deny contains f if {
 
 # METADATA
 # title: Each new service has the suffix of its layer
-# description: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).
+# description: >-
+#   The name of a new service ends with the suffix of its layer (Manager, Engine,
+#   Accessor, or Resource). A client or a utility has no suffix.
 # custom:
 #   id: SV103
 deny contains f if {

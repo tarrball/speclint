@@ -36,7 +36,7 @@ specs/ORD-143.yaml:10 error SV109 ShippingManager is not a registered service (s
 specs/ORD-143.yaml:14 error ORD001 OrderAccessor cannot call PricingEngine (calls[2])
     fix: Make OrderManager call PricingEngine, and give the price to the services that need it.
 specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[2])
-    fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
+    fix: Accessors can call only resources and utilities. Send the call to PricingEngine through a manager.
 specs/ORD-143.yaml:15 error SV101 RefundEngine is not a registered service (calls[3].to)
     fix: If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
 specs/ORD-143.yaml:15 error SV108 AC4 is not an acceptance criterion in this spec (calls[3].covers[1])
@@ -98,7 +98,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
           "path": "calls[2]",
           "line": 14,
           "msg": "OrderAccessor (accessor) cannot call PricingEngine (engine)",
-          "fix": "Accessors can call only resources. Send the call to PricingEngine through a manager."
+          "fix": "Accessors can call only resources and utilities. Send the call to PricingEngine through a manager."
         },
         {
           "rule": "SV101",

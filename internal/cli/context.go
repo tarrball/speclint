@@ -41,16 +41,24 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 	fmt.Fprintf(w, "## Format\n```yaml\n%s```\n\n", baseline.Format())
 
 	fmt.Fprint(w, "## Layers\nEach layer can call only the layers after its arrow.\n")
-	var suffixes []string
+	var suffixes, noSuffix []string
 	for _, l := range arch.LayerOrder {
 		targets := strings.Join(arch.Layers[l], ", ")
 		if targets == "" {
 			targets = "nothing"
 		}
 		fmt.Fprintf(w, "- %s -> %s\n", l, targets)
-		suffixes = append(suffixes, arch.Suffix[l])
+		if s := arch.Suffix[l]; s != "" {
+			suffixes = append(suffixes, s)
+		} else {
+			noSuffix = append(noSuffix, l)
+		}
 	}
-	fmt.Fprintf(w, "The name of each service ends with the suffix of its layer: %s.\n\n", strings.Join(suffixes, ", "))
+	fmt.Fprintf(w, "The name of a service ends with the suffix of its layer: %s.\n", strings.Join(suffixes, ", "))
+	if len(noSuffix) > 0 {
+		fmt.Fprintf(w, "A service in these layers has no suffix: %s.\n", strings.Join(noSuffix, ", "))
+	}
+	fmt.Fprintln(w)
 
 	fmt.Fprint(w, "## Registered services\n")
 	byLayer := map[string][]string{}

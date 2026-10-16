@@ -54,11 +54,14 @@ out_of_scope: [Partial refunds]
 
 ## Layers
 Each layer can call only the layers after its arrow.
-- manager -> engine, accessor
-- engine -> accessor
-- accessor -> resource
-- resource -> nothing
-The name of each service ends with the suffix of its layer: Manager, Engine, Accessor, Resource.
+- client -> manager, utility
+- manager -> engine, accessor, utility
+- engine -> accessor, utility
+- accessor -> resource, utility
+- resource -> utility
+- utility -> utility
+The name of a service ends with the suffix of its layer: Manager, Engine, Accessor, Resource.
+A service in these layers has no suffix: client, utility.
 
 ## Registered services
 - manager: OrderManager
@@ -70,7 +73,7 @@ The name of each service ends with the suffix of its layer: Manager, Engine, Acc
 - SV001 (error) The spec matches the schema: The spec has the fields, the field names, and the value types that the schema (`sv schema`) gives. The other rules run only after this rule passes.
 - SV101 (error) Calls use known services: The `from` and the `to` of each call are registered services or services in `services.new`.
 - SV102 (error) Calls follow the layer rules: A service can call only the layers that its layer can call (see Layers).
-- SV103 (error) Each new service has the suffix of its layer: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).
+- SV103 (error) Each new service has the suffix of its layer: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource). A client or a utility has no suffix.
 - SV104 (error) A new service is not in the registry: A service that is in the registry goes under `services.changed`, not under `services.new`.
 - SV105 (error) New services use a known layer: The `layer` of a new service is one of the layers.
 - SV106 (error) Each new service is in a call: Each service in `services.new` is in one or more calls.

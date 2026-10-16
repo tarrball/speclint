@@ -1,14 +1,19 @@
 # The layers of the baseline architecture. The rules see this file as data.dpl.
-layer_order: [manager, engine, accessor, resource]
+# A client is an entry point, for example an API endpoint or a function. A
+# utility is a service that each layer can use, for example logging.
+layer_order: [client, manager, engine, accessor, resource, utility]
 
 # The layers that a service in each layer can call.
 layers:
-  manager: [engine, accessor]
-  engine: [accessor]
-  accessor: [resource]
-  resource: []
+  client: [manager, utility]
+  manager: [engine, accessor, utility]
+  engine: [accessor, utility]
+  accessor: [resource, utility]
+  resource: [utility]
+  utility: [utility]
 
-# The suffix that the name of a service in each layer must have.
+# The suffix that the name of a service in each layer must have. A client or
+# a utility has no suffix.
 suffix:
   manager: Manager
   engine: Engine
