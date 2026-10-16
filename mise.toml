@@ -34,6 +34,10 @@ run = [
   "opa fmt --write internal examples",
 ]
 
+[tasks.vuln]
+description = "Find known vulnerabilities in the code and its dependencies"
+run = "go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./..."
+
 [tasks.check]
 description = "Run lint and test (do this before you push)"
 depends = ["lint", "test"]
