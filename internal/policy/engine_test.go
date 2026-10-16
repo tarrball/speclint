@@ -57,7 +57,7 @@ func check(t *testing.T, cfg *config.Config, name string) []Finding {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return found
+	return found.Findings
 }
 
 func rules(found []Finding) []string {
@@ -79,10 +79,15 @@ func TestExampleSpecs(t *testing.T) {
 		"ORD-143.yaml": {"ORD001", "SV101", "SV102", "SV107", "SV108", "SV109"},
 		"ORD-144.yaml": slices.Repeat([]string{"SV001"}, 6),
 	} {
-		found, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", spec))
+		res, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", spec))
 		if err != nil {
 			t.Fatal(err)
 		}
+		// Only the spec with schema errors stops before the other rules.
+		if res.Stopped != (spec == "ORD-144.yaml") {
+			t.Errorf("%s: Stopped = %v", spec, res.Stopped)
+		}
+		found := res.Findings
 		for _, f := range found {
 			if f.Fix == "" || f.Line == 0 {
 				t.Errorf("%s %s: each finding needs a fix and a line: %+v", spec, f.Rule, f)
@@ -218,8 +223,28 @@ deny contains f if {
 		t.Error("draft: got no error, want the conflict")
 	}
 	found, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "done.yaml"))
-	if err != nil || len(found) != 0 {
+	if err != nil || len(found.Findings) != 0 {
 		t.Errorf("done: got %v, %v, want no findings and no error", found, err)
+	}
+}
+
+func TestCheckSpecTellsWhenTheFormatStopsTheCheck(t *testing.T) {
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/yaml.yaml":             "specval: [\n",
+		"specs/keys.yaml":             "a: 1\na: 2\n",
+		"specs/draft.yaml":            "specval: 1\nstatus: draft\n",
+		"specs/done.yaml":             "specval: 1\nstatus: done\n",
+	})
+	eng := newEngine(t, cfg)
+	for spec, want := range map[string]bool{"yaml.yaml": true, "keys.yaml": true, "draft.yaml": true, "done.yaml": false} {
+		res, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(res.Findings) == 0 || res.Stopped != want {
+			t.Errorf("%s: Stopped = %v with %d findings, want %v", spec, res.Stopped, len(res.Findings), want)
+		}
 	}
 }
 
@@ -617,6 +642,16 @@ func TestKeysThatAreTheSameAsText(t *testing.T) {
 	found := check(t, cfg, "a.yaml")
 	if len(found) != 1 || found[0].Rule != "SV000" || found[0].Path != "out_of_scope[0].1" || found[0].Line != 8 {
 		t.Errorf("spec: got %+v, want one SV000 at out_of_scope[0].1, line 8", found)
+	}
+	// The other rules never run on a done spec, so the check did not stop
+	// before them.
+	cfg = project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/a.yaml":                "specval: 1\nstatus: done\nout_of_scope: [{0x1: a, \"1\": b}]\n",
+	})
+	res, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
+	if err != nil || len(res.Findings) != 1 || res.Findings[0].Rule != "SV000" || res.Stopped {
+		t.Errorf("done spec: got %+v, %v; want one SV000 and Stopped false", res, err)
 	}
 }
 

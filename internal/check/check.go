@@ -20,6 +20,9 @@ import (
 type FileReport struct {
 	File     string           `json:"file"`
 	Findings []policy.Finding `json:"findings"`
+	// Stopped is true if the spec has format errors, and thus the other
+	// rules did not run.
+	Stopped bool `json:"-"`
 }
 
 // Report holds the findings of one check, and the totals.
@@ -32,12 +35,13 @@ type Report struct {
 	Specs int `json:"-"`
 }
 
-// add adds the findings for file, and adds them to the totals.
-func (r *Report) add(file string, found []policy.Finding) {
+// add adds the result for file, and adds its findings to the totals.
+func (r *Report) add(file string, res policy.SpecResult) {
+	found := res.Findings
 	if found == nil {
 		found = []policy.Finding{}
 	}
-	r.Files = append(r.Files, FileReport{File: file, Findings: found})
+	r.Files = append(r.Files, FileReport{File: file, Findings: found, Stopped: res.Stopped})
 	for _, f := range found {
 		switch f.Severity {
 		case policy.SeverityError:
@@ -126,15 +130,15 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string, r
 		}
 		sort.Strings(regFiles)
 		for _, f := range regFiles {
-			r.add(rel(f), reg[f])
+			r.add(rel(f), policy.SpecResult{Findings: reg[f]})
 		}
 	}
 	for _, f := range files {
-		found, err := eng.CheckSpec(ctx, f)
+		res, err := eng.CheckSpec(ctx, f)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", rel(f), err)
 		}
-		r.add(rel(f), found)
+		r.add(rel(f), res)
 	}
 	return r, nil
 }

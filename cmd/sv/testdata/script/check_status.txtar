@@ -9,6 +9,8 @@ stdout '^specs/ORD-2.yaml:11 error SV104 RefundEngine is already registered'
 # A done spec must still match the schema.
 exits 1 sv check specs/ORD-3.yaml
 stdout '^specs/ORD-3.yaml:1 error SV001 Additional property extra is not allowed$'
+# The other rules never run on a done spec, so the output gives no note.
+! stdout 'note:'
 
 # The status is draft or done.
 exits 1 sv check specs/ORD-4.yaml

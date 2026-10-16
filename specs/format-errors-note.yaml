@@ -1,0 +1,30 @@
+specval: 1
+id: format-errors-note
+kind: feature
+status: done
+title: Tell that more rules run after the format errors are fixed
+summary: >
+  If a draft spec has a YAML error (SV000) or a schema error (SV001), specval
+  does not run the other rules. The output does not tell this. In experiments
+  1 and 1b, the blind agent fixed the format errors and then got new findings
+  that it did not expect. This change makes the policy engine tell when it
+  stopped after the format errors. The text output of sv check and sv hook
+  then gives a note for that spec.
+acceptance:
+  - id: AC1
+    text: Given a draft spec with a schema error, when sv check runs, then the output gives a note under the spec that the other rules run after the format errors are fixed.
+  - id: AC2
+    text: Given a spec with a schema error, when sv hook runs, then stderr gives the same note.
+  - id: AC3
+    text: Given a done spec with a schema error, when sv check runs, then the output gives no note, because the other rules never run on a done spec.
+  - id: AC4
+    text: Given a spec with a schema error, when sv check runs with JSON output, then the JSON output does not change.
+services:
+  changed: [PolicyEngine, CheckManager, CheckCommand, HookCommand]
+calls:
+  - { from: CheckManager, to: PolicyEngine, op: CheckSpec, covers: [AC1, AC2, AC3] }
+  - { from: CheckCommand, to: CheckManager, op: Project, covers: [AC1, AC3, AC4] }
+  - { from: HookCommand, to: CheckManager, op: SpecFile, covers: [AC2] }
+out_of_scope:
+  - A new field in the JSON output of sv check.
+  - Running the other rules on a spec with format errors.

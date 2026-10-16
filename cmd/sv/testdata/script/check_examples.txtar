@@ -53,6 +53,7 @@ specs/ORD-144.yaml:1 error SV001 Additional property cals is not allowed
     fix: Remove `cals`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, removed_calls, services, specval, status, summary, title.
 specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
     fix: Correct the value of `id`. The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml.
+specs/ORD-144.yaml note: The other rules run after you fix the format errors (SV000, SV001).
 specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
 -- all.json --
 {

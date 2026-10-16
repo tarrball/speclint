@@ -165,8 +165,8 @@ Changes because of experiment 1:
       ConfigAccessor: the gap that became a bug.
 - [x] Better fixes: the shape for a wrong type, and the layer of each
       registered service (specs/better-fixes.yaml).
-- [ ] A note that more rules run after the schema passes. It needs a change to
-      CheckCommand, so it comes after CheckManager.
+- [x] A note that more rules run after the format errors are fixed
+      (specs/format-errors-note.yaml).
 - [x] Run experiment 1 again after these changes (experiment 1b, below).
 
 Questions from the work on these changes:

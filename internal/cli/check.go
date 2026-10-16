@@ -52,6 +52,9 @@ func printText(w io.Writer, r *check.Report) {
 			}
 			fmt.Fprintf(w, "%s %s %s %s%s\n    fix: %s\n", where, f.Severity, f.Rule, f.Msg, at, f.Fix)
 		}
+		if fr.Stopped {
+			fmt.Fprintf(w, "%s note: The other rules run after you fix the format errors (SV000, SV001).\n", fr.File)
+		}
 	}
 	fmt.Fprintf(w, "specval checked %d spec(s) and found %d error(s) and %d warning(s).\n", r.Specs, r.Errors, r.Warnings)
 }
