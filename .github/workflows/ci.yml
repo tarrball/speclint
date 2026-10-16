@@ -38,5 +38,10 @@ jobs:
           restore-keys: go-${{ runner.os }}-
       - name: Lint and test
         run: mise run check
+        env:
+          # The cache keeps the build, but the tests must run each time. Go
+          # cannot see the files that the end-to-end tests read in a
+          # subprocess, so a cached test result can be out of date.
+          GOFLAGS: -count=1
       - name: Find known vulnerabilities
         run: mise run vuln
