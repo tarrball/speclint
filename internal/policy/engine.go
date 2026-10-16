@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/open-policy-agent/opa/v1/ast"
 	"github.com/open-policy-agent/opa/v1/rego"
@@ -95,8 +96,12 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, err := e.addModule(path, string(b)); err != nil {
+		mod, err := e.addModule(path, string(b))
+		if err != nil {
 			return nil, newRegoError(err)
+		}
+		if err := checkSchemaCalls(mod); err != nil {
+			return nil, err
 		}
 	}
 
@@ -194,8 +199,46 @@ func ruleAnnotation(r *ast.Rule) *ast.Annotations {
 	return found
 }
 
+// capabilities gives the built-in functions that a rule can use. A rule must
+// give the same findings each time for the same spec and data, and it must not
+// use the network. Thus specval removes each built-in function that OPA marks
+// as nondeterministic, for example http.send and time.now_ns. The schema
+// functions are the exception, because SV001 uses json.match_schema.
+var capabilities = sync.OnceValue(func() *ast.Capabilities {
+	caps := ast.CapabilitiesForThisVersion()
+	caps.Builtins = slices.DeleteFunc(caps.Builtins, func(b *ast.Builtin) bool {
+		switch b.Name {
+		case ast.JSONMatchSchema.Name, ast.JSONSchemaVerify.Name:
+			return false
+		default:
+			return b.Nondeterministic
+		}
+	})
+	return caps
+})
+
+// checkSchemaCalls returns an error if a project module uses a schema
+// function. capabilities keeps these functions for SV001, but a schema can
+// load a remote $ref. Thus a project rule could use the network with them.
+func checkSchemaCalls(m *ast.Module) error {
+	var err error
+	ast.WalkTerms(m, func(t *ast.Term) bool {
+		ref, ok := t.Value.(ast.Ref)
+		if !ok || err != nil {
+			return err != nil
+		}
+		for _, b := range []*ast.Builtin{ast.JSONMatchSchema, ast.JSONSchemaVerify} {
+			if ref.Equal(b.Ref()) {
+				err = fmt.Errorf("%s: a project rule cannot use %s, because a schema can load a remote $ref", t.Location, b.Name)
+			}
+		}
+		return err != nil
+	})
+	return err
+}
+
 func (e *Engine) prepare(ctx context.Context, query string, store storage.Store) (rego.PreparedEvalQuery, error) {
-	opts := []func(*rego.Rego){rego.Query(query), rego.Store(store)}
+	opts := []func(*rego.Rego){rego.Query(query), rego.Store(store), rego.Capabilities(capabilities())}
 	for _, m := range e.modules {
 		opts = append(opts, rego.ParsedModule(m))
 	}

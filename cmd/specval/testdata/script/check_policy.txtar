@@ -18,6 +18,24 @@ rm .specval/policy/syntax.rego
 cp malformed.rego .specval/policy/malformed.rego
 exits 2 specval check
 stderr 'a rule returned a finding that does not have the correct format'
+rm .specval/policy/malformed.rego
+
+# A rule cannot use a built-in function that can give a different result each
+# time, such as http.send or time.now_ns. Thus a rule cannot use the network.
+cp network.rego .specval/policy/network.rego
+exits 2 specval check
+stderr 'network.rego:10: .*undefined function http.send'
+rm .specval/policy/network.rego
+cp clock.rego .specval/policy/clock.rego
+exits 2 specval check
+stderr 'clock.rego:10: .*undefined function time.now_ns'
+rm .specval/policy/clock.rego
+
+# The built-in rule SV001 uses json.match_schema. A project rule cannot use it,
+# because a schema can load a remote $ref.
+cp schema.rego .specval/policy/schema.rego
+exits 2 specval check
+stderr 'schema.rego:10: a project rule cannot use json.match_schema, because a schema can load a remote \$ref$'
 
 -- .specval.yaml --
 -- .specval/data/services.yaml --
@@ -100,6 +118,46 @@ import rego.v1
 # custom:
 #   id: BAD001
 deny contains "not an object" if true
+-- network.rego --
+package specval.spec.network
+
+import rego.v1
+
+# METADATA
+# title: Uses the network
+# custom:
+#   id: BAD002
+deny contains f if {
+	r := http.send({"method": "GET", "url": "http://127.0.0.1:9/"})
+	f := {"rule": "BAD002", "path": "", "msg": r.body, "fix": ""}
+}
+-- clock.rego --
+package specval.spec.clock
+
+import rego.v1
+
+# METADATA
+# title: Uses the clock
+# custom:
+#   id: BAD003
+deny contains f if {
+	t := time.now_ns()
+	f := {"rule": "BAD003", "path": "", "msg": sprintf("%d", [t]), "fix": ""}
+}
+-- schema.rego --
+package specval.spec.remote
+
+import rego.v1
+
+# METADATA
+# title: Uses a remote schema
+# custom:
+#   id: BAD004
+deny contains f if {
+	[ok, _] := json.match_schema(input, {"$ref": "http://127.0.0.1:9/schema.json"})
+	not ok
+	f := {"rule": "BAD004", "path": "", "msg": "no match", "fix": ""}
+}
 -- check.txt --
 .specval/data/services.yaml:1 warning PRJ900 No CustomerAccessor (services)
     fix: Register CustomerAccessor.
