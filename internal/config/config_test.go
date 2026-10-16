@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -54,12 +55,18 @@ func TestFindReadsValuesFromAParentDirectory(t *testing.T) {
 
 func TestFindErrors(t *testing.T) {
 	dir := t.TempDir()
-	if _, err := Find(dir); err == nil || !strings.Contains(err.Error(), "no .specval.yaml in ") {
-		t.Errorf("Find with no config: err = %v", err)
+	if _, err := Find(dir); !errors.Is(err, ErrNotFound) || !strings.Contains(err.Error(), "no .specval.yaml in ") {
+		t.Errorf("Find with no config: err = %v, want ErrNotFound", err)
 	}
 	writeFiles(t, dir, map[string]string{FileName: "specs_dir: [unclosed\n"})
-	if _, err := Find(dir); err == nil || !strings.Contains(err.Error(), filepath.Join(dir, FileName)) {
+	_, err := Find(dir)
+	if err == nil || !strings.Contains(err.Error(), filepath.Join(dir, FileName)) {
 		t.Errorf("Find with bad YAML: err = %v, want the path in it", err)
+	}
+	// The hook ignores a directory that is not in a project, but it must
+	// report a configuration that it cannot read.
+	if errors.Is(err, ErrNotFound) {
+		t.Errorf("Find with bad YAML: err = %v, want an error that is not ErrNotFound", err)
 	}
 }
 

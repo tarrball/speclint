@@ -53,11 +53,25 @@ func Find(start string) (*Config, error) {
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return nil, fmt.Errorf("no %s in %s or in a parent directory; run `specval init`", FileName, start)
+			return nil, notFoundError{start}
 		}
 		dir = parent
 	}
 }
+
+// ErrNotFound tells that no configuration file is in the start directory or
+// in a parent directory. Thus the directory is not in a specval project.
+var ErrNotFound = errors.New("no configuration file")
+
+// notFoundError is the error of Find when there is no configuration file.
+// errors.Is finds ErrNotFound in it.
+type notFoundError struct{ start string }
+
+func (e notFoundError) Error() string {
+	return fmt.Sprintf("no %s in %s or in a parent directory; run `specval init`", FileName, e.start)
+}
+
+func (notFoundError) Is(target error) bool { return target == ErrNotFound }
 
 // Default returns the configuration that a project in root has if its
 // configuration file sets no values.
