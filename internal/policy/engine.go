@@ -288,7 +288,7 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 	if err != nil {
 		return nil, err
 	}
-	if len(findings) == 0 {
+	if len(findings) == 0 && !isDone(input) {
 		deny, err := decodeFindings(bind["deny"], SeverityError)
 		if err != nil {
 			return nil, err
@@ -304,6 +304,18 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 	}
 	sortFindings(findings)
 	return findings, nil
+}
+
+// statusDone is the status of a spec whose change is implemented.
+const statusDone = "done"
+
+// isDone reports whether the spec has the status done. specval checks only
+// the schema of such a spec. The other rules use the registry as it is now,
+// and the change of the spec is already in the registry. For example, SV104
+// would report each service in services.new.
+func isDone(spec any) bool {
+	m, _ := spec.(map[string]any)
+	return m["status"] == statusDone
 }
 
 // CheckRegistry runs the registry rules. It returns the findings for each

@@ -141,6 +141,42 @@ extra: true
 	}
 }
 
+func TestDoneSpecsGetOnlyTheSchemaRules(t *testing.T) {
+	// The spec adds PricingEngine, which is now in the registry. A draft
+	// gets SV104 for it. A done spec gets only the schema rules.
+	spec := func(status, extra string) string {
+		return `specval: 1
+id: A-1
+kind: feature
+` + status + `title: T
+summary: S
+acceptance: [{ id: AC1, text: T }]
+services:
+  new: [{ name: PricingEngine, layer: engine, purpose: P }]
+calls: [{ from: OrderManager, to: PricingEngine, op: Price, covers: [AC1] }]
+` + extra
+	}
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		"specs/none.yaml":             spec("", ""),
+		"specs/draft.yaml":            spec("status: draft\n", ""),
+		"specs/done.yaml":             spec("status: done\n", ""),
+		"specs/done-bad.yaml":         spec("status: done\n", "extra: true\n"),
+		"specs/unknown.yaml":          spec("status: finished\n", ""),
+	})
+	for name, want := range map[string][]string{
+		"none.yaml":     {"SV104"},
+		"draft.yaml":    {"SV104"},
+		"done.yaml":     {},
+		"done-bad.yaml": {"SV001"},
+		"unknown.yaml":  {"SV001"},
+	} {
+		if got := rules(check(t, cfg, name)); !slices.Equal(got, want) {
+			t.Errorf("%s: got %v, want %v", name, got, want)
+		}
+	}
+}
+
 func TestCheckSpecSortsFindingsAndSetsSeverity(t *testing.T) {
 	cfg := project(t, map[string]string{
 		".specval/data/services.yaml": registry,

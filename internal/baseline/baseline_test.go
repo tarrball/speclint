@@ -68,7 +68,7 @@ func TestData(t *testing.T) {
 	}
 	keys := d["schema_keys"].(map[string][]string)
 	for path, want := range map[string][]string{
-		"(root)":         {"acceptance", "calls", "id", "kind", "out_of_scope", "services", "specval", "summary", "title"},
+		"(root)":         {"acceptance", "calls", "id", "kind", "out_of_scope", "services", "specval", "status", "summary", "title"},
 		"services":       {"changed", "new"},
 		"services.new.*": {"layer", "name", "purpose"},
 		"calls.*":        {"covers", "from", "op", "to"},

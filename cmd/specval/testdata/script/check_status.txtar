@@ -1,0 +1,82 @@
+# A spec with status: done gets only the schema rules. Its new service,
+# RefundEngine, is now in the registry, so a draft gets SV104.
+exits 0 specval check specs/ORD-1.yaml
+stdout '^specval checked 1 spec\(s\) and found 0 error\(s\) and 0 warning\(s\)\.$'
+
+exits 1 specval check specs/ORD-2.yaml
+stdout '^specs/ORD-2.yaml:11 error SV104 RefundEngine is already registered'
+
+# A done spec must still match the schema.
+exits 1 specval check specs/ORD-3.yaml
+stdout '^specs/ORD-3.yaml:1 error SV001 Additional property extra is not allowed$'
+
+# The status is draft or done.
+exits 1 specval check specs/ORD-4.yaml
+stdout '^specs/ORD-4.yaml:4 error SV001 status must be one of the following: "draft", "done" \(status\)$'
+stdout 'fix: Correct the value of `status`\. draft until the change is implemented\.'
+
+# The hook also checks only the schema of a done spec.
+jsonexpand events/done.json done.json
+stdin done.json
+exits 0 specval hook
+! stdout .
+! stderr .
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  RefundEngine: { layer: engine }
+-- specs/ORD-1.yaml --
+specval: 1
+id: ORD-1
+kind: feature
+status: done
+title: Refund
+summary: The customer can request a refund.
+acceptance:
+  - { id: AC1, text: "Given an order, when the customer requests a refund, then the refund is calculated." }
+services:
+  new:
+    - { name: RefundEngine, layer: engine, purpose: Calculates refunds }
+calls:
+  - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1] }
+-- specs/ORD-2.yaml --
+specval: 1
+id: ORD-2
+kind: feature
+status: draft
+title: Refund
+summary: The customer can request a refund.
+acceptance:
+  - { id: AC1, text: "Given an order, when the customer requests a refund, then the refund is calculated." }
+services:
+  new:
+    - { name: RefundEngine, layer: engine, purpose: Calculates refunds }
+calls:
+  - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1] }
+-- specs/ORD-3.yaml --
+specval: 1
+id: ORD-3
+kind: feature
+status: done
+title: Refund
+summary: The customer can request a refund.
+acceptance:
+  - { id: AC1, text: "Given an order, when the customer requests a refund, then the refund is calculated." }
+calls:
+  - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1] }
+extra: true
+-- specs/ORD-4.yaml --
+specval: 1
+id: ORD-4
+kind: feature
+status: finished
+title: Refund
+summary: The customer can request a refund.
+acceptance:
+  - { id: AC1, text: "Given an order, when the customer requests a refund, then the refund is calculated." }
+calls:
+  - { from: OrderManager, to: RefundEngine, op: CalculateRefund, covers: [AC1] }
+-- events/done.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/ORD-1.yaml"}}

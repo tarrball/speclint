@@ -47,7 +47,8 @@ cmd/specval ─> cli ─┬─> policy ──> baseline, config, yamlpath
 4. `Engine.CheckSpec` runs for each spec:
    1. It parses the YAML. A syntax error becomes an SV000 finding.
    2. It evaluates the spec rules with the spec as `input`. If the schema rule
-      (SV001) finds an error, it returns only the schema errors.
+      (SV001) finds an error, it returns only the schema errors. If the spec
+      has `status: done`, it also returns only the schema errors.
    3. It finds the line of each finding with `yamlpath.Line`, and sorts the
       findings by line and rule ID.
 5. `cli` writes the report as text or JSON and sets the exit status.
