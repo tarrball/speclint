@@ -32,9 +32,9 @@ cmd/sv ─> cli ─┬─> policy ──> baseline, config, yamlpath
    or from a parent directory. All specs must be in the same project.
 2. `policy.New` makes an `Engine`:
    1. `baseline.Data` makes `data.dpl`. It holds the layer rules from
-      `dpl.yaml` and the schema. It also holds two tables that the schema
-      rule uses to write fixes: the permitted keys at each path, and the
-      description of each path.
+      `dpl.yaml` and the schema. It also holds four tables that the schema
+      rule uses to write fixes: the permitted keys, the description, the
+      type, and the required keys of each path.
    2. The engine loads each project data file. Each top-level key becomes
       `data.project.<key>`. The engine keeps the YAML nodes of each file, so
       that it can find the line of a registry finding.

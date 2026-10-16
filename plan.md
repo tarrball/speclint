@@ -161,8 +161,10 @@ Changes because of experiment 1:
       after the change (SV112, SV202, SR008). With the new rules, the blind
       spec of experiment 1 gets SV202 for the call from HookCommand to
       ConfigAccessor: the gap that became a bug.
-- [ ] Better fixes: the shape for a wrong type, the layer of each registered
-      service, and a note that more rules run after the schema passes.
+- [x] Better fixes: the shape for a wrong type, and the layer of each
+      registered service (specs/better-fixes.yaml).
+- [ ] A note that more rules run after the schema passes. It needs a change to
+      CheckCommand, so it comes after CheckManager.
 - [x] Run experiment 1 again after these changes (experiment 1b, below).
 
 Questions from the work on these changes:
@@ -205,8 +207,8 @@ Changes because of experiment 1b:
 
 - [x] The registry has `ClaudeHook`, a utility for the hook protocol.
       ClaudeAccessor keeps the settings and the skill.
-- [ ] SV202: name the services that the caller can call, and tell that
-      `removed_calls` is a top-level field.
+- [x] SV202: name the layers that the caller can call, and tell that
+      `removed_calls` is a top-level field (specs/better-fixes.yaml).
 - [ ] A spec can change the architecture, for example
       `services.relayered: [{ name, layer, reason }]`. specval checks each
       registered call of the service with the new layer. The fix of SV202 can

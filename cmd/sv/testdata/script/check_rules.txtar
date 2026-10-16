@@ -120,7 +120,7 @@ specs/rules.yaml:14 error SV106 AuditHelper is in services.new, but no call uses
 specs/rules.yaml:15 error SV106 UnusedEngine is in services.new, but no call uses it (services.new[4])
     fix: Add the calls to or from UnusedEngine, or remove it from services.new.
 specs/rules.yaml:17 error SV109 GhostManager is not a registered service (services.changed[0])
-    fix: If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager.
+    fix: If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager (manager).
 specs/rules.yaml:17 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[1])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
 specs/rules.yaml:21 error SV102 PricingEngine (engine) cannot call OrderManager (manager) (calls[2])
@@ -132,9 +132,9 @@ specs/rules.yaml:22 error SV108 AC9 is not an acceptance criterion in this spec 
 specs/rules.yaml:23 error SV102 CacheResource (resource) cannot call OrderAccessor (accessor) (calls[4])
     fix: Resources can call only utilities. Send the call to OrderAccessor through a manager or engine.
 specs/rules.yaml:24 error SV101 MysteryEngine is not a registered service (calls[5].to)
-    fix: If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
+    fix: If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine (engine).
 specs/rules.yaml:25 error SV101 Somebody is not a registered service (calls[6].from)
-    fix: If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor, OrderAccessor, OrderManager, PricingEngine.
+    fix: If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor (accessor), OrderAccessor (accessor), OrderManager (manager), PricingEngine (engine).
 specs/shape.yaml:1 error SV001 specval does not match: 1 (specval)
     fix: Correct the value of `specval`. The version of the spec format. It is always 1.
 specs/shape.yaml:1 error SV001 Additional property owner is not allowed
@@ -240,7 +240,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "services.changed[0]",
           "line": 17,
           "msg": "GhostManager is not a registered service",
-          "fix": "If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager."
+          "fix": "If GhostManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager (manager)."
         },
         {
           "rule": "SV201",
@@ -294,7 +294,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "calls[5].to",
           "line": 24,
           "msg": "MysteryEngine is not a registered service",
-          "fix": "If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine."
+          "fix": "If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine (engine)."
         },
         {
           "rule": "SV101",
@@ -303,7 +303,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "calls[6].from",
           "line": 25,
           "msg": "Somebody is not a registered service",
-          "fix": "If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor, OrderAccessor, OrderManager, PricingEngine."
+          "fix": "If Somebody is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: BillingAccessor (accessor), OrderAccessor (accessor), OrderManager (manager), PricingEngine (engine)."
         }
       ]
     }

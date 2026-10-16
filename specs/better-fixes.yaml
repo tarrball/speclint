@@ -1,0 +1,26 @@
+specval: 1
+id: better-fixes
+kind: feature
+status: done
+title: Make the fixes enough for an agent that does not know the format
+summary: >
+  In experiments 1 and 1b, a blind agent wrote a spec from the findings of sv
+  check only. Three fixes did not give it enough. A fix for a value with the
+  wrong type said "Run sv schema". The list of registered services did not
+  show their layers. The fix of SV202 did not tell where removed_calls goes or
+  which services the caller can call. This change makes these fixes complete.
+acceptance:
+  - id: AC1
+    text: Given a spec with a value of the wrong type, when sv check runs, then the fix gives the correct form of the value from the schema.
+  - id: AC2
+    text: Given a call to a service that is not registered, when sv check runs, then the fix lists the registered services with their layers.
+  - id: AC3
+    text: Given a kept call that breaks the layers, when sv check runs, then the SV202 fix tells that removed_calls is a top-level list and names the layers that the caller can call.
+services:
+  changed: [BaselineAccessor]
+calls:
+  - { from: PolicyEngine, to: BaselineAccessor, op: Data, covers: [AC1] }
+  - { from: PolicyEngine, to: BaselineAccessor, op: Modules, covers: [AC1, AC2, AC3] }
+out_of_scope:
+  - A note that more rules run after the schema passes. It needs a change to CheckCommand, which comes after CheckManager.
+  - A fix for a mapping whose keys all look like values, for example service names in place of new and changed.

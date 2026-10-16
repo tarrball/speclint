@@ -84,36 +84,6 @@ base_name(name) := trim_suffix(name, sfx) if {
 	endswith(name, sfx)
 } else := name
 
-can_call(l) := $"{lib.capitalize(lib.plural(l))} can call only {targets}" if {
-	count(layers[l]) > 0
-	targets := lib.join([lib.plural(t) | some t in lib.ordered(layers[l])], "and")
-}
-
-can_call(l) := $"{lib.capitalize(lib.plural(l))} cannot call other services" if count(layers[l]) == 0
-
-# layer_fix is undefined if the layer of the caller is not known (SV105).
-# String interpolation writes an undefined value as "<undefined>", so the
-# rules bind each value that can be undefined before they use it.
-layer_fix(from, to, target) := msg if {
-	rule := can_call(from)
-	callers := lib.ordered([l | some l, targets in layers; to in targets])
-	count(callers) > 0
-	msg := $"{rule}. Send the call to {target} through a {lib.join(callers, "or")}."
-} else := msg if {
-	rule := can_call(from)
-	callee := lib.plural(to)
-	msg := $"{rule}. No service can call {callee}."
-}
-
-# unknown_fix tells how to fix a reference to a service that is not registered.
-# It is undefined if the registry is not an object. SR003 reports that case.
-unknown_fix(name, action) := concat(" ", [
-	$"If {name} is new, {action} services.new with a layer and purpose.",
-	$"Otherwise use a registered service: {names}.",
-]) if {
-	names := concat(", ", suggestions(name))
-}
-
 # permits is true if list has the service name or the layer of the service.
 # A value that is the name of a layer always means the layer, as in SR006.
 # SR007 refuses a service with the name of a layer.
@@ -151,25 +121,6 @@ refused_by_limits(from, to) if {
 valid_layers(from, to) if {
 	layers[layer_of(from)]
 	layers[layer_of(to)]
-}
-
-# call_problem tells why the layer rules or the limits refuse a call.
-call_problem(from, to) := $"{lib.plural(fl)} cannot call {lib.plural(tl)}" if {
-	fl := layer_of(from)
-	tl := layer_of(to)
-	not tl in object.get(layers, fl, [])
-} else := "a limit in the registry refuses it"
-
-# limit_fix tells how to fix a call that a limit in the registry refuses.
-limit_fix(subject, verb, list, key, owner) := msg if {
-	count(list) > 0
-	names := lib.join(list, "or")
-	msg := $"{subject} {verb} {names}. Change the call, or ask the owners of the registry to change {key} of {owner}."
-}
-
-limit_fix(subject, _, list, key, owner) := msg if {
-	count(list) == 0
-	msg := $"{subject} has an empty {key}. Remove the call, or ask the owners of the registry to change {key} of {owner}."
 }
 
 # METADATA
@@ -462,6 +413,7 @@ kept_call_finding(meta, i, name, to) := lib.finding(
 	$"{name} calls {to} in the registry, but {call_problem(name, to)}",
 	concat(" ", [
 		$"This spec changes {name}, so fix the call.",
-		$"Add \{ from: {name}, to: {to} } to removed_calls, and move the work to a service that {name} can call.",
+		$"Add \{ from: {name}, to: {to} } to removed_calls (a top-level list of the spec).",
+		move_work(name),
 	]),
 )

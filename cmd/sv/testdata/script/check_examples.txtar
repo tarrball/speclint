@@ -32,13 +32,13 @@ specval checked 1 spec(s) and found 0 error(s) and 0 warning(s).
 specs/ORD-143.yaml:8 error SV107 No call covers AC2 (acceptance[1])
     fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
 specs/ORD-143.yaml:10 error SV109 ShippingManager is not a registered service (services.changed[1])
-    fix: If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager.
+    fix: If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager (manager).
 specs/ORD-143.yaml:14 error ORD001 OrderAccessor cannot call PricingEngine (calls[2])
     fix: Make OrderManager call PricingEngine, and give the price to the services that need it.
 specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[2])
     fix: Accessors can call only resources and utilities. Send the call to PricingEngine through a manager.
 specs/ORD-143.yaml:15 error SV101 RefundEngine is not a registered service (calls[3].to)
-    fix: If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
+    fix: If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine (engine).
 specs/ORD-143.yaml:15 error SV108 AC4 is not an acceptance criterion in this spec (calls[3].covers[1])
     fix: Use one of: AC1, AC2, or add AC4 under acceptance.
 specs/ORD-144.yaml:1 error SV001 acceptance is required
@@ -80,7 +80,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
           "path": "services.changed[1]",
           "line": 10,
           "msg": "ShippingManager is not a registered service",
-          "fix": "If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager."
+          "fix": "If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager (manager)."
         },
         {
           "rule": "ORD001",
@@ -107,7 +107,7 @@ specval checked 3 spec(s) and found 12 error(s) and 0 warning(s).
           "path": "calls[3].to",
           "line": 15,
           "msg": "RefundEngine is not a registered service",
-          "fix": "If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine."
+          "fix": "If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine (engine)."
         },
         {
           "rule": "SV108",
