@@ -128,3 +128,25 @@ test_sr007_a_service_with_the_name_of_a_layer if {
 	warnings := {[f.rule, f.path] | some f in dpl.warn with data.project as project}
 	warnings == {["SR006", "services.ConfigUtility.may_call[0]"]}
 }
+
+test_sr008_calls_that_are_not_a_list_or_not_registered if {
+	project := {"services": {
+		"OrderManager": {"layer": "manager", "calls": ["OrderAccessor", "Nobody"]},
+		"OrderAccessor": {"layer": "accessor", "calls": "OrderManager"},
+	}}
+	{[f.rule, f.path] | some f in dpl.deny with data.project as project} == {
+		["SR008", "services.OrderManager.calls[1]"],
+		["SR008", "services.OrderAccessor.calls"],
+	}
+}
+
+test_sr008_a_call_that_breaks_the_layers_is_not_a_registry_error if {
+	# The registry records the calls of today, also the calls that break the
+	# layers. SV202 reports such a call when a spec changes the service.
+	project := {"services": {
+		"OrderApi": {"layer": "client", "calls": ["OrderAccessor"]},
+		"OrderAccessor": {"layer": "accessor"},
+	}}
+	count(dpl.deny) == 0 with data.project as project
+	count(dpl.warn) == 0 with data.project as project
+}

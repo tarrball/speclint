@@ -34,8 +34,9 @@ services:
   OrderAccessor: { layer: accessor }
 ```
 
-An entry can also have `may_call` and `called_by`, which make the layer rules
-stricter for that service. See
+An entry can also have `calls` (the services that it calls today), and
+`may_call` and `called_by`, which make the layer rules stricter for that
+service. See [Calls today](specs.md#calls-today) and
 [Limits for one service](specs.md#limits-for-one-service).
 
 ## Write a spec rule

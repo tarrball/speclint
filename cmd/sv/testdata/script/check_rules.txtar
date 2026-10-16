@@ -138,7 +138,7 @@ specs/rules.yaml:25 error SV101 Somebody is not a registered service (calls[6].f
 specs/shape.yaml:1 error SV001 specval does not match: 1 (specval)
     fix: Correct the value of `specval`. The version of the spec format. It is always 1.
 specs/shape.yaml:1 error SV001 Additional property owner is not allowed
-    fix: Remove `owner`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, services, specval, status, summary, title.
+    fix: Remove `owner`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, removed_calls, services, specval, status, summary, title.
 specs/shape.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
     fix: Correct the value of `id`. The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml.
 specs/shape.yaml:4 error SV001 String length must be greater than or equal to 1 (title)

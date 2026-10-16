@@ -1,0 +1,72 @@
+# The registry records the calls of each service today. SV202 warns about a
+# call that a changed service keeps, if the call breaks the layer rules.
+exits 0 sv check specs/keep.yaml
+cmp stdout keep.txt
+exits 1 sv check --strict specs/keep.yaml
+
+# The spec removes the call, so SV202 does not report it.
+exits 0 sv check --strict specs/remove.yaml
+stdout 'found 0 error\(s\) and 0 warning\(s\)'
+
+# SV112: a removed call must be in the registry.
+exits 1 sv check specs/unknown.yaml
+stdout '^specs/unknown.yaml:12 error SV112 HookCommand does not call PolicyEngine in the registry \(removed_calls\[1\]\)$'
+
+# SR008: each registered call is to a registered service.
+cd $WORK/badcalls
+exits 1 sv check
+stdout '^.specval/data/services.yaml:2 error SR008 "Nobody" in calls of OrderApi is not a registered service \(services.OrderApi.calls\[0\]\)$'
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  HookCommand: { layer: client, calls: [ConfigAccessor] }
+  CheckManager: { layer: manager, calls: [ConfigAccessor] }
+  ConfigAccessor: { layer: accessor }
+-- specs/keep.yaml --
+specval: 1
+id: KEEP-1
+kind: chore
+title: Keep a call
+summary: The hook calls the manager, but it keeps its call to the accessor.
+acceptance:
+  - { id: AC1, text: "Given a spec, when Claude saves it, then the hook checks it." }
+services:
+  changed: [HookCommand]
+calls:
+  - { from: HookCommand, to: CheckManager, op: Check, covers: [AC1] }
+-- specs/remove.yaml --
+specval: 1
+id: REMOVE-1
+kind: chore
+title: Remove a call
+summary: The hook calls the manager, and the manager finds the configuration.
+acceptance:
+  - { id: AC1, text: "Given a spec, when Claude saves it, then the hook checks it." }
+services:
+  changed: [HookCommand]
+calls:
+  - { from: HookCommand, to: CheckManager, op: Check, covers: [AC1] }
+removed_calls:
+  - { from: HookCommand, to: ConfigAccessor }
+-- specs/unknown.yaml --
+specval: 1
+id: UNKNOWN-1
+kind: chore
+title: Remove a call that is not there
+summary: The spec removes a call that the registry does not have.
+acceptance:
+  - { id: AC1, text: "Given a spec, when Claude saves it, then the hook checks it." }
+calls:
+  - { from: HookCommand, to: CheckManager, op: Check, covers: [AC1] }
+removed_calls:
+  - { from: HookCommand, to: ConfigAccessor }
+  - { from: HookCommand, to: PolicyEngine }
+-- keep.txt --
+specs/keep.yaml:9 warning SV202 HookCommand calls ConfigAccessor in the registry, but clients cannot call accessors (services.changed[0])
+    fix: This spec changes HookCommand, so fix the call. Add { from: HookCommand, to: ConfigAccessor } to removed_calls, and move the work to a service that HookCommand can call.
+specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
+-- badcalls/.specval.yaml --
+-- badcalls/.specval/data/services.yaml --
+services:
+  OrderApi: { layer: client, calls: [Nobody] }

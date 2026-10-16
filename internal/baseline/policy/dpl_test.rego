@@ -345,3 +345,88 @@ test_sv111_the_name_of_a_layer_means_the_layer if {
 	paths := {f.path | some f in dpl.deny with input as s with data.project as project; f.rule == "SV111"}
 	paths == {"calls[0]", "calls[1]"}
 }
+
+# today is a registry with the calls of each service today. HookCommand, a
+# client, calls an accessor, which the layer rules do not permit.
+today := {"services": {
+	"HookCommand": {"layer": "client", "calls": ["ConfigAccessor", "CheckManager"]},
+	"CheckManager": {"layer": "manager", "calls": ["ConfigAccessor"]},
+	"ConfigAccessor": {"layer": "accessor"},
+	"AuditUtility": {"layer": "utility", "called_by": ["manager"]},
+	"LogUtility": {"layer": "utility", "calls": ["AuditUtility"]},
+}}
+
+hook_spec(changes) := spec(object.union(
+	{
+		"services": {"changed": ["HookCommand"]},
+		"calls": [call("HookCommand", "CheckManager")],
+	},
+	changes,
+))
+
+test_sv202_a_changed_service_keeps_a_call_that_breaks_the_layers if {
+	findings := dpl.warn with input as hook_spec({}) with data.project as today
+	{[f.rule, f.path, f.msg] | some f in findings} == {[
+		"SV202", "services.changed[0]",
+		"HookCommand calls ConfigAccessor in the registry, but clients cannot call accessors",
+	]}
+	some f in findings
+	f.fix == concat(" ", [
+		"This spec changes HookCommand, so fix the call.",
+		"Add { from: HookCommand, to: ConfigAccessor } to removed_calls,",
+		"and move the work to a service that HookCommand can call.",
+	])
+}
+
+test_sv202_a_removed_call_is_not_reported if {
+	s := hook_spec({"removed_calls": [{"from": "HookCommand", "to": "ConfigAccessor"}]})
+	count(dpl.warn) == 0 with input as s with data.project as today
+	count(dpl.deny) == 0 with input as s with data.project as today
+}
+
+test_sv202_a_service_that_is_not_changed_is_not_checked if {
+	# HookCommand keeps its call, but the spec does not change HookCommand.
+	s := spec({"calls": [call("HookCommand", "CheckManager")]})
+	count(dpl.warn) == 0 with input as s with data.project as today
+}
+
+test_sv202_a_kept_call_that_a_limit_refuses if {
+	s := spec({"services": {"changed": ["LogUtility"]}, "calls": [call("LogUtility", "AuditUtility")]})
+	{[f.rule, f.msg] | some f in dpl.warn with input as s with data.project as today} == {[
+		"SV202",
+		"LogUtility calls AuditUtility in the registry, but a limit in the registry refuses it",
+	]}
+}
+
+test_sv112_a_removed_call_that_is_not_in_the_registry if {
+	s := hook_spec({"removed_calls": [
+		{"from": "HookCommand", "to": "ConfigAccessor"},
+		{"from": "CheckManager", "to": "HookCommand"},
+		{"from": "Nobody", "to": "ConfigAccessor"},
+	]})
+	paths := {f.path | some f in dpl.deny with input as s with data.project as today; f.rule == "SV112"}
+	paths == {"removed_calls[1]", "removed_calls[2]"}
+}
+
+test_sv201_a_service_in_removed_calls_is_used if {
+	# HookCommand is only in removed_calls. The spec moves the work to
+	# CheckManager, so HookCommand takes part in the change.
+	s := spec({
+		"services": {"changed": ["HookCommand"]},
+		"calls": [call("CheckManager", "ConfigAccessor")],
+		"removed_calls": [{"from": "HookCommand", "to": "ConfigAccessor"}],
+	})
+	count(dpl.warn) == 0 with input as s with data.project as today
+}
+
+test_sv202_a_service_without_a_valid_layer_is_not_checked if {
+	# SR001 reports the layer. SV202 must not tell that a limit refuses the call.
+	project := {"services": {
+		"HookCommand": {"calls": ["ConfigAccessor"]},
+		"NumberCommand": {"layer": 7, "calls": ["ConfigAccessor"]},
+		"ConfigAccessor": {"layer": "accessor"},
+		"OrderManager": {"layer": "manager"},
+	}}
+	s := spec({"services": {"changed": ["HookCommand", "NumberCommand"]}})
+	count([f | some f in dpl.warn with input as s with data.project as project; f.rule == "SV202"]) == 0
+}

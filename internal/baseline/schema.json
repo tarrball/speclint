@@ -77,6 +77,19 @@
         }
       }
     },
+    "removed_calls": {
+      "type": "array",
+      "description": "Each call that this change removes. The call must be in the calls of the service in the registry.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string", "description": "The registered service that makes the call today." },
+          "to": { "type": "string", "description": "The registered service that gets the call today." }
+        }
+      }
+    },
     "out_of_scope": {
       "type": "array",
       "items": { "type": "string" },

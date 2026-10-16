@@ -1,30 +1,33 @@
 # The service registry of specval itself. Each Go package is one or more
 # services in the DPL layers. `package` is the Go package of the service.
+# `calls` lists the services that the service calls today, from the Go imports.
 #
 # The code does not follow these layers yet. For example, the commands in
-# internal/cli also do the orchestration that a manager must do. Each spec
-# moves the code nearer to the layers. See plan.md.
+# internal/cli call accessors and the policy engine, which only a manager must
+# do. specval reports such a call (SV202) when a spec changes the service. Each
+# spec moves the code nearer to the layers. See plan.md.
 services:
   # The commands. Each command is an entry point.
-  CheckCommand: { layer: client, package: internal/cli }
-  ContextCommand: { layer: client, package: internal/cli }
-  DoctorCommand: { layer: client, package: internal/cli }
-  HookCommand: { layer: client, package: internal/cli }
-  InitCommand: { layer: client, package: internal/cli }
-  NewCommand: { layer: client, package: internal/cli }
-  SchemaCommand: { layer: client, package: internal/cli }
+  CheckCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, PolicyEngine] }
+  ContextCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor, ConfigAccessor, PolicyEngine] }
+  DoctorCommand: { layer: client, package: internal/cli, calls: [DoctorManager] }
+  # The hook uses the function run of internal/cli/check.go, which calls the policy engine.
+  HookCommand: { layer: client, package: internal/cli, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
+  InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
+  NewCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, ScaffoldManager] }
+  SchemaCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor] }
 
-  DoctorManager: { layer: manager, package: internal/doctor }
-  ScaffoldManager: { layer: manager, package: internal/scaffold }
+  DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
+  ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [BaselineAccessor, ClaudeAccessor, ConfigAccessor] }
 
-  PolicyEngine: { layer: engine, package: internal/policy }
+  PolicyEngine: { layer: engine, package: internal/policy, calls: [BaselineAccessor, ConfigAccessor, YamlPath] }
 
-  BaselineAccessor: { layer: accessor, package: internal/baseline }
-  ClaudeAccessor: { layer: accessor, package: internal/claude }
-  ConfigAccessor: { layer: accessor, package: internal/config }
+  BaselineAccessor: { layer: accessor, package: internal/baseline, calls: [] }
+  ClaudeAccessor: { layer: accessor, package: internal/claude, calls: [] }
+  ConfigAccessor: { layer: accessor, package: internal/config, calls: [] }
 
   # The file system, and the process state: stdio, environment, and PATH.
   FileSystemResource: { layer: resource }
   ProcessResource: { layer: resource }
 
-  YamlPath: { layer: utility, package: internal/yamlpath, may_call: [] }
+  YamlPath: { layer: utility, package: internal/yamlpath, may_call: [], calls: [] }

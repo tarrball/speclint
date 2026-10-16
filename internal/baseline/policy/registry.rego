@@ -155,6 +155,46 @@ deny contains f if {
 }
 
 # METADATA
+# title: Each registered call is to a registered service
+# description: >-
+#   `calls` in a registry entry lists the services that the service calls today.
+#   It is a list, and each value is a registered service.
+# custom:
+#   id: SR008
+deny contains f if {
+	some name, s in entries
+	is_object(s)
+	list := s.calls
+	not is_array(list)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"services.{name}.calls",
+		$"calls of {name} is not a list (got {lib.quote(list)})",
+		"Write calls as a list of the registered services that the service calls, for example [OrderAccessor].",
+	)
+}
+
+# METADATA
+# title: Each registered call is to a registered service
+# description: >-
+#   `calls` in a registry entry lists the services that the service calls today.
+#   It is a list, and each value is a registered service.
+# custom:
+#   id: SR008
+deny contains f if {
+	some name, s in entries
+	is_object(s)
+	some j, x in limit(s, "calls")
+	not entries[x]
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"services.{name}.calls[{j}]",
+		$"{lib.quote(x)} in calls of {name} is not a registered service",
+		"Use the name of a registered service, or register the service.",
+	)
+}
+
+# METADATA
 # title: A limit does not permit more than the layer rules
 # description: >-
 #   A value in `may_call` or `called_by` names a layer or a service that the
