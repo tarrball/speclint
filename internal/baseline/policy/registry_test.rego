@@ -74,3 +74,57 @@ test_clients_and_utilities_have_no_suffix if {
 	project := {"services": {"OrderApi": {"layer": "client"}, "Logging": {"layer": "utility"}}}
 	count(dpl.deny) == 0 with data.project as project
 }
+
+test_sr005_a_limit_that_is_not_a_list if {
+	project := {"services": {"ConfigUtility": {"layer": "utility", "may_call": "LogUtility"}}}
+	{[f.rule, f.path, f.msg] | some f in dpl.deny with data.project as project} == {[
+		"SR005", "services.ConfigUtility.may_call",
+		"may_call of ConfigUtility is not a list (got \"LogUtility\")",
+	]}
+}
+
+test_sr005_a_limit_with_an_unknown_name if {
+	project := {"services": {
+		"OrderManager": {"layer": "manager", "may_call": ["engine", "Nobody"]},
+		"PricingEngine": {"layer": "engine", "called_by": ["OrderManager", 7]},
+	}}
+	{[f.rule, f.path] | some f in dpl.deny with data.project as project} == {
+		["SR005", "services.OrderManager.may_call[1]"],
+		["SR005", "services.PricingEngine.called_by[1]"],
+	}
+}
+
+test_sr006_a_limit_that_permits_more_than_the_layers if {
+	project := {"services": {
+		"ConfigUtility": {"layer": "utility", "may_call": ["manager", "utility"]},
+		"OrderManager": {"layer": "manager"},
+		"PricingEngine": {"layer": "engine", "called_by": ["OrderManager", "accessor"]},
+	}}
+	{[f.rule, f.path] | some f in dpl.warn with data.project as project} == {
+		["SR006", "services.ConfigUtility.may_call[0]"],
+		["SR006", "services.PricingEngine.called_by[1]"],
+	}
+	count(dpl.deny) == 0 with data.project as project
+}
+
+test_sr006_fix if {
+	project := {"services": {"ConfigUtility": {"layer": "utility", "may_call": ["manager"]}}}
+	some f in dpl.warn with data.project as project
+	f.msg == "may_call of ConfigUtility has manager, but the layer rules do not permit a call from a utility to a manager"
+	f.fix == "Remove manager from may_call. A limit can only make the layer rules stricter."
+}
+
+test_sr007_a_service_with_the_name_of_a_layer if {
+	project := {"services": {
+		"manager": {"layer": "utility"},
+		"ConfigUtility": {"layer": "utility", "may_call": ["manager"]},
+		"AuditUtility": {"layer": "utility", "called_by": ["manager"]},
+	}}
+	{[f.rule, f.path] | some f in dpl.deny with data.project as project} == {["SR007", "services.manager"]}
+
+	# In a limit, "manager" is the layer. A utility cannot call a manager, so
+	# SR006 warns about may_call. A manager can call a utility, so called_by
+	# is correct.
+	warnings := {[f.rule, f.path] | some f in dpl.warn with data.project as project}
+	warnings == {["SR006", "services.ConfigUtility.may_call[0]"]}
+}

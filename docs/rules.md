@@ -34,6 +34,10 @@ services:
   OrderAccessor: { layer: accessor }
 ```
 
+An entry can also have `may_call` and `called_by`, which make the layer rules
+stricter for that service. See
+[Limits for one service](specs.md#limits-for-one-service).
+
 ## Write a spec rule
 
 A spec rule is in a package `specval.spec.<name>`. specval runs it one time for

@@ -25,6 +25,11 @@ type Architecture struct {
 // Service is one entry in the service registry, data.project.services.
 type Service struct {
 	Layer string `json:"layer"`
+	// MayCall limits the services that this service can call. CalledBy
+	// limits the services that can call this service. Each value is a layer
+	// or a service. A nil list is no limit. An empty list that is not nil
+	// permits no service.
+	MayCall, CalledBy []string
 }
 
 // Architecture returns the baseline layer data.
@@ -53,10 +58,29 @@ func (e *Engine) Services() (map[string]Service, error) {
 		var s Service
 		if entry, ok := v.(map[string]any); ok {
 			s.Layer, _ = entry["layer"].(string) // A layer that is not a string stays "".
+			s.MayCall = limit(entry["may_call"])
+			s.CalledBy = limit(entry["called_by"])
 		}
 		services[name] = s
 	}
 	return services, nil
+}
+
+// limit returns the strings in a may_call or called_by value. It returns nil
+// if the value is not a list. SR005 reports such a value, and a value in
+// the list that is not a string.
+func limit(v any) []string {
+	list, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(list))
+	for _, x := range list {
+		if s, ok := x.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // DataFile returns the project data file that defines the top-level key.

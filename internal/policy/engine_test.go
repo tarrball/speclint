@@ -385,7 +385,7 @@ warn contains "x" if false
 	for _, d := range docs {
 		ids = append(ids, d.ID)
 	}
-	want := []string{"PRJ201", "SV001", "SV101", "SV102", "SV103", "SV104", "SV105", "SV106", "SV107", "SV108", "SV109", "SV110", "SV201"}
+	want := []string{"PRJ201", "SV001", "SV101", "SV102", "SV103", "SV104", "SV105", "SV106", "SV107", "SV108", "SV109", "SV110", "SV111", "SV201"}
 	if !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v (sorted, spec rules only)", ids, want)
 	}
@@ -425,6 +425,34 @@ func TestArchitectureServicesAndDataFile(t *testing.T) {
 	}
 	if got := eng.DataFile("nope"); got != "" {
 		t.Errorf("DataFile(nope) = %q, want \"\"", got)
+	}
+}
+
+func TestServicesReadsTheLimits(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": `services:
+  OrderManager: { layer: manager }
+  ConfigUtility: { layer: utility, may_call: [] }
+  AuditUtility: { layer: utility, called_by: [manager, 7, OrderManager] }
+  LogUtility: { layer: utility, may_call: manager }
+`})
+	services, err := newEngine(t, cfg).Services()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]struct{ mayCall, calledBy []string }{
+		// No limit is nil. An empty list is not nil: it permits no service.
+		"OrderManager":  {nil, nil},
+		"ConfigUtility": {[]string{}, nil},
+		// SR005 reports a value that is not a string, and a limit that is
+		// not a list.
+		"AuditUtility": {nil, []string{"manager", "OrderManager"}},
+		"LogUtility":   {nil, nil},
+	} {
+		s := services[name]
+		if (s.MayCall == nil) != (want.mayCall == nil) || !slices.Equal(s.MayCall, want.mayCall) ||
+			(s.CalledBy == nil) != (want.calledBy == nil) || !slices.Equal(s.CalledBy, want.calledBy) {
+			t.Errorf("%s: MayCall %#v, CalledBy %#v, want %#v, %#v", name, s.MayCall, s.CalledBy, want.mayCall, want.calledBy)
+		}
 	}
 }
 
