@@ -78,6 +78,24 @@ deny contains f if {
 }
 
 # METADATA
+# title: A service does not have the name of a layer
+# description: >-
+#   The name of a registered service is not the name of a layer. In `may_call` and
+#   `called_by`, the name of a layer always means the layer.
+# custom:
+#   id: SR007
+deny contains f if {
+	some name, _ in entries
+	data.dpl.layers[name]
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"services.{name}",
+		$"{name} is the name of a layer",
+		"Give the service a different name, for example a name in PascalCase.",
+	)
+}
+
+# METADATA
 # title: Each registry entry is a mapping
 # description: Each service in the registry maps to an entry that has a layer.
 # custom:

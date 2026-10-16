@@ -95,7 +95,12 @@ unknown_fix(name, action) := concat(" ", [
 }
 
 # permits is true if list has the service name or the layer of the service.
-permits(list, name) if name in list
+# A value that is the name of a layer always means the layer, as in SR006.
+# SR007 refuses a service with the name of a layer.
+permits(list, name) if {
+	name in list
+	not layers[name]
+}
 
 permits(list, name) if layer_of(name) in list
 

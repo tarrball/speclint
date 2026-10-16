@@ -332,3 +332,16 @@ test_sv111_new_services_have_no_limits if {
 	})
 	count(dpl.deny) == 0 with input as s with data.project as limited
 }
+
+test_sv111_the_name_of_a_layer_means_the_layer if {
+	# The service "manager" has the name of a layer (SR007). In the limits,
+	# "manager" is the layer, so SV111 refuses both calls, as SR006 expects.
+	project := {"services": {
+		"manager": {"layer": "utility"},
+		"ConfigUtility": {"layer": "utility", "may_call": ["manager"]},
+		"AuditUtility": {"layer": "utility", "called_by": ["manager"]},
+	}}
+	s := spec({"calls": [call("ConfigUtility", "manager"), call("manager", "AuditUtility")]})
+	paths := {f.path | some f in dpl.deny with input as s with data.project as project; f.rule == "SV111"}
+	paths == {"calls[0]", "calls[1]"}
+}

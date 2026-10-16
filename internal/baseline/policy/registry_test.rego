@@ -113,3 +113,18 @@ test_sr006_fix if {
 	f.msg == "may_call of ConfigUtility has manager, but the layer rules do not permit a call from a utility to a manager"
 	f.fix == "Remove manager from may_call. A limit can only make the layer rules stricter."
 }
+
+test_sr007_a_service_with_the_name_of_a_layer if {
+	project := {"services": {
+		"manager": {"layer": "utility"},
+		"ConfigUtility": {"layer": "utility", "may_call": ["manager"]},
+		"AuditUtility": {"layer": "utility", "called_by": ["manager"]},
+	}}
+	{[f.rule, f.path] | some f in dpl.deny with data.project as project} == {["SR007", "services.manager"]}
+
+	# In a limit, "manager" is the layer. A utility cannot call a manager, so
+	# SR006 warns about may_call. A manager can call a utility, so called_by
+	# is correct.
+	warnings := {[f.rule, f.path] | some f in dpl.warn with data.project as project}
+	warnings == {["SR006", "services.ConfigUtility.may_call[0]"]}
+}

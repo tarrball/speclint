@@ -76,7 +76,7 @@ rules do not permit.
 
 - [x] Add the client and utility layers.
 - [x] Add `may_call` and `called_by` to registry entries, with a spec rule (SV111) and
-      registry rules (SR005, SR006).
+      registry rules (SR005, SR006, SR007).
 - [x] Update `sv context`, the docs, and the rule tables.
 
 ### 3. Start dogfooding
