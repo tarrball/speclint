@@ -16,17 +16,21 @@ code. For the rules of the code, see [style.md](style.md).
 | `internal/claude` | Reads and changes the Claude Code settings file, reads the hook event, and holds the skill. |
 | `internal/scaffold` | Writes the files of `sv init` and `sv new`. |
 | `internal/doctor` | The checks of `sv doctor`. |
+| `internal/check` | The check manager. It finds the configuration, checks the registry and the specs with the `Engine`, and builds the report for `sv check` and `sv hook`. |
 
 The packages depend on each other in this direction:
 
 ```
-cmd/sv ─> cli ─┬─> policy ──> baseline, config, yamlpath
+cmd/sv ─> cli ─┬─> check ───> policy, claude, config
                ├─> doctor ──> policy, claude, config
                ├─> scaffold ─> baseline, claude, config
-               └─> claude, config, baseline
+               ├─> policy ──> baseline, config, yamlpath
+               └─> config, baseline
 ```
 
 ## How `sv check` works
+
+`cli` calls `check.Project`, which does steps 1 to 4 and returns the report.
 
 1. `config.Find` reads `.specval.yaml` from the directory of the first spec,
    or from a parent directory. All specs must be in the same project.
@@ -53,7 +57,8 @@ cmd/sv ─> cli ─┬─> policy ──> baseline, config, yamlpath
       findings by line and rule ID.
 5. `cli` writes the report as text or JSON and sets the exit status.
 
-`sv hook` uses the same steps for one spec. `sv context` uses the
+`sv hook` calls `check.HookEvent`. It reads the Claude Code event, does the
+same steps for one spec, and writes the result for Claude Code. `sv context` uses the
 engine to list the layers, the registry, and the rules.
 
 ## Design decisions

@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"context"
 	"flag"
+	"go/parser"
+	"go/token"
 	"io"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/tarrball/specval/internal/doctor"
-	"github.com/tarrball/specval/internal/policy"
 )
 
 // runCLI runs specval with args in dir and returns the exit code, stdout,
@@ -172,39 +174,6 @@ func TestParseArgs(t *testing.T) {
 	}
 }
 
-func TestReportAndPrintText(t *testing.T) {
-	r := &report{}
-	r.add("a.yaml", nil)
-	r.add("b.yaml", []policy.Finding{
-		{Rule: "SV101", Severity: policy.SeverityError, Path: "calls[0].to", Line: 3, Msg: "X is not registered", Fix: "Register X."},
-		{Rule: "SV201", Severity: policy.SeverityWarning, Line: 5, Msg: "Y is unused", Fix: "Remove Y."},
-	})
-	if r.Errors != 1 || r.Warnings != 1 || len(r.Files) != 2 || r.Files[0].Findings == nil {
-		t.Errorf("report = %+v", r)
-	}
-	var b strings.Builder
-	printText(&b, r, 2)
-	want := `b.yaml:3 error SV101 X is not registered (calls[0].to)
-    fix: Register X.
-b.yaml:5 warning SV201 Y is unused
-    fix: Remove Y.
-specval checked 2 spec(s) and found 1 error(s) and 1 warning(s).
-`
-	if b.String() != want {
-		t.Errorf("printText:\n%s\nwant:\n%s", b.String(), want)
-	}
-}
-
-func TestPrintTextWithoutALine(t *testing.T) {
-	r := &report{}
-	r.add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
-	var b strings.Builder
-	printText(&b, r, 0)
-	if want := "(data) warning PRJ900 m (x)\n"; !strings.HasPrefix(b.String(), want) {
-		t.Errorf("printText:\n%s\nwant it to start with:\n%s", b.String(), want)
-	}
-}
-
 func TestPrintChecks(t *testing.T) {
 	var b strings.Builder
 	printChecks(&b, []doctor.Check{
@@ -289,6 +258,24 @@ func TestCommandsRejectExtraArguments(t *testing.T) {
 		}
 		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
 			t.Errorf("%s extra wrote files: %v", cmd, entries)
+		}
+	}
+}
+
+func TestCheckAndHookCallOnlyTheCheckManager(t *testing.T) {
+	for _, name := range []string{"check.go", "hook.go"} {
+		f, err := parser.ParseFile(token.NewFileSet(), name, nil, parser.ImportsOnly)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, imp := range f.Imports {
+			path, err := strconv.Unquote(imp.Path.Value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.HasPrefix(path, "github.com/tarrball/specval/") && path != "github.com/tarrball/specval/internal/check" {
+				t.Errorf("%s imports %s; it must call only the check manager", name, path)
+			}
 		}
 	}
 }
