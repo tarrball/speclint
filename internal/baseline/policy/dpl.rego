@@ -17,8 +17,19 @@ new_list := object.get(input, ["services", "new"], [])
 
 changed := object.get(input, ["services", "changed"], [])
 
+# new_services maps each name in services.new to its first entry. If a name
+# is in services.new more than one time, SV110 reports it. The other rules
+# use the first entry, so that two entries cannot cause a conflict.
 new_services[s.name] := s if {
-	some s in new_list
+	some i, s in new_list
+	not repeated(i, s.name)
+}
+
+# repeated is true if an entry before index i of services.new has the name.
+repeated(i, name) if {
+	some j, t in new_list
+	j < i
+	t.name == name
 }
 
 ac_ids contains ac.id if {
@@ -233,6 +244,22 @@ deny contains f if {
 		$"services.changed[{i}]",
 		$"{name} is not a registered service",
 		unknown_fix(name, "move it to"),
+	)
+}
+
+# METADATA
+# title: Each new service has a different name
+# description: Each name in `services.new` is there one time only.
+# custom:
+#   id: SV110
+deny contains f if {
+	some i, s in new_list
+	repeated(i, s.name)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"services.new[{i}].name",
+		$"{s.name} is in services.new more than one time",
+		"Remove this entry, or give the service a different name.",
 	)
 }
 

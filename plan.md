@@ -68,9 +68,9 @@ rules do not permit.
 - [x] Add `status: draft | done` to the schema. `sv new` writes `draft` (#23).
 - [x] specval runs only SV001 on a `done` spec. Go code makes this decision, not Rego (#23).
 - [x] Cache the Go build in CI (#24).
-- [x] Rename the command to `sv`. The product name stays specval.
-- [ ] Report two services in `services.new` with the same name. Now a draft
-      with such names stops the check with an error in `dpl.rego`.
+- [x] Rename the command to `sv`. The product name stays specval (#25).
+- [x] Report two services in `services.new` with the same name (SV110).
+      Before, a draft with such names stopped the check with an error in `dpl.rego`.
 
 ### 2. The baseline layer model
 

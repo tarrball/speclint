@@ -215,3 +215,17 @@ test_no_registry if {
 	findings := dpl.deny with input as spec({}) with data.project as {}
 	{[f.rule, f.path] | some f in findings} == {["SV101", "calls[0].from"], ["SV101", "calls[0].to"]}
 }
+
+test_sv110_a_new_service_name_two_times if {
+	# The second entry has another layer. The other rules use the first
+	# entry, so the call from the manager to the engine is correct.
+	s := spec({
+		"services": {"new": [new_service("RefundEngine", "engine"), new_service("RefundEngine", "accessor")]},
+		"calls": [call("OrderManager", "RefundEngine")],
+	})
+	findings := dpl.deny with input as s with data.project as project
+	{[f.rule, f.path] | some f in findings} == {
+		["SV110", "services.new[1].name"],
+		["SV103", "services.new[1].name"],
+	}
+}
