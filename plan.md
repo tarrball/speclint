@@ -113,6 +113,55 @@ Design these from the results of phase 4.
   - specval warns about a new call between two legacy services.
 - [ ] Schema extensions. Then a rule that finds a change to a contract.
 
+## Experiments
+
+We test specval with agents. We record each result, also a bad result, and we
+change specval because of it. One run is one sample, so a small difference can
+be noise.
+
+### Experiment 1: does a valid spec give a better pull request?
+
+The change: move `run` from `internal/cli/check.go` into a new `CheckManager`.
+
+1. A "blind" agent wrote the spec. It did not know the format, and it used only
+   the findings of `sv check --strict`.
+2. An "informed" agent wrote the spec with the skill, `sv context`, and the docs.
+3. Agent A wrote code from the first draft of the blind agent (not valid).
+   Agent B wrote code from the last draft of the blind agent (valid).
+
+| Spec | Runs of `sv check` | Time | Tokens | Tool calls | Calls | Criteria |
+|---|---|---|---|---|---|---|
+| Blind | 4 | 70 s | 47.7k | 11 | 4 | 2 |
+| Informed | 3 | 132 s | 69.3k | 16 | 7 | 5 |
+
+| Code | Time | Tokens | Tool calls | CI | Copilot | Hook finds the configuration |
+|---|---|---|---|---|---|---|
+| A (spec not valid) | 211 s | 81.9k | 22 | pass | 0 findings | in CheckManager |
+| B (spec valid) | 247 s | 82.3k | 33 | pass | 1 high finding | in the hook (a client calls an accessor) |
+
+Results:
+
+- The blind agent made a valid spec in 4 runs. The fixes for missing and
+  unknown fields were clear. The fix for a wrong type sent it to `sv schema`.
+- **A valid spec can have a gap in the design.** The blind spec did not say
+  that the hook must stop the call to the configuration. Agent B followed the
+  spec, and the gap became a bug (the Copilot finding).
+- The informed spec had the correct design, because the agent read the layer
+  rules. The guidance cost more time and tokens.
+- Both agents had to use `kind: feature` for a change of structure (PLN003).
+  The informed agent found that PLN001 and STE001 together remove detail
+  from the criteria.
+
+Changes because of experiment 1:
+
+- [x] PLN003 warns only for a bugfix. STE001 permits 40 words in a criterion.
+- [ ] The registry records the calls of each service. A spec can remove a call
+      (`removed_calls`). specval checks the calls of each changed service
+      after the change.
+- [ ] Better fixes: the shape for a wrong type, the layer of each registered
+      service, and a note that more rules run after the schema passes.
+- [ ] Run experiment 1 again after these changes.
+
 ## Ideas for later
 
 - Warn when a client calls more than one manager. This can show a problem in
