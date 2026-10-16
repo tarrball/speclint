@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/open-policy-agent/opa/v1/ast"
 	"github.com/open-policy-agent/opa/v1/rego"
@@ -194,8 +195,26 @@ func ruleAnnotation(r *ast.Rule) *ast.Annotations {
 	return found
 }
 
+// capabilities gives the built-in functions that a rule can use. A rule must
+// give the same findings each time for the same spec and data, and it must not
+// use the network. Thus specval removes each built-in function that OPA marks
+// as nondeterministic, for example http.send and time.now_ns. The schema
+// functions are the exception, because SV001 uses json.match_schema.
+var capabilities = sync.OnceValue(func() *ast.Capabilities {
+	caps := ast.CapabilitiesForThisVersion()
+	caps.Builtins = slices.DeleteFunc(caps.Builtins, func(b *ast.Builtin) bool {
+		switch b.Name {
+		case ast.JSONMatchSchema.Name, ast.JSONSchemaVerify.Name:
+			return false
+		default:
+			return b.Nondeterministic
+		}
+	})
+	return caps
+})
+
 func (e *Engine) prepare(ctx context.Context, query string, store storage.Store) (rego.PreparedEvalQuery, error) {
-	opts := []func(*rego.Rego){rego.Query(query), rego.Store(store)}
+	opts := []func(*rego.Rego){rego.Query(query), rego.Store(store), rego.Capabilities(capabilities())}
 	for _, m := range e.modules {
 		opts = append(opts, rego.ParsedModule(m))
 	}

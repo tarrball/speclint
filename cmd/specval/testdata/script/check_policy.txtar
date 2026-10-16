@@ -18,6 +18,17 @@ rm .specval/policy/syntax.rego
 cp malformed.rego .specval/policy/malformed.rego
 exits 2 specval check
 stderr 'a rule returned a finding that does not have the correct format'
+rm .specval/policy/malformed.rego
+
+# A rule cannot use a built-in function that can give a different result each
+# time, such as http.send or time.now_ns. Thus a rule cannot use the network.
+cp network.rego .specval/policy/network.rego
+exits 2 specval check
+stderr 'network.rego:10: .*undefined function http.send'
+rm .specval/policy/network.rego
+cp clock.rego .specval/policy/clock.rego
+exits 2 specval check
+stderr 'clock.rego:10: .*undefined function time.now_ns'
 
 -- .specval.yaml --
 -- .specval/data/services.yaml --
@@ -100,6 +111,32 @@ import rego.v1
 # custom:
 #   id: BAD001
 deny contains "not an object" if true
+-- network.rego --
+package specval.spec.network
+
+import rego.v1
+
+# METADATA
+# title: Uses the network
+# custom:
+#   id: BAD002
+deny contains f if {
+	r := http.send({"method": "GET", "url": "http://127.0.0.1:9/"})
+	f := {"rule": "BAD002", "path": "", "msg": r.body, "fix": ""}
+}
+-- clock.rego --
+package specval.spec.clock
+
+import rego.v1
+
+# METADATA
+# title: Uses the clock
+# custom:
+#   id: BAD003
+deny contains f if {
+	t := time.now_ns()
+	f := {"rule": "BAD003", "path": "", "msg": sprintf("%d", [t]), "fix": ""}
+}
 -- check.txt --
 .specval/data/services.yaml:1 warning PRJ900 No CustomerAccessor (services)
     fix: Register CustomerAccessor.

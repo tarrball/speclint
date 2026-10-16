@@ -59,6 +59,10 @@ Do not change these without a migration note in the pull request:
   (project data files). Project policies use them.
 - The Rego packages `specval.spec.<name>` (specval runs them for each spec) and
   `specval.registry.<name>` (specval runs them one time for each `check`).
+- The functions in `data.specval.lib`, for example
+  `lib.finding(meta, path, msg, fix)`. Project rules call them. `path` stays a string.
+- The built-in functions that a rule can use. specval removes the
+  nondeterministic ones. Do not remove more without a migration note.
 - Rule IDs. `SV000` is YAML syntax, `SV001` is the schema, `SV1xx` are spec errors,
   `SV2xx` are spec warnings, and `SR0xx` are registry rules.
 - The JSON output of `check --format json` and `doctor --format json`.
