@@ -17,6 +17,20 @@ new_list := object.get(input, ["services", "new"], [])
 
 changed := object.get(input, ["services", "changed"], [])
 
+removed := object.get(input, "removed_calls", [])
+
+# removed_pairs holds each call in removed_calls as [from, to].
+removed_pairs contains [r.from, r.to] if {
+	some r in removed
+}
+
+# registered_calls returns the calls of a service in the registry, or [] if
+# the registry has no list of calls for it. SR008 checks the lists.
+registered_calls(name) := list if {
+	list := registry[name].calls
+	is_array(list)
+} else := []
+
 # new_services maps each name in services.new to its first entry. If a name
 # is in services.new more than one time, SV110 reports it. The other rules
 # use the first entry, so that two entries cannot cause a conflict.
@@ -111,6 +125,27 @@ follows_layers(c) if {
 	to := layer_of(c.to)
 	to in object.get(layers, from, [])
 }
+
+# refused_by_limits is true if may_call of the caller or called_by of the
+# callee refuses the call.
+refused_by_limits(from, to) if {
+	allowed := registry[from].may_call
+	is_array(allowed)
+	not permits(allowed, to)
+}
+
+refused_by_limits(from, to) if {
+	allowed := registry[to].called_by
+	is_array(allowed)
+	not permits(allowed, from)
+}
+
+# call_problem tells why the layer rules or the limits refuse a call.
+call_problem(from, to) := $"{lib.plural(fl)} cannot call {lib.plural(tl)}" if {
+	fl := layer_of(from)
+	tl := layer_of(to)
+	not tl in object.get(layers, fl, [])
+} else := "a limit in the registry refuses it"
 
 # limit_fix tells how to fix a call that a limit in the registry refuses.
 limit_fix(subject, verb, list, key, owner) := msg if {
@@ -340,6 +375,23 @@ deny contains f if {
 }
 
 # METADATA
+# title: Each removed call is in the registry
+# description: >-
+#   Each call in `removed_calls` is in the `calls` of its service in the registry.
+# custom:
+#   id: SV112
+deny contains f if {
+	some i, r in removed
+	not r.to in registered_calls(r.from)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"removed_calls[{i}]",
+		$"{r.from} does not call {r.to} in the registry",
+		$"Remove this item, or correct from and to. Use a call from the calls of {r.from} in the registry.",
+	)
+}
+
+# METADATA
 # title: Changed services take part in a call
 # description: Each service in `services.changed` is in one or more calls.
 # custom:
@@ -355,3 +407,49 @@ warn contains f if {
 		$"Add the calls that change {name}, or remove it from services.changed.",
 	)
 }
+
+# METADATA
+# title: A changed service keeps only calls that the rules permit
+# description: >-
+#   The registry records the calls of each service today. For each service in
+#   `services.changed`, each call that the spec does not remove follows the layer
+#   rules and the limits. Thus a change does not keep a call that breaks the layers.
+# custom:
+#   id: SV202
+warn contains f if {
+	some i, name in changed
+	registry[name]
+	some to in registered_calls(name)
+	layer_of(to)
+	not [name, to] in removed_pairs
+	not follows_layers({"from": name, "to": to})
+	f := kept_call_finding(rego.metadata.rule(), i, name, to)
+}
+
+# METADATA
+# title: A changed service keeps only calls that the rules permit
+# description: >-
+#   The registry records the calls of each service today. For each service in
+#   `services.changed`, each call that the spec does not remove follows the layer
+#   rules and the limits. Thus a change does not keep a call that breaks the layers.
+# custom:
+#   id: SV202
+warn contains f if {
+	some i, name in changed
+	registry[name]
+	some to in registered_calls(name)
+	not [name, to] in removed_pairs
+	follows_layers({"from": name, "to": to})
+	refused_by_limits(name, to)
+	f := kept_call_finding(rego.metadata.rule(), i, name, to)
+}
+
+kept_call_finding(meta, i, name, to) := lib.finding(
+	meta,
+	$"services.changed[{i}]",
+	$"{name} calls {to} in the registry, but {call_problem(name, to)}",
+	concat(" ", [
+		$"This spec changes {name}, so fix the call.",
+		$"Add \{ from: {name}, to: {to} } to removed_calls, and move the work to a service that {name} can call.",
+	]),
+)

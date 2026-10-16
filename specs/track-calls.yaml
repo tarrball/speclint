@@ -1,0 +1,29 @@
+specval: 1
+id: track-calls
+kind: feature
+status: done
+title: Check the calls of each changed service after the change
+summary: >
+  A spec lists only the calls that a change adds. Thus a spec can pass and keep
+  a call that breaks the layer rules, for example a call from a client to an
+  accessor. Experiment 1 found this gap. The registry now records the calls of
+  each service, and a spec can remove a call in removed_calls. For each service
+  in services.changed, specval checks its calls after the change against the
+  layer rules and the limits.
+acceptance:
+  - id: AC1
+    text: Given a registry where HookCommand calls ConfigAccessor, when a spec changes HookCommand and keeps that call, then sv check gives a warning with a fix.
+  - id: AC2
+    text: Given the same registry, when the spec puts that call in removed_calls, then sv check gives no warning for the call.
+  - id: AC3
+    text: Given a spec that removes a call that is not in the registry, when sv check runs, then it gives an error.
+  - id: AC4
+    text: Given a registry entry with a call to a service that is not registered, when sv check runs, then it gives an error.
+services:
+  changed: [BaselineAccessor]
+calls:
+  - { from: PolicyEngine, to: BaselineAccessor, op: Modules, covers: [AC1, AC2, AC3, AC4] }
+out_of_scope:
+  - The calls of a new service, because the registry does not have them yet.
+  - A list of the calls of each service in sv context.
+  - A check that the calls in the registry agree with the Go imports.

@@ -155,12 +155,23 @@ Results:
 Changes because of experiment 1:
 
 - [x] PLN003 warns only for a bugfix. STE001 permits 40 words in a criterion.
-- [ ] The registry records the calls of each service. A spec can remove a call
+- [x] The registry records the calls of each service. A spec can remove a call
       (`removed_calls`). specval checks the calls of each changed service
-      after the change.
+      after the change (SV112, SV202, SR008). With the new rules, the blind
+      spec of experiment 1 gets SV202 for the call from HookCommand to
+      ConfigAccessor: the gap that became a bug.
 - [ ] Better fixes: the shape for a wrong type, the layer of each registered
       service, and a note that more rules run after the schema passes.
 - [ ] Run experiment 1 again after these changes.
+
+Questions from the work on these changes:
+
+- The hook reads the event of Claude Code with `internal/claude`, so HookCommand
+  calls ClaudeAccessor, and SV202 reports it. The event is a format, not stored
+  data. Thus a part of `internal/claude` can be a utility, not an accessor.
+- `sv context` does not show the calls of each service. A change to it is a
+  change to ContextCommand, and ContextCommand calls accessors and the policy
+  engine today. Thus such a spec must first move that work to a manager.
 
 ## Ideas for later
 

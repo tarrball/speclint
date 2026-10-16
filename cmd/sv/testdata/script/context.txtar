@@ -96,4 +96,6 @@ A service in these layers has no suffix: client, utility.
 - SV109 (error) Each changed service is in the registry: Each name in `services.changed` is in the registry.
 - SV110 (error) Each new service has a different name: Each name in `services.new` is there one time only.
 - SV111 (error) Calls follow the limits in the registry: A registry entry can limit the calls of a service with `may_call`, and the callers of a service with `called_by`. Each value is a layer or a service. A limit makes the layer rules stricter. It cannot permit more calls.
+- SV112 (error) Each removed call is in the registry: Each call in `removed_calls` is in the `calls` of its service in the registry.
 - SV201 (warning) Changed services take part in a call: Each service in `services.changed` is in one or more calls.
+- SV202 (warning) A changed service keeps only calls that the rules permit: The registry records the calls of each service today. For each service in `services.changed`, each call that the spec does not remove follows the layer rules and the limits. Thus a change does not keep a call that breaks the layers.

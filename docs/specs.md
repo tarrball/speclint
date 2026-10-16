@@ -55,6 +55,7 @@ out_of_scope:
 | `services.new` | no | The services that the change adds. Each has a `name`, a `layer`, and a `purpose`. |
 | `services.changed` | no | The registered services whose behavior changes. |
 | `calls` | yes | Each call from one service to another that the change adds or changes. Each call has `from`, `to`, `op` (the operation, in PascalCase), and `covers` (the acceptance criteria that the call helps to satisfy). |
+| `removed_calls` | no | Each call that the change removes. Each item has `from` and `to`. See [Calls today](#calls-today). |
 | `out_of_scope` | no | The things that the change does not do, but that a reader could expect it to do. |
 
 ## The life of a spec
@@ -70,7 +71,9 @@ service registry as the registry is now. Thus a spec has two states:
 When you implement a spec, do these steps in the same change:
 
 1. Add each service in `services.new` to the service registry.
-2. Set `status: done` in the spec.
+2. Update the `calls` of each service in the registry: add the calls of the
+   spec, and remove the calls in `removed_calls`.
+3. Set `status: done` in the spec.
 
 If the spec stays a draft, its new services are now in the registry, so
 SV104 reports each one.
@@ -114,6 +117,28 @@ A limit cannot permit a call that the layer rules do not permit. SV111
 reports a call that a limit refuses. A new service in `services.new` has no
 limits.
 
+### Calls today
+
+`calls` in a registry entry lists the services that the service calls today:
+
+```yaml
+services:
+  HookCommand: { layer: client, calls: [ConfigAccessor] }
+```
+
+The registry records each call, also a call that breaks the layer rules. In an
+old project, such calls are normal. specval does not report them until a spec
+changes the service:
+
+- For each service in `services.changed`, SV202 checks each call that the
+  service keeps after the change. If a kept call breaks the layer rules or a
+  limit, SV202 gives a warning.
+- To fix the warning, put the call in `removed_calls`, and add the calls that
+  do the work in a correct way. For example, the client calls a manager, and
+  the manager calls the accessor.
+
+Thus each change makes the services that it changes follow the layers.
+
 The service registry, `.specval/data/services.yaml`, gives the layer of each
 service that exists. A spec gives the layer of each new service in
 `services.new`.
@@ -139,7 +164,9 @@ correct shape.
 | SV109 | error | Each service in `services.changed` is registered. |
 | SV110 | error | Each name in `services.new` is there one time only. |
 | SV111 | error | Each call follows the limits in the registry (`may_call` and `called_by`). |
+| SV112 | error | Each call in `removed_calls` is in the `calls` of its service in the registry. |
 | SV201 | warning | Each service in `services.changed` is in one or more calls. |
+| SV202 | warning | Each call that a changed service keeps follows the layer rules and the limits. |
 
 specval also runs these rules on the service registry, one time for each
 `check`:
@@ -153,6 +180,7 @@ specval also runs these rules on the service registry, one time for each
 | SR005 | error | Each limit (`may_call` or `called_by`) is a list of layers and registered services. |
 | SR006 | warning | A limit does not permit a call that the layer rules do not permit. |
 | SR007 | error | The name of a registered service is not the name of a layer. |
+| SR008 | error | `calls` in a registry entry is a list of registered services. |
 
 `sv context` prints the spec rules with their full descriptions. To add
 rules for your project, see [rules.md](rules.md).
