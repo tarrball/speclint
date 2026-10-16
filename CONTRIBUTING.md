@@ -17,6 +17,7 @@
 | `mise run fmt` | Formats Go and Rego code. |
 | `mise run cover` | Runs all tests and opens the coverage report. |
 | `mise run build` | Builds `bin/sv`. |
+| `mise run specs` | Checks the specs in `specs/` and the registry with specval itself. |
 | `mise run vuln` | Finds known vulnerabilities in the code and its dependencies. It needs the network. |
 
 CI runs `mise run check` and `mise run vuln` for each pull request and each
@@ -34,6 +35,21 @@ Before you write code, comments, or documentation, read [docs/style.md](docs/sty
 - A change to the CLI output, a rule, or a configuration file must also update the documentation.
 - If you change the version of `github.com/open-policy-agent/opa` in `go.mod`,
   change the `opa` version in `mise.toml` to the same version.
+
+## Specs
+
+specval checks its own changes (dogfooding). The registry of specval is
+`.specval/data/services.yaml`. It puts each package in a DPL layer.
+
+- If a change adds or changes Go code under `cmd/` or `internal/`, write a spec
+  first: `specs/<id>.yaml`. Use the topic of the branch as the ID, for example
+  `extract-check-manager`.
+- Make the spec pass before you write the code. The Claude Code skill and hook
+  help with this.
+- In the same pull request, register each service in `services.new`, and set
+  `status: done` in the spec.
+- A change to only documentation, CI, or Rego rules does not need a spec, because
+  it has no calls between services.
 
 ## Branches and pull requests
 

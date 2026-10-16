@@ -23,21 +23,25 @@ run = [
 description = "Check Go and Rego code"
 run = [
   "golangci-lint run ./...",
-  "opa fmt --list --fail internal examples",
-  "regal lint internal examples",
+  "opa fmt --list --fail internal examples .specval",
+  "regal lint internal examples .specval",
 ]
 
 [tasks.fmt]
 description = "Format Go and Rego code"
 run = [
   "golangci-lint fmt ./...",
-  "opa fmt --write internal examples",
+  "opa fmt --write internal examples .specval",
 ]
 
 [tasks.vuln]
 description = "Find known vulnerabilities in the code and its dependencies"
 run = "go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./..."
 
+[tasks.specs]
+description = "Check the specs of specval with specval (dogfooding)"
+run = "go run ./cmd/sv check --strict"
+
 [tasks.check]
-description = "Run lint and test (do this before you push)"
-depends = ["lint", "test"]
+description = "Run lint, test, and check the specs (do this before you push)"
+depends = ["lint", "test", "specs"]
