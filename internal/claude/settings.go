@@ -86,11 +86,11 @@ func InspectSettings(path string) (HookStatus, error) {
 		return st, fmt.Errorf("%s is not valid JSON: %w", path, err)
 	}
 	st.Disabled = s.DisableAllHooks
+	// Read each hook, because an old hook can come after the sv hook.
 	for _, entry := range s.Hooks["PostToolUse"] {
 		for _, h := range entry.Hooks {
-			if strings.Contains(h.Command, "sv hook") {
+			if strings.Contains(h.Command, "sv hook") && !st.Found {
 				st.Found, st.Matcher = true, entry.Matcher
-				return st, nil
 			}
 			st.Old = st.Old || strings.Contains(h.Command, "specval hook")
 		}

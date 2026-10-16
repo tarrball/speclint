@@ -169,6 +169,13 @@ func TestClaudeChecks(t *testing.T) {
 		{"hook with the old command", func(f *fixture) {
 			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`)
 		}, "hook", StatusFail, "runs `specval hook`, but the command is now `sv hook`"},
+		{"old hook in home and current hook in the project", func(f *fixture) {
+			f.write(filepath.Join("..", "home", claude.SettingsPath), `{"hooks": {"PostToolUse": [{"hooks": [{"command": "specval hook"}]}]}}`)
+		}, "hook", StatusWarn, "home/.claude/settings.json runs `specval hook`, which no longer exists"},
+		{"old hook after the current hook in one file", func(f *fixture) {
+			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "sv hook"}]},
+			  {"hooks": [{"command": "specval hook"}]}]}}`)
+		}, "hook", StatusWarn, ".claude/settings.json runs `specval hook`, which no longer exists"},
 		{"hook in home", func(f *fixture) {
 			f.remove(claude.SettingsPath)
 			f.write(filepath.Join("..", "home", claude.SettingsPath), narrow)

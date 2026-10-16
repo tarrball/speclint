@@ -263,6 +263,12 @@ func (c *checker) checkHook() {
 	case disabledIn != "":
 		c.add(StatusFail, "hook", "disableAllHooks in "+c.rel(disabledIn)+" turns off all hooks", "Remove disableAllHooks from that file.")
 		return
+	case oldFile != "":
+		// The sv hook runs, but Claude Code also runs the old command, which
+		// fails after each file write.
+		c.add(StatusWarn, "hook", "the hook in "+c.rel(oldFile)+" runs `specval hook`, which no longer exists",
+			"Remove that hook. The hook in "+c.rel(hookFile)+" runs `sv hook`.")
+		return
 	}
 	var missed []string
 	for _, tool := range []string{"Write", "Edit", "MultiEdit"} {

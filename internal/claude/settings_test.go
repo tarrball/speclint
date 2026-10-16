@@ -53,6 +53,18 @@ func TestInspectSettings(t *testing.T) {
 			HookStatus{Exists: true, Found: true, Matcher: "Write|Edit"},
 		},
 		{
+			"current-then-old.json",
+			`{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "sv hook"}]},
+			  {"matcher": "Edit", "hooks": [{"command": "specval hook"}]}]}}`,
+			HookStatus{Exists: true, Found: true, Matcher: "Write", Old: true},
+		},
+		{
+			"old-then-current.json",
+			`{"hooks": {"PostToolUse": [{"matcher": "Edit", "hooks": [{"command": "specval hook"}]},
+			  {"matcher": "Write", "hooks": [{"command": "sv hook"}]}]}}`,
+			HookStatus{Exists: true, Found: true, Matcher: "Write", Old: true},
+		},
+		{
 			"old.json",
 			`{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`,
 			HookStatus{Exists: true, Old: true},
