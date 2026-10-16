@@ -403,8 +403,12 @@ func TestArchitectureServicesAndDataFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Equal(arch.LayerOrder, []string{"manager", "engine", "accessor", "resource"}) ||
-		!slices.Equal(arch.Layers["manager"], []string{"engine", "accessor"}) || arch.Suffix["engine"] != "Engine" {
+	if !slices.Equal(arch.LayerOrder, []string{"client", "manager", "engine", "accessor", "resource", "utility"}) ||
+		!slices.Equal(arch.Layers["manager"], []string{"engine", "accessor", "utility"}) || arch.Suffix["engine"] != "Engine" {
+		t.Errorf("Architecture = %+v", arch)
+	}
+	// A client or a utility has no suffix.
+	if _, ok := arch.Suffix["client"]; ok {
 		t.Errorf("Architecture = %+v", arch)
 	}
 

@@ -65,7 +65,12 @@ test_sr004_entry_that_is_not_a_mapping if {
 		],
 		[
 			"SR004", "services.Odd", "Odd is not a mapping (got 7)",
-			"Write the entry as Odd: { layer: <layer> }, with one of: manager, engine, accessor, resource.",
+			"Write the entry as Odd: { layer: <layer> }, with one of: client, manager, engine, accessor, resource, utility.",
 		],
 	}
+}
+
+test_clients_and_utilities_have_no_suffix if {
+	project := {"services": {"OrderApi": {"layer": "client"}, "Logging": {"layer": "utility"}}}
+	count(dpl.deny) == 0 with data.project as project
 }

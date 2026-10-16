@@ -56,11 +56,11 @@ calls:
 specval checked 1 spec(s) and found 1 error(s) and 0 warning(s).
 -- check.txt --
 .specval/data/services.yaml:4 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
-    fix: Set layer to one of: manager, engine, accessor, resource.
+    fix: Set layer to one of: client, manager, engine, accessor, resource, utility.
 .specval/data/services.yaml:5 error SR001 NumberEngine has no valid layer (got 7) (services.NumberEngine)
-    fix: Set layer to one of: manager, engine, accessor, resource.
+    fix: Set layer to one of: client, manager, engine, accessor, resource, utility.
 specs/undefined.yaml:10 error SV105 helper is not a layer (services.new[0].layer)
-    fix: Use one of: manager, engine, accessor, resource.
+    fix: Use one of: client, manager, engine, accessor, resource, utility.
 specs/undefined.yaml:12 error SV104 NumberEngine is already registered (7 layer) (services.new[2].name)
     fix: Move NumberEngine from services.new to services.changed.
 specval checked 1 spec(s) and found 4 error(s) and 0 warning(s).

@@ -77,15 +77,21 @@ SV104 reports each one.
 
 ## Layers
 
-specval checks each call against four layers. A service can call only the
+specval checks each call against six layers. A service can call only the
 layers in its row.
 
 | Layer | Can call | Suffix of the service name |
 |---|---|---|
-| manager | engine, accessor | `Manager` |
-| engine | accessor | `Engine` |
-| accessor | resource | `Accessor` |
-| resource | (no layer) | `Resource` |
+| client | manager, utility | (none) |
+| manager | engine, accessor, utility | `Manager` |
+| engine | accessor, utility | `Engine` |
+| accessor | resource, utility | `Accessor` |
+| resource | utility | `Resource` |
+| utility | utility | (none) |
+
+- A client is an entry point, for example an API endpoint or a function.
+  It calls a manager, and the manager does the orchestration.
+- A utility is a service that each layer can use, for example logging.
 
 The service registry, `.specval/data/services.yaml`, gives the layer of each
 service that exists. A spec gives the layer of each new service in

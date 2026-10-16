@@ -183,7 +183,7 @@ package specval.spec.broken
 deny contains f if {
 -- bad.txt --
 specs/bad.yaml:9 error SV102 OrderAccessor (accessor) cannot call OrderManager (manager) (calls[0])
-    fix: Accessors can call only resources. No service can call managers.
+    fix: Accessors can call only resources and utilities. Send the call to OrderManager through a client.
 specval checked 1 spec(s) and found 1 error(s) and 0 warning(s).
 The spec does not pass. Apply each fix above. Then save the spec again. Do not write code until the spec passes.
 -- warn.out --

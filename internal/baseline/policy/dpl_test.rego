@@ -77,24 +77,69 @@ test_sv102_fix_names_the_layers_that_can_make_the_call if {
 	s := spec({"calls": [call("OrderAccessor", "PricingEngine")]})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV102"
-	f.fix == "Accessors can call only resources. Send the call to PricingEngine through a manager."
+	f.fix == "Accessors can call only resources and utilities. Send the call to PricingEngine through a manager."
 }
 
-test_sv102_fix_for_a_layer_that_no_one_calls if {
+test_sv102_fix_for_a_call_up_to_a_manager if {
 	s := spec({"calls": [call("PricingEngine", "OrderManager")]})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV102"
-	f.fix == "Engines can call only accessors. No service can call managers."
+	f.fix == "Engines can call only accessors and utilities. Send the call to OrderManager through a client."
 }
 
-test_sv102_fix_for_a_layer_that_calls_nothing if {
+test_sv102_fix_for_a_layer_that_no_one_calls if {
+	s := spec({
+		"services": {"new": [new_service("OrderApi", "client")]},
+		"calls": [call("OrderApi", "OrderManager"), call("OrderManager", "OrderApi")],
+	})
+	some f in dpl.deny with input as s with data.project as project
+	f.rule == "SV102"
+	f.fix == "Managers can call only engines, accessors and utilities. No service can call clients."
+}
+
+test_sv102_fix_for_a_resource if {
 	s := spec({
 		"services": {"new": [new_service("CacheResource", "resource")]},
 		"calls": [call("CacheResource", "OrderAccessor")],
 	})
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV102"
-	startswith(f.fix, "Resources cannot call other services.")
+	startswith(f.fix, "Resources can call only utilities.")
+}
+
+test_clients_call_managers_and_utilities if {
+	s := spec({
+		"services": {"new": [new_service("OrderApi", "client"), new_service("Logging", "utility")]},
+		"calls": [
+			call("OrderApi", "OrderManager"), # correct
+			call("OrderApi", "Logging"), # correct
+			call("OrderApi", "PricingEngine"), # a client cannot call an engine
+			call("OrderApi", "OrderAccessor"), # a client cannot call an accessor
+		],
+	})
+	findings := dpl.deny with input as s with data.project as project
+	{[f.rule, f.path] | some f in findings} == {["SV102", "calls[2]"], ["SV102", "calls[3]"]}
+}
+
+test_each_layer_calls_utilities if {
+	s := spec({
+		"services": {"new": [
+			new_service("Logging", "utility"),
+			new_service("Config", "utility"),
+			new_service("CacheResource", "resource"),
+		]},
+		"calls": [
+			call("OrderManager", "Logging"),
+			call("PricingEngine", "Logging"),
+			call("OrderAccessor", "Logging"),
+			call("CacheResource", "Logging"),
+			call("Logging", "Config"),
+			call("OrderManager", "CacheResource"), # a manager cannot call a resource
+			call("Logging", "PricingEngine"), # a utility can call only utilities
+		],
+	})
+	findings := dpl.deny with input as s with data.project as project
+	{[f.rule, f.path] | some f in findings} == {["SV102", "calls[5]"], ["SV102", "calls[6]"]}
 }
 
 test_sv102_uses_the_layer_of_a_new_service if {
@@ -164,7 +209,7 @@ test_sv105_unknown_layer if {
 	some f in dpl.deny with input as s with data.project as project
 	f.rule == "SV105"
 	f.path == "services.new[0].layer"
-	f.fix == "Use one of: manager, engine, accessor, resource."
+	f.fix == "Use one of: client, manager, engine, accessor, resource, utility."
 }
 
 test_sv106_unused_new_service if {

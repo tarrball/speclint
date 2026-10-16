@@ -24,7 +24,16 @@ join(xs, word) := $"{concat(", ", head)} {word} {last}" if {
 
 # plural is undefined if word is not a string. Without this condition,
 # interpolation would write the number 7 as "7s".
-plural(word) := $"{word}s" if is_string(word)
+plural(word) := $"{word}s" if {
+	is_string(word)
+	not endswith(word, "y")
+}
+
+# plural writes "utility" as "utilities".
+plural(word) := $"{trim_suffix(word, "y")}ies" if {
+	is_string(word)
+	endswith(word, "y")
+}
 
 # quote writes s as a quoted string with Go escapes, for example "got \"x\"".
 # json.marshal is different: it escapes <, >, and & for HTML.

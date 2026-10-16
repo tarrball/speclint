@@ -114,7 +114,7 @@ specs/rules.yaml:12 error SV103 TaxManager is in the engine layer but does not e
 specs/rules.yaml:13 error SV104 PricingEngine is already registered (engine layer) (services.new[2].name)
     fix: Move PricingEngine from services.new to services.changed.
 specs/rules.yaml:14 error SV105 helper is not a layer (services.new[3].layer)
-    fix: Use one of: manager, engine, accessor, resource.
+    fix: Use one of: client, manager, engine, accessor, resource, utility.
 specs/rules.yaml:14 error SV106 AuditHelper is in services.new, but no call uses it (services.new[3])
     fix: Add the calls to or from AuditHelper, or remove it from services.new.
 specs/rules.yaml:15 error SV106 UnusedEngine is in services.new, but no call uses it (services.new[4])
@@ -124,13 +124,13 @@ specs/rules.yaml:17 error SV109 GhostManager is not a registered service (servic
 specs/rules.yaml:17 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[1])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
 specs/rules.yaml:21 error SV102 PricingEngine (engine) cannot call OrderManager (manager) (calls[2])
-    fix: Engines can call only accessors. No service can call managers.
+    fix: Engines can call only accessors and utilities. Send the call to OrderManager through a client.
 specs/rules.yaml:22 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[3])
-    fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
+    fix: Accessors can call only resources and utilities. Send the call to PricingEngine through a manager.
 specs/rules.yaml:22 error SV108 AC9 is not an acceptance criterion in this spec (calls[3].covers[0])
     fix: Use one of: AC1, AC2, or add AC9 under acceptance.
 specs/rules.yaml:23 error SV102 CacheResource (resource) cannot call OrderAccessor (accessor) (calls[4])
-    fix: Resources cannot call other services. Send the call to OrderAccessor through a manager or engine.
+    fix: Resources can call only utilities. Send the call to OrderAccessor through a manager or engine.
 specs/rules.yaml:24 error SV101 MysteryEngine is not a registered service (calls[5].to)
     fix: If MysteryEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine.
 specs/rules.yaml:25 error SV101 Somebody is not a registered service (calls[6].from)
@@ -213,7 +213,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "services.new[3].layer",
           "line": 14,
           "msg": "helper is not a layer",
-          "fix": "Use one of: manager, engine, accessor, resource."
+          "fix": "Use one of: client, manager, engine, accessor, resource, utility."
         },
         {
           "rule": "SV106",
@@ -258,7 +258,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "calls[2]",
           "line": 21,
           "msg": "PricingEngine (engine) cannot call OrderManager (manager)",
-          "fix": "Engines can call only accessors. No service can call managers."
+          "fix": "Engines can call only accessors and utilities. Send the call to OrderManager through a client."
         },
         {
           "rule": "SV102",
@@ -267,7 +267,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "calls[3]",
           "line": 22,
           "msg": "OrderAccessor (accessor) cannot call PricingEngine (engine)",
-          "fix": "Accessors can call only resources. Send the call to PricingEngine through a manager."
+          "fix": "Accessors can call only resources and utilities. Send the call to PricingEngine through a manager."
         },
         {
           "rule": "SV108",
@@ -285,7 +285,7 @@ specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
           "path": "calls[4]",
           "line": 23,
           "msg": "CacheResource (resource) cannot call OrderAccessor (accessor)",
-          "fix": "Resources cannot call other services. Send the call to OrderAccessor through a manager or engine."
+          "fix": "Resources can call only utilities. Send the call to OrderAccessor through a manager or engine."
         },
         {
           "rule": "SV101",
