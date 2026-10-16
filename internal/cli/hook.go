@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/tarrball/specval/internal/check"
 	"github.com/tarrball/specval/internal/claude"
 	"github.com/tarrball/specval/internal/config"
 )
@@ -60,19 +61,19 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 	// The hook reports only the findings for the spec. A problem in the
 	// registry is not a problem in the spec, and Claude must not change the
 	// registry to fix it. check and doctor report the registry.
-	r, err := run(ctx, cfg, []string{fp}, base, false)
+	r, err := check.Check(ctx, check.Request{Config: cfg, Files: []string{fp}, Dir: base})
 	if err != nil {
 		fmt.Fprintln(env.Stderr, "sv:", err)
 		return hookError
 	}
 	if r.Errors > 0 {
-		printText(env.Stderr, r, 1)
+		printText(env.Stderr, r)
 		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above. Then save the spec again. Do not write code until the spec passes.")
 		return hookBlock
 	}
 	if r.Warnings > 0 {
 		var b strings.Builder
-		printText(&b, r, 1)
+		printText(&b, r)
 		if err := claude.WriteContext(env.Stdout, "The spec passes, but specval found warnings. If you can, fix them:\n"+b.String()); err != nil {
 			fmt.Fprintln(env.Stderr, "sv:", err)
 			return hookError

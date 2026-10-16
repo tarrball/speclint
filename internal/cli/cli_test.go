@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tarrball/specval/internal/check"
 	"github.com/tarrball/specval/internal/doctor"
 	"github.com/tarrball/specval/internal/policy"
 )
@@ -172,18 +173,15 @@ func TestParseArgs(t *testing.T) {
 	}
 }
 
-func TestReportAndPrintText(t *testing.T) {
-	r := &report{}
-	r.add("a.yaml", nil)
-	r.add("b.yaml", []policy.Finding{
+func TestPrintText(t *testing.T) {
+	r := &check.Report{Specs: 2}
+	r.Add("a.yaml", nil)
+	r.Add("b.yaml", []policy.Finding{
 		{Rule: "SV101", Severity: policy.SeverityError, Path: "calls[0].to", Line: 3, Msg: "X is not registered", Fix: "Register X."},
 		{Rule: "SV201", Severity: policy.SeverityWarning, Line: 5, Msg: "Y is unused", Fix: "Remove Y."},
 	})
-	if r.Errors != 1 || r.Warnings != 1 || len(r.Files) != 2 || r.Files[0].Findings == nil {
-		t.Errorf("report = %+v", r)
-	}
 	var b strings.Builder
-	printText(&b, r, 2)
+	printText(&b, r)
 	want := `b.yaml:3 error SV101 X is not registered (calls[0].to)
     fix: Register X.
 b.yaml:5 warning SV201 Y is unused
@@ -196,10 +194,10 @@ specval checked 2 spec(s) and found 1 error(s) and 1 warning(s).
 }
 
 func TestPrintTextWithoutALine(t *testing.T) {
-	r := &report{}
-	r.add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
+	r := &check.Report{}
+	r.Add("(data)", []policy.Finding{{Rule: "PRJ900", Severity: policy.SeverityWarning, Path: "x", Msg: "m", Fix: "f"}})
 	var b strings.Builder
-	printText(&b, r, 0)
+	printText(&b, r)
 	if want := "(data) warning PRJ900 m (x)\n"; !strings.HasPrefix(b.String(), want) {
 		t.Errorf("printText:\n%s\nwant it to start with:\n%s", b.String(), want)
 	}
