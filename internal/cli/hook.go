@@ -2,13 +2,12 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
+	"github.com/tarrball/specval/internal/check"
 	"github.com/tarrball/specval/internal/claude"
-	"github.com/tarrball/specval/internal/config"
 )
 
 // Exit codes of sv hook. Claude Code gives them these meanings.
@@ -41,38 +40,25 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 		}
 		fp = filepath.Join(in.Cwd, fp)
 	}
-	// A file that is not in a project is not a spec. But a configuration that
-	// specval cannot read must not let a spec pass without a check.
-	cfg, err := config.Find(filepath.Dir(fp))
-	if errors.Is(err, config.ErrNotFound) {
-		return hookPass
-	} else if err != nil {
-		fmt.Fprintln(env.Stderr, "sv:", err)
-		return hookError
-	}
-	if rel, err := filepath.Rel(cfg.Abs(cfg.SpecsDir), fp); err != nil || !filepath.IsLocal(rel) {
-		return hookPass
-	}
-	base := in.Cwd
-	if base == "" {
-		base = cfg.Root
-	}
 	// The hook reports only the findings for the spec. A problem in the
 	// registry is not a problem in the spec, and Claude must not change the
 	// registry to fix it. check and doctor report the registry.
-	r, err := run(ctx, cfg, []string{fp}, base, false)
+	r, err := check.SpecFile(ctx, fp, in.Cwd)
 	if err != nil {
 		fmt.Fprintln(env.Stderr, "sv:", err)
 		return hookError
 	}
+	if r == nil {
+		return hookPass
+	}
 	if r.Errors > 0 {
-		printText(env.Stderr, r, 1)
+		printText(env.Stderr, r)
 		fmt.Fprintln(env.Stderr, "The spec does not pass. Apply each fix above. Then save the spec again. Do not write code until the spec passes.")
 		return hookBlock
 	}
 	if r.Warnings > 0 {
 		var b strings.Builder
-		printText(&b, r, 1)
+		printText(&b, r)
 		if err := claude.WriteContext(env.Stdout, "The spec passes, but specval found warnings. If you can, fix them:\n"+b.String()); err != nil {
 			fmt.Fprintln(env.Stderr, "sv:", err)
 			return hookError

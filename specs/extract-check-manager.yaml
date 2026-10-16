@@ -1,0 +1,44 @@
+specval: 1
+id: extract-check-manager
+kind: chore
+status: done
+title: Move the check orchestration into CheckManager
+summary: >
+  Today the check and hook commands find the configuration, load the policy
+  engine, and make the report. Thus two clients do the work of a manager. This
+  change adds CheckManager in internal/check. CheckManager finds the
+  configuration, lists the specs, calls the policy engine, and makes the report.
+  The commands call CheckManager, and they write the report. The hook command
+  keeps the hook protocol, which it gets from ClaudeHook. CheckManager does not
+  read or write stdio. The output and the exit codes do not change.
+acceptance:
+  - id: AC1
+    text: Given the check scripts, when they run sv check with text or JSON output, then they pass with no change to their expected output.
+  - id: AC2
+    text: Given two specs in different specval projects, when sv check gets both specs, then it exits 2 with the same error as before.
+  - id: AC3
+    text: Given the hook script, when it runs sv hook for specs, for other files, and for a configuration that is not valid, then it passes with no change to its expected output.
+  - id: AC4
+    text: Given a registry finding and a spec finding, when a test calls CheckManager, then the report gives each finding, its file, and the totals.
+services:
+  new:
+    - { name: CheckManager, layer: manager, purpose: Checks the registry and the specs of a project and makes the report }
+  changed: [CheckCommand, HookCommand]
+calls:
+  - { from: CheckCommand, to: CheckManager, op: Project, covers: [AC1, AC2] }
+  - { from: HookCommand, to: CheckManager, op: SpecFile, covers: [AC3] }
+  - { from: HookCommand, to: ClaudeHook, op: ReadEvent, covers: [AC3] }
+  - { from: HookCommand, to: ClaudeHook, op: WriteContext, covers: [AC3] }
+  - { from: CheckManager, to: ConfigAccessor, op: Find, covers: [AC1, AC2, AC3, AC4] }
+  - { from: CheckManager, to: ConfigAccessor, op: SpecFiles, covers: [AC1] }
+  - { from: CheckManager, to: PolicyEngine, op: CheckRegistry, covers: [AC1, AC4] }
+  - { from: CheckManager, to: PolicyEngine, op: CheckSpec, covers: [AC1, AC3, AC4] }
+removed_calls:
+  - { from: CheckCommand, to: ConfigAccessor }
+  - { from: CheckCommand, to: PolicyEngine }
+  - { from: HookCommand, to: ConfigAccessor }
+  - { from: HookCommand, to: PolicyEngine }
+out_of_scope:
+  - A change to the text or the JSON output of sv check or sv hook.
+  - The calls of the context, new, and doctor commands to ConfigAccessor.
+  - A note that more rules run after the schema passes. It comes in a later change.
