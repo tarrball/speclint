@@ -1,0 +1,30 @@
+# The service registry of specval itself. Each Go package is one or more
+# services in the DPL layers. `package` is the Go package of the service.
+#
+# The code does not follow these layers yet. For example, the commands in
+# internal/cli also do the orchestration that a manager must do. Each spec
+# moves the code nearer to the layers. See plan.md.
+services:
+  # The commands. Each command is an entry point.
+  CheckCommand: { layer: client, package: internal/cli }
+  ContextCommand: { layer: client, package: internal/cli }
+  DoctorCommand: { layer: client, package: internal/cli }
+  HookCommand: { layer: client, package: internal/cli }
+  InitCommand: { layer: client, package: internal/cli }
+  NewCommand: { layer: client, package: internal/cli }
+  SchemaCommand: { layer: client, package: internal/cli }
+
+  DoctorManager: { layer: manager, package: internal/doctor }
+  ScaffoldManager: { layer: manager, package: internal/scaffold }
+
+  PolicyEngine: { layer: engine, package: internal/policy }
+
+  BaselineAccessor: { layer: accessor, package: internal/baseline }
+  ClaudeAccessor: { layer: accessor, package: internal/claude }
+  ConfigAccessor: { layer: accessor, package: internal/config }
+
+  # The file system, and the process state: stdio, environment, and PATH.
+  FileSystemResource: { layer: resource }
+  ProcessResource: { layer: resource }
+
+  YamlPath: { layer: utility, package: internal/yamlpath, may_call: [] }

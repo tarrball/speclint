@@ -81,7 +81,8 @@ rules do not permit.
 
 ### 3. Start dogfooding
 
-- [ ] Add `.specval/` with the target registry above.
+- [x] Add `.specval/` with a registry of the packages that exist, in their target
+      layers. The services that do not exist yet come in the specs of phase 4.
 - [ ] Add rules that read only the spec text: Given/When/Then, size, kind,
       `out_of_scope` for a feature, and STE (word limits, banned words, title).
 - [ ] Each PR from this point has a spec.

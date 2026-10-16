@@ -7,7 +7,7 @@ contains the OPA library, which evaluates them.
 ## Commands
 
 ```
-mise run check   # lint and test; must pass before each commit
+mise run check   # lint, test, and check specs/; must pass before each commit
 mise run fmt     # format Go and Rego
 mise run build   # build bin/sv
 go test -run TestName ./...
@@ -30,6 +30,8 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/sv   # rewrite expected CLI outp
 - `internal/claude/`: the Claude Code settings file, hook event, and skill.
 - `internal/scaffold/`: the files that `sv init` and `sv new` write.
 - `internal/doctor/`: the checks that `sv doctor` runs.
+- `.specval/`, `specs/`: the configuration, registry, and specs of specval itself
+  (dogfooding).
 - `examples/refund/`: a sample project. The tests use its specs.
 - `docs/`: the user documentation, the style guide, and
   [docs/architecture.md](docs/architecture.md), which tells how `check` works.
@@ -44,6 +46,8 @@ exception: doctor reads PATH, because the hook runs the `sv` on PATH.
 - Follow [docs/style.md](docs/style.md). All text, including comments, CLI output,
   and Rego `fix` strings, follows ASD-STE100.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branches, commits, and pull requests.
+- Before you change Go code under `cmd/` or `internal/`, write a spec in `specs/`
+  that passes `sv check` (see CONTRIBUTING.md, "Specs").
 - Do not ignore an error. Do not add a `//nolint` without a linter name and a reason.
 - A change in behavior needs a test that fails without it.
 - If you change CLI output, update the scripts with `UPDATE_SCRIPTS=1`. Then read
