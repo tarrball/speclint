@@ -8,15 +8,15 @@
 # spec moves the code nearer to the layers. See plan.md.
 services:
   # The commands. Each command is an entry point.
-  CheckCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, PolicyEngine] }
+  CheckCommand: { layer: client, package: internal/cli, calls: [CheckManager] }
   ContextCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor, ConfigAccessor, PolicyEngine] }
   DoctorCommand: { layer: client, package: internal/cli, calls: [DoctorManager] }
-  # The hook uses the function run of internal/cli/check.go, which calls the policy engine.
-  HookCommand: { layer: client, package: internal/cli, calls: [ClaudeHook, ConfigAccessor, PolicyEngine] }
+  HookCommand: { layer: client, package: internal/cli, calls: [CheckManager, ClaudeHook] }
   InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
   NewCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, ScaffoldManager] }
   SchemaCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor] }
 
+  CheckManager: { layer: manager, package: internal/check, calls: [ConfigAccessor, PolicyEngine] }
   DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
   ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [BaselineAccessor, ClaudeAccessor, ConfigAccessor] }
 

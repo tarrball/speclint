@@ -89,7 +89,9 @@ rules do not permit.
 
 ### 4. Move the code to the target, one spec for each PR
 
-- [ ] Extract `CheckManager`. Move the file reads from `policy` to `ProjectDataAccessor`.
+- [x] Extract `CheckManager` (internal/check). The check and hook commands call only
+      CheckManager, and the hook gets the protocol from ClaudeHook.
+- [ ] Move the file reads from `policy` to `ProjectDataAccessor`.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
 - [ ] Fix the bugs from the review: `settings.json` order and escapes, multi-document specs.
@@ -241,3 +243,11 @@ When specval works well for its own code, we move the experiments:
 
 - Warn when a client calls more than one manager. This can show a problem in
   the decomposition, because a manager does the orchestration.
+- A built-in rule: the file name of a spec is its `id`. Today `sv new` writes
+  `<id>.yaml`, but nothing finds a file name and an `id` that do not agree.
+  The rules see only the content of the spec. With this rule, a project rule on
+  `input.id` also controls the file names, so specval needs no other feature
+  for a naming convention. The convention is the choice of each project, for
+  example a ticket key (`PROJ-123-short-name`) or a date.
+- For the specs of specval: a number prefix (`0003-extract-check-manager`),
+  because the specs build on each other, and the number gives their order.

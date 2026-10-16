@@ -9,6 +9,7 @@ code. For the rules of the code, see [style.md](style.md).
 |---|---|
 | `cmd/sv` | The `main` package. It reads the process state into a `cli.Env` and calls `cli.Run`. It also holds the end-to-end tests. |
 | `internal/cli` | The commands. Each command has its own file. The commands get their input and output only from `cli.Env`. |
+| `internal/check` | `CheckManager`. Finds the configuration and the specs, checks the registry and the specs with the `Engine`, and makes the report. It does not read or write stdio. |
 | `internal/config` | Finds `.specval.yaml` and lists the spec, data, and policy files. |
 | `internal/policy` | The `Engine`. It loads the data and the rules, evaluates them, and returns findings. |
 | `internal/baseline` | The built-in schema, layer data, format example, and Rego rules. The binary contains them. |
@@ -20,13 +21,16 @@ code. For the rules of the code, see [style.md](style.md).
 The packages depend on each other in this direction:
 
 ```
-cmd/sv ─> cli ─┬─> policy ──> baseline, config, yamlpath
+cmd/sv ─> cli ─┬─> check ──> policy, config
+               ├─> policy ──> baseline, config, yamlpath
                ├─> doctor ──> policy, claude, config
                ├─> scaffold ─> baseline, claude, config
                └─> claude, config, baseline
 ```
 
 ## How `sv check` works
+
+`check.Project` (CheckManager) does steps 1 to 4.
 
 1. `config.Find` reads `.specval.yaml` from the directory of the first spec,
    or from a parent directory. All specs must be in the same project.
@@ -51,9 +55,10 @@ cmd/sv ─> cli ─┬─> policy ──> baseline, config, yamlpath
       has `status: done`, it also returns only the schema errors.
    3. It finds the line of each finding with `yamlpath.Line`, and sorts the
       findings by line and rule ID.
-5. `cli` writes the report as text or JSON and sets the exit status.
+5. `check.Project` puts the findings in a `check.Report`. `cli` writes the report as text or JSON and sets the exit status.
 
-`sv hook` uses the same steps for one spec. `sv context` uses the
+`sv hook` reads the event with `claude.ReadEvent`, and calls `check.SpecFile`.
+It does the same steps for one spec, but it does not check the registry. `sv context` uses the
 engine to list the layers, the registry, and the rules.
 
 ## Design decisions
