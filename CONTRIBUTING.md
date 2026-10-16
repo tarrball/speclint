@@ -17,6 +17,10 @@
 | `mise run fmt` | Formats Go and Rego code. |
 | `mise run cover` | Runs all tests and opens the coverage report. |
 | `mise run build` | Builds `bin/specval`. |
+| `mise run vuln` | Finds known vulnerabilities in the code and its dependencies. It needs the network. |
+
+CI runs `mise run check` and `mise run vuln` for each pull request and each
+push to `main`. A pull request must pass CI before you merge it.
 
 ## Rules for changes
 
