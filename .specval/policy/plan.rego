@@ -13,6 +13,8 @@ max_acceptance := object.get(limits, "max_acceptance", 5)
 
 max_words := object.get(data.project, ["ste", "max_words"], 25)
 
+# words maps each word that STE002 refuses to its fix. The list is only in
+# .specval/data/plan.yaml. Without that data, STE002 checks no words.
 words := object.get(data.project, ["ste", "words"], {})
 
 acceptance := object.get(input, "acceptance", [])
@@ -38,6 +40,11 @@ texts[path] := text if {
 	path := $"out_of_scope[{i}]"
 }
 
+texts[path] := s.purpose if {
+	some i, s in new_list
+	path := $"services.new[{i}].purpose"
+}
+
 # word_count returns the number of words in s.
 word_count(s) := count([w | some w in regex.split(`\s+`, trim_space(s)); w != ""])
 
@@ -57,7 +64,9 @@ has_word(text, word) if {
 #   id: PLN001
 warn contains f if {
 	some i, ac in acceptance
-	not regex.match(`(?i)^given\b.+\bwhen\b.+\bthen\b`, ac.text)
+
+	# The text can be on more than one line, and a result must follow "then".
+	not regex.match(`(?is)^\s*given\b.+\bwhen\b.+\bthen\s+\S`, ac.text)
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"acceptance[{i}].text",
