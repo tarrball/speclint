@@ -21,7 +21,27 @@ jobs:
           persist-credentials: false
       # mise installs the tool versions in mise.toml.
       - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      - name: Find the Go cache directories
+        id: go-env
+        run: |
+          echo "build=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "mod=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+      # Most of the time of a run is the build of OPA. The key changes when
+      # the dependencies or the tool versions change.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ steps.go-env.outputs.build }}
+            ${{ steps.go-env.outputs.mod }}
+            ~/.cache/golangci-lint
+          key: go-${{ runner.os }}-${{ hashFiles('go.sum', 'mise.toml') }}
+          restore-keys: go-${{ runner.os }}-
       - name: Lint and test
         run: mise run check
+        env:
+          # The cache keeps the build, but the tests must run each time. Go
+          # cannot see the files that the end-to-end tests read in a
+          # subprocess, so a cached test result can be out of date.
+          GOFLAGS: -count=1
       - name: Find known vulnerabilities
         run: mise run vuln
