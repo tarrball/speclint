@@ -19,7 +19,9 @@ the file that the tool wrote. `specval hook` then does these steps:
 
 1. It ignores a file that is not a spec. A file is a spec if it is a `.yaml`
    or `.yml` file in the specs directory of a specval project. For any other
-   file, the hook exits 0 and writes nothing.
+   file, the hook exits 0 and writes nothing. If the hook cannot read the
+   `.specval.yaml` of the project, it cannot find the specs directory. Then
+   it exits 1, for each `.yaml` or `.yml` file in the project.
 2. It checks the spec with the spec rules. It does not report the registry
    rules, because a registry problem is not a problem in the spec.
    `specval check` and `specval doctor` report the registry.
@@ -30,7 +32,7 @@ the file that the tool wrote. `specval hook` then does these steps:
 | The spec has an error | 2 | It sends the findings and their fixes to Claude, with an instruction to fix the spec before it writes code. |
 | The spec has only warnings | 0 | It gives the warnings to Claude as more context. It does not stop Claude. |
 | The spec passes | 0 | Nothing. |
-| specval cannot check the spec, for example because a rule does not compile | 1 | It shows the error to the user. Claude continues. |
+| specval cannot check the spec, for example because a rule does not compile or `.specval.yaml` is not valid | 1 | It shows the error to the user. Claude continues. |
 
 ## Feedback, not a gate
 

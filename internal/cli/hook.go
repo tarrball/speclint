@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -40,9 +41,14 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 		}
 		fp = filepath.Join(in.Cwd, fp)
 	}
+	// A file that is not in a project is not a spec. But a configuration that
+	// specval cannot read must not let a spec pass without a check.
 	cfg, err := config.Find(filepath.Dir(fp))
-	if err != nil {
+	if errors.Is(err, config.ErrNotFound) {
 		return hookPass
+	} else if err != nil {
+		fmt.Fprintln(env.Stderr, "specval:", err)
+		return hookError
 	}
 	if rel, err := filepath.Rel(cfg.Abs(cfg.SpecsDir), fp); err != nil || !filepath.IsLocal(rel) {
 		return hookPass
