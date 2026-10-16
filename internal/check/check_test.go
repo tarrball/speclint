@@ -55,19 +55,15 @@ func TestProjectReportsTheRegistryAndTheSpecs(t *testing.T) {
 	}
 }
 
-func TestProjectGivesAnEmptyListForAFileWithoutFindings(t *testing.T) {
-	dir := project(t, map[string]string{
-		".specval.yaml":               "",
-		".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n",
-	})
-	r, err := Project(context.Background(), dir, nil)
-	if err != nil {
-		t.Fatal(err)
+func TestAddGivesAnEmptyListForAFileWithoutFindings(t *testing.T) {
+	// The JSON output gives "findings": [] for such a file, not null.
+	r := &Report{}
+	r.add("a.yaml", nil)
+	if len(r.Files) != 1 || r.Files[0].File != "a.yaml" || r.Files[0].Findings == nil || len(r.Files[0].Findings) != 0 {
+		t.Errorf("report = %+v", r)
 	}
-	for _, f := range r.Files {
-		if f.Findings == nil {
-			t.Errorf("%s: findings is nil, want an empty list", f.File)
-		}
+	if r.Errors != 0 || r.Warnings != 0 {
+		t.Errorf("totals = %d errors, %d warnings; want 0, 0", r.Errors, r.Warnings)
 	}
 }
 
