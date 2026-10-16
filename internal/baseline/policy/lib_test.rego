@@ -33,6 +33,9 @@ test_join_of_nothing_is_undefined if {
 test_plural if {
 	lib.plural("engine") == "engines"
 	lib.plural("utility") == "utilities"
+	lib.plural("key") == "keys"
+	lib.plural("gateway") == "gateways"
+	lib.plural("y") == "ys"
 }
 
 test_plural_of_a_number_is_undefined if {

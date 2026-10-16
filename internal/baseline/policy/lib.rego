@@ -26,14 +26,16 @@ join(xs, word) := $"{concat(", ", head)} {word} {last}" if {
 # interpolation would write the number 7 as "7s".
 plural(word) := $"{word}s" if {
 	is_string(word)
-	not endswith(word, "y")
+	not consonant_y(word)
 }
 
-# plural writes "utility" as "utilities".
+# plural writes "utility" as "utilities", but "key" as "keys".
 plural(word) := $"{trim_suffix(word, "y")}ies" if {
 	is_string(word)
-	endswith(word, "y")
+	consonant_y(word)
 }
+
+consonant_y(word) if regex.match(`[^aeiouAEIOU]y$`, word)
 
 # quote writes s as a quoted string with Go escapes, for example "got \"x\"".
 # json.marshal is different: it escapes <, >, and & for HTML.
