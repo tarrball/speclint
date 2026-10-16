@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/tarrball/specval/internal/policy"
 )
 
 // project writes the files of a project in a new directory, and returns the
@@ -58,7 +60,7 @@ func TestProjectReportsTheRegistryAndTheSpecs(t *testing.T) {
 func TestAddGivesAnEmptyListForAFileWithoutFindings(t *testing.T) {
 	// The JSON output gives "findings": [] for such a file, not null.
 	r := &Report{}
-	r.add("a.yaml", nil)
+	r.add("a.yaml", policy.SpecResult{})
 	if len(r.Files) != 1 || r.Files[0].File != "a.yaml" || r.Files[0].Findings == nil || len(r.Files[0].Findings) != 0 {
 		t.Errorf("report = %+v", r)
 	}

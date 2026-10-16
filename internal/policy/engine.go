@@ -251,20 +251,29 @@ func (e *Engine) prepare(ctx context.Context, query string, store storage.Store)
 	return rego.New(opts...).PrepareForEval(ctx)
 }
 
+// SpecResult is the result of the check of one spec.
+type SpecResult struct {
+	Findings []Finding
+	// Stopped is true if the spec has format errors (SV000 or SV001), and
+	// thus the other rules did not run. They run when the format is correct.
+	// It is false for a done spec, because the other rules never run on it.
+	Stopped bool
+}
+
 // CheckSpec validates the spec file at path.
-func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) {
+func (e *Engine) CheckSpec(ctx context.Context, path string) (SpecResult, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return SpecResult{}, err
 	}
 	var node yaml.Node
 	var doc any
 	if err := yaml.Unmarshal(b, &node); err != nil {
-		return []Finding{yamlError(err)}, nil
+		return stopped(yamlError(err)), nil
 	}
 	if len(node.Content) > 0 {
 		if err := node.Decode(&doc); err != nil {
-			return []Finding{yamlError(err)}, nil
+			return stopped(yamlError(err)), nil
 		}
 	}
 	if doc == nil {
@@ -272,42 +281,46 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 	}
 	doc, err = stringKeys(doc, "")
 	if keyErr, ok := errors.AsType[keyError](err); ok {
-		return []Finding{{
+		return stopped(Finding{
 			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError,
 			Path: keyErr.path, Line: yamlpath.Line(&node, keyErr.path),
 			Msg: err.Error(), Fix: "Give each key in this mapping a different name.",
-		}}, nil
+		}), nil
 	}
 	var input any
 	if err := roundTrip(doc, &input); err != nil {
-		return []Finding{yamlError(err)}, nil
+		return stopped(yamlError(err)), nil
 	}
+	done := isDone(input)
 	query := e.specQ
-	if isDone(input) {
+	if done {
 		// The other rules do not run. Thus an error in one of them cannot
 		// stop the check of a done spec.
 		query = e.schemaQ
 	}
 	rs, err := query.Eval(ctx, rego.EvalInput(input))
 	if err != nil {
-		return nil, err
+		return SpecResult{}, err
 	}
 	if len(rs) == 0 {
-		return nil, errors.New("policy query returned no result")
+		return SpecResult{}, errors.New("policy query returned no result")
 	}
 	bind := rs[0].Bindings
 	findings, err := decodeFindings(bind["schema"], SeverityError)
 	if err != nil {
-		return nil, err
+		return SpecResult{}, err
 	}
+	// The other rules expect the correct shape, so they run only if the
+	// schema rule finds no error.
+	res := SpecResult{Stopped: len(findings) > 0 && !done}
 	if len(findings) == 0 {
 		deny, err := decodeFindings(bind["deny"], SeverityError)
 		if err != nil {
-			return nil, err
+			return SpecResult{}, err
 		}
 		warn, err := decodeFindings(bind["warn"], SeverityWarning)
 		if err != nil {
-			return nil, err
+			return SpecResult{}, err
 		}
 		findings = slices.Concat(deny, warn)
 	}
@@ -315,7 +328,14 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 		findings[i].Line = yamlpath.Line(&node, findings[i].Path)
 	}
 	sortFindings(findings)
-	return findings, nil
+	res.Findings = findings
+	return res, nil
+}
+
+// stopped returns the result for a spec that is not valid YAML. The rules
+// cannot run on it.
+func stopped(found ...Finding) SpecResult {
+	return SpecResult{Findings: found, Stopped: true}
 }
 
 // statusDone is the status of a spec whose change is implemented.

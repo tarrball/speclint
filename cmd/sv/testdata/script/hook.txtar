@@ -21,6 +21,13 @@ exits 0 sv hook
 ! stdout .
 ! stderr .
 
+# A spec with format errors: the note tells Claude that more rules run after the fix.
+jsonexpand events/shape.json shape.json
+stdin shape.json
+exits 2 sv hook
+stderr '^specs/shape.yaml:1 error SV001 '
+stderr '^specs/shape.yaml note: The other rules run after you fix the format errors \(SV000, SV001\)\.$'
+
 # The hook finds a relative file path from cwd.
 jsonexpand events/relative.json relative.json
 stdin relative.json
@@ -155,6 +162,11 @@ a: b
 -- other/.keep --
 -- events/bad.json --
 {"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/bad.yaml"}}
+-- specs/shape.yaml --
+specval: 1
+id: S-1
+-- events/shape.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/shape.yaml"}}
 -- events/warn.json --
 {"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/warn.yaml"}}
 -- events/pass.json --

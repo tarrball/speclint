@@ -147,7 +147,13 @@ service that exists. A spec gives the layer of each new service in
 
 specval runs the schema check first. If the spec does not match the schema,
 specval reports only the schema errors, because the other rules need the
-correct shape.
+correct shape. The text output then gives a note for the spec:
+
+```
+specs/ORD-7.yaml note: The other rules run after you fix the format errors (SV000, SV001).
+```
+
+Thus when you fix the format errors, the next check can find new problems.
 
 | ID | Severity | Rule |
 |---|---|---|

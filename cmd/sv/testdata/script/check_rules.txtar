@@ -105,6 +105,7 @@ specs/empty.yaml:1 error SV001 summary is required
     fix: Add `summary`: A short paragraph that tells the problem and the new behavior.
 specs/empty.yaml:1 error SV001 title is required
     fix: Add `title`: The title of the change, on one line.
+specs/empty.yaml note: The other rules run after you fix the format errors (SV000, SV001).
 specs/rules.yaml:8 error SV107 No call covers AC2 (acceptance[1])
     fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
 specs/rules.yaml:11 error SV103 RefundCalc is in the engine layer but does not end in Engine (services.new[0].name)
@@ -155,10 +156,12 @@ specs/shape.yaml:13 error SV001 covers is required (calls[0])
     fix: Add `covers`: The acceptance criteria that this call helps to satisfy, for example [AC1].
 specs/shape.yaml:13 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (calls[0].op)
     fix: Correct the value of `calls[0].op`. The name of the operation, in PascalCase, for example CalculateRefund.
+specs/shape.yaml note: The other rules run after you fix the format errors (SV000, SV001).
 specs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])
     fix: Add the calls that change BillingAccessor, or remove it from services.changed.
 specs/yaml.yaml:1 error SV000 yaml: line 1: did not find expected ',' or ']'
     fix: Fix the YAML syntax at this line.
+specs/yaml.yaml note: The other rules run after you fix the format errors (SV000, SV001).
 specval checked 6 spec(s) and found 32 error(s) and 2 warning(s).
 -- warn.txt --
 specs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])
