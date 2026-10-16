@@ -177,6 +177,52 @@ calls: [{ from: OrderManager, to: PricingEngine, op: Price, covers: [AC1] }]
 	}
 }
 
+func TestDoneSpecsDoNotRunTheOtherRules(t *testing.T) {
+	// The project rule has a conflict at evaluation time. It stops the check
+	// of a draft, but it must not stop the check of a done spec.
+	spec := func(status string) string {
+		return `specval: 1
+id: A-1
+kind: feature
+status: ` + status + `
+title: T
+summary: S
+acceptance: [{ id: AC1, text: T }]
+calls: [{ from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1] }]
+`
+	}
+	cfg := project(t, map[string]string{
+		".specval/data/services.yaml": registry,
+		".specval/policy/conflict.rego": `package specval.spec.conflict
+
+import rego.v1
+
+value := input.id
+
+value := "other"
+
+# METADATA
+# title: Conflict
+# custom:
+#   id: PRJ001
+deny contains f if {
+	value == "x"
+	f := {"rule": "PRJ001", "path": "", "msg": "", "fix": ""}
+}
+`,
+		"specs/draft.yaml": spec("draft"),
+		"specs/done.yaml":  spec("done"),
+	})
+	eng := newEngine(t, cfg)
+	if _, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "draft.yaml")); err == nil {
+		t.Error("draft: got no error, want the conflict")
+	}
+	found, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "done.yaml"))
+	if err != nil || len(found) != 0 {
+		t.Errorf("done: got %v, %v, want no findings and no error", found, err)
+	}
+}
+
 func TestCheckSpecSortsFindingsAndSetsSeverity(t *testing.T) {
 	cfg := project(t, map[string]string{
 		".specval/data/services.yaml": registry,

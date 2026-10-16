@@ -26,9 +26,11 @@ import (
 // The queries collect the deny and warn results of each rule package. The
 // spec query keeps the schema errors apart. If the schema finds an error,
 // CheckSpec does not report the other findings, because the other rules
-// expect the correct shape.
+// expect the correct shape. The schema query runs only the schema rule, for
+// a done spec.
 const (
-	specQuery = `schema := [f | some f in data.specval.spec.schema.deny];
+	schemaQuery = `schema := [f | some f in data.specval.spec.schema.deny]`
+	specQuery   = schemaQuery + `;
 deny := [f | some p; p != "schema"; some f in data.specval.spec[p].deny];
 warn := [f | some p; some f in data.specval.spec[p].warn]`
 	registryQuery = `deny := [f | some p; some f in data.specval.registry[p].deny];
@@ -47,6 +49,7 @@ type Engine struct {
 	modules []*ast.Module
 	// baseline holds the modules that are built into specval.
 	baseline map[*ast.Module]bool
+	schemaQ  rego.PreparedEvalQuery
 	specQ    rego.PreparedEvalQuery
 	regQ     rego.PreparedEvalQuery
 }
@@ -106,6 +109,9 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 	}
 
 	store := inmem.NewFromObject(data)
+	if e.schemaQ, err = e.prepare(ctx, schemaQuery, store); err != nil {
+		return nil, newRegoError(err)
+	}
 	if e.specQ, err = e.prepare(ctx, specQuery, store); err != nil {
 		return nil, newRegoError(err)
 	}
@@ -276,7 +282,13 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 	if err := roundTrip(doc, &input); err != nil {
 		return []Finding{yamlError(err)}, nil
 	}
-	rs, err := e.specQ.Eval(ctx, rego.EvalInput(input))
+	query := e.specQ
+	if isDone(input) {
+		// The other rules do not run. Thus an error in one of them cannot
+		// stop the check of a done spec.
+		query = e.schemaQ
+	}
+	rs, err := query.Eval(ctx, rego.EvalInput(input))
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +300,7 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 	if err != nil {
 		return nil, err
 	}
-	if len(findings) == 0 && !isDone(input) {
+	if len(findings) == 0 {
 		deny, err := decodeFindings(bind["deny"], SeverityError)
 		if err != nil {
 			return nil, err
@@ -309,8 +321,8 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) ([]Finding, error) 
 // statusDone is the status of a spec whose change is implemented.
 const statusDone = "done"
 
-// isDone reports whether the spec has the status done. specval checks only
-// the schema of such a spec. The other rules use the registry as it is now,
+// isDone reports whether the spec has the status done. specval runs only
+// the schema rule on such a spec. The other rules use the registry as it is now,
 // and the change of the spec is already in the registry. For example, SV104
 // would report each service in services.new.
 func isDone(spec any) bool {
