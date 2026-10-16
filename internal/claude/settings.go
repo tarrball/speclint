@@ -28,7 +28,7 @@ var (
 	settingsTemplate []byte
 )
 
-// Skill returns the text of the skill that specval init writes. specsDir is
+// Skill returns the text of the skill that sv init writes. specsDir is
 // the specs directory of the project, as .specval.yaml gives it. Only the
 // Markdown body uses it, so that a name with YAML syntax cannot make the
 // frontmatter invalid.
@@ -46,20 +46,23 @@ type settingsFile struct {
 	} `json:"hooks"`
 }
 
-// HookStatus tells what a settings file contains about the specval hook.
+// HookStatus tells what a settings file contains about the sv hook.
 type HookStatus struct {
 	// Exists is true if the settings file exists.
 	Exists bool
-	// Found is true if a PostToolUse hook runs `specval hook`.
+	// Found is true if a PostToolUse hook runs `sv hook`.
 	Found bool
 	// Disabled is true if the file sets disableAllHooks.
 	Disabled bool
 	// Matcher is the tool matcher of the hook, if Found is true.
 	Matcher string
+	// Old is true if a PostToolUse hook runs `specval hook`. The command had
+	// that name before it was sv.
+	Old bool
 }
 
 // InspectSettings reads a Claude Code settings file and tells whether it runs
-// `specval hook` on PostToolUse. A file that does not exist is not an error.
+// `sv hook` on PostToolUse. A file that does not exist is not an error.
 func InspectSettings(path string) (HookStatus, error) {
 	var st HookStatus
 	b, err := os.ReadFile(path)
@@ -83,12 +86,13 @@ func InspectSettings(path string) (HookStatus, error) {
 		return st, fmt.Errorf("%s is not valid JSON: %w", path, err)
 	}
 	st.Disabled = s.DisableAllHooks
+	// Read each hook, because an old hook can come after the sv hook.
 	for _, entry := range s.Hooks["PostToolUse"] {
 		for _, h := range entry.Hooks {
-			if strings.Contains(h.Command, "specval hook") {
+			if strings.Contains(h.Command, "sv hook") && !st.Found {
 				st.Found, st.Matcher = true, entry.Matcher
-				return st, nil
 			}
+			st.Old = st.Old || strings.Contains(h.Command, "specval hook")
 		}
 	}
 	return st, nil

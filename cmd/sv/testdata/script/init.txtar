@@ -1,6 +1,6 @@
 # init creates the config, the data and policy files, the skill, the specs
 # directory, and the hook.
-exits 0 specval init
+exits 0 sv init
 cmp stdout created.txt
 exists specs
 cmp .specval.yaml want/config.yaml
@@ -8,30 +8,30 @@ cmp .claude/settings.json want/settings.json
 exists .specval/data/services.yaml .specval/policy/project.rego .claude/skills/spec/SKILL.md
 
 # The new project passes check.
-exits 0 specval check
+exits 0 sv check
 stdout '^specval checked 0 spec\(s\) and found 0 error\(s\) and 0 warning\(s\).$'
 
 # A second init changes nothing.
-exits 0 specval init
+exits 0 sv init
 cmp stdout exists.txt
 
 # init adds the hook to a settings file and keeps the other settings.
 cd $WORK/merge
-exits 0 specval init
+exits 0 sv init
 stdout '^hooked   .claude/settings.json$'
 cmp .claude/settings.json $WORK/want/merged.json
 
 # init uses the specs_dir of an existing config in the same directory.
 cd $WORK/custom
-exits 0 specval init
+exits 0 sv init
 exists changes
 ! exists specs
 
 # init stops, and writes nothing, if the settings file is not valid JSON.
 cd $WORK/badjson
-exits 2 specval init
+exits 2 sv init
 ! stdout .
-stderr '^specval: .*/badjson/.claude/settings.json is not valid JSON: '
+stderr '^sv: .*/badjson/.claude/settings.json is not valid JSON: '
 ! exists .specval.yaml
 
 -- merge/.claude/settings.json --
@@ -51,7 +51,7 @@ exists   .specval.yaml
 exists   .specval/data/services.yaml (services)
 exists   .specval/policy/project.rego
 exists   .claude/skills/spec/SKILL.md
-exists   .claude/settings.json (specval hook)
+exists   .claude/settings.json (sv hook)
 -- want/config.yaml --
 # The specval configuration. A path is relative to this file.
 specs_dir: specs
@@ -68,7 +68,7 @@ data: [.specval/data]
       {
         "hooks": [
           {
-            "command": "specval hook",
+            "command": "sv hook",
             "type": "command"
           }
         ],
@@ -93,7 +93,7 @@ data: [.specval/data]
       {
         "hooks": [
           {
-            "command": "specval hook",
+            "command": "sv hook",
             "type": "command"
           }
         ],

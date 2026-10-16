@@ -67,5 +67,5 @@ test_fix_without_a_hint if {
 	spec := object.union(valid, {"out_of_scope": [1]})
 	some f in schema.deny with input as spec
 	f.path == "out_of_scope[0]"
-	f.fix == "Run `specval schema` to see the correct format."
+	f.fix == "Run `sv schema` to see the correct format."
 }

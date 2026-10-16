@@ -12,9 +12,9 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-// TestMain lets each script run the test binary as the specval command.
+// TestMain lets each script run the test binary as the sv command.
 func TestMain(m *testing.M) {
-	testscript.Main(m, map[string]func(){"specval": main})
+	testscript.Main(m, map[string]func(){"sv": main})
 }
 
 // TestScripts runs the end-to-end CLI tests in testdata/script.

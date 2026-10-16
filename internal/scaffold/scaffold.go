@@ -107,7 +107,7 @@ func Init(dir string, w io.Writer) error {
 	if added {
 		_, err = fmt.Fprintln(w, "hooked  ", claude.SettingsPath)
 	} else {
-		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(specval hook)")
+		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(sv hook)")
 	}
 	return err
 }

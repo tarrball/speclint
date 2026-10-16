@@ -96,7 +96,7 @@ func TestExampleSpecs(t *testing.T) {
 	}
 }
 
-// The format that `specval context` shows to an agent must itself be a
+// The format that `sv context` shows to an agent must itself be a
 // valid spec.
 func TestFormatExampleIsAValidSpec(t *testing.T) {
 	cfg := project(t, map[string]string{

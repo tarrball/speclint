@@ -3,55 +3,55 @@
 # A spec with errors: exit 2, and the findings go to stderr for Claude.
 jsonexpand events/bad.json bad.json
 stdin bad.json
-exits 2 specval hook
+exits 2 sv hook
 ! stdout .
 cmp stderr bad.txt
 
 # A spec with only warnings: exit 0, and the warnings go to stdout as JSON.
 jsonexpand events/warn.json warn.json
 stdin warn.json
-exits 0 specval hook
+exits 0 sv hook
 cmp stdout warn.out
 ! stderr .
 
 # A passing spec: exit 0, and no output.
 jsonexpand events/pass.json pass.json
 stdin pass.json
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 ! stderr .
 
 # The hook finds a relative file path from cwd.
 jsonexpand events/relative.json relative.json
 stdin relative.json
-exits 2 specval hook
+exits 2 sv hook
 stderr '^specs/bad.yaml:'
 
 # A spec whose name starts with ".." is in the specs directory, so the hook checks it.
 jsonexpand events/dotdot.json dotdot.json
 stdin dotdot.json
-exits 2 specval hook
+exits 2 sv hook
 stderr '^specs/\.\.draft\.yaml:9 error SV102 '
 
 # The hook ignores files that are not specs, and input that it cannot read.
 stdin events/notyaml.json
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 ! stderr .
 jsonexpand events/outside.json outside.json
 stdin outside.json
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 ! stderr .
 jsonexpand events/noproject.json noproject.json
 stdin noproject.json
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 stdin events/nofile.json
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 stdin events/garbage.txt
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 ! stderr .
 
@@ -60,7 +60,7 @@ exits 0 specval hook
 cd $WORK/badregistry
 jsonexpand $WORK/events/badregistry.json $WORK/badregistry.json
 stdin $WORK/badregistry.json
-exits 0 specval hook
+exits 0 sv hook
 ! stdout .
 ! stderr .
 cd $WORK
@@ -69,9 +69,9 @@ cd $WORK
 cd $WORK/badconfig
 jsonexpand $WORK/events/badconfig.json $WORK/badconfig.json
 stdin $WORK/badconfig.json
-exits 1 specval hook
+exits 1 sv hook
 ! stdout .
-stderr '^specval: .*badconfig/\.specval\.yaml: '
+stderr '^sv: .*badconfig/\.specval\.yaml: '
 stderr 'field spec_dir not found'
 cd $WORK
 
@@ -79,8 +79,8 @@ cd $WORK
 mkdir .specval/policy
 cp broken.rego .specval/policy/broken.rego
 stdin bad.json
-exits 1 specval hook
-stderr '^specval: .*broken.rego:'
+exits 1 sv hook
+stderr '^sv: .*broken.rego:'
 
 -- .specval.yaml --
 -- .specval/data/services.yaml --

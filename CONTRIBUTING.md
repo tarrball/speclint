@@ -16,7 +16,7 @@
 | `mise run lint` | Checks Go and Rego code. |
 | `mise run fmt` | Formats Go and Rego code. |
 | `mise run cover` | Runs all tests and opens the coverage report. |
-| `mise run build` | Builds `bin/specval`. |
+| `mise run build` | Builds `bin/sv`. |
 | `mise run vuln` | Finds known vulnerabilities in the code and its dependencies. It needs the network. |
 
 CI runs `mise run check` and `mise run vuln` for each pull request and each
@@ -29,7 +29,7 @@ Before you write code, comments, or documentation, read [docs/style.md](docs/sty
 - After each change, `mise run check` must pass.
 - A change in behavior must have a test that fails before the change and passes after it.
 - The end-to-end tests in `testdata/script` hold the exact CLI output.
-  If you change the output, run `UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/specval`.
+  If you change the output, run `UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/sv`.
   Then examine the diff. Include it in the same commit.
 - A change to the CLI output, a rule, or a configuration file must also update the documentation.
 - If you change the version of `github.com/open-policy-agent/opa` in `go.mod`,

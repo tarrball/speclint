@@ -68,7 +68,7 @@ var ErrNotFound = errors.New("no configuration file")
 type notFoundError struct{ start string }
 
 func (e notFoundError) Error() string {
-	return fmt.Sprintf("no %s in %s or in a parent directory; run `specval init`", FileName, e.start)
+	return fmt.Sprintf("no %s in %s or in a parent directory; run `sv init`", FileName, e.start)
 }
 
 func (notFoundError) Is(target error) bool { return target == ErrNotFound }

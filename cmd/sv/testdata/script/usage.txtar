@@ -1,19 +1,19 @@
 # With no command, specval prints the usage to stderr and exits 2.
-exits 2 specval
+exits 2 sv
 ! stdout .
 cmp stderr usage.txt
 
 # help, -h, and --help print the usage to stdout and exit 0.
-exits 0 specval help
+exits 0 sv help
 cmp stdout usage.txt
 ! stderr .
-exits 0 specval -h
+exits 0 sv -h
 cmp stdout usage.txt
-exits 0 specval --help
+exits 0 sv --help
 cmp stdout usage.txt
 
 # An unknown command prints an error and the usage, and exits 2.
-exits 2 specval frobnicate
+exits 2 sv frobnicate
 ! stdout .
 stderr '^unknown command "frobnicate"$'
 stderr '^Usage:$'
@@ -22,22 +22,22 @@ stderr '^Usage:$'
 specval checks change specs against architecture rules before you write code.
 
 Usage:
-  specval check [--format text|json] [--strict] [files...]
+  sv check [--format text|json] [--strict] [files...]
         Check the given specs, or each spec in the specs directory.
         The exit status is 1 if a spec has an error, or a warning with --strict.
-  specval context
+  sv context
         Print the spec format, the layers, the registry, and the rules.
         An agent reads this text before it writes a spec.
-  specval new <id> [--kind feature|bugfix|chore] [--title "..."]
+  sv new <id> [--kind feature|bugfix|chore] [--title "..."]
         Make the spec <specs dir>/<id>.yaml from the template.
-  specval schema
+  sv schema
         Print the JSON Schema of a spec.
-  specval init
+  sv init
         Set up specval, the Claude Code skill, and the hook in this directory.
         You can run it again. It adds only the parts that are missing.
-  specval doctor [--format text|json]
+  sv doctor [--format text|json]
         Check the setup: the configuration, the rules, the registry, the
-        Claude Code skill and hook, and the specval binary on PATH.
-  specval hook
+        Claude Code skill and hook, and the sv binary on PATH.
+  sv hook
         Claude Code runs this command after each file write. Do not run it yourself.
         If the file is a spec, specval checks it and sends the errors to Claude.

@@ -54,7 +54,7 @@ func TestRunReportsErrors(t *testing.T) {
 			args = append(args, "X-1")
 		}
 		code, _, errOut := runCLI(t, t.TempDir(), "", args...)
-		if code != exitError || !strings.HasPrefix(errOut, "specval: no .specval.yaml in ") {
+		if code != exitError || !strings.HasPrefix(errOut, "sv: no .specval.yaml in ") {
 			t.Errorf("%s: code %d, stderr %q", cmd, code, errOut)
 		}
 	}
@@ -242,7 +242,7 @@ func TestInitAndNew(t *testing.T) {
 	if _, err := os.Stat(want); err != nil {
 		t.Error(err)
 	}
-	if code, _, errOut := runCLI(t, dir, "", "new", "bad id"); code != exitError || !strings.Contains(errOut, "usage: specval new <id>") {
+	if code, _, errOut := runCLI(t, dir, "", "new", "bad id"); code != exitError || !strings.Contains(errOut, "usage: sv new <id>") {
 		t.Errorf("new with a bad id: code %d, stderr %q", code, errOut)
 	}
 }
@@ -271,7 +271,7 @@ func TestHelpFlagExitsZeroAndDoesNothing(t *testing.T) {
 	for _, cmd := range []string{"check", "context", "new", "schema", "init", "doctor", "hook"} {
 		dir := t.TempDir()
 		code, out, errOut := runCLI(t, dir, `{"tool_input": {"file_path": "specs/a.yaml"}}`, cmd, "--help")
-		if code != exitOK || out != "" || !strings.Contains(errOut, "Usage: specval "+cmd) {
+		if code != exitOK || out != "" || !strings.Contains(errOut, "Usage: sv "+cmd) {
 			t.Errorf("%s --help: code %d, stdout %q, stderr %q", cmd, code, out, errOut)
 		}
 		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {

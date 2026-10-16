@@ -19,14 +19,14 @@ type fixture struct {
 }
 
 // newFixture makes a project with scaffold.Init and a registry, a home
-// directory, and a fake specval on PATH. The tests that use it cannot run in
+// directory, and a fake sv on PATH. The tests that use it cannot run in
 // parallel, because it sets PATH.
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	root := t.TempDir()
 	dir := filepath.Join(root, "project")
 	bin := filepath.Join(root, "bin")
-	f := &fixture{t: t, env: Env{Dir: dir, Home: filepath.Join(root, "home"), Executable: filepath.Join(bin, "specval")}}
+	f := &fixture{t: t, env: Env{Dir: dir, Home: filepath.Join(root, "home"), Executable: filepath.Join(bin, "sv")}}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,8 @@ func newFixture(t *testing.T) *fixture {
 		t.Fatal(err)
 	}
 	f.write(".specval/data/services.yaml", "services:\n  OrderManager: { layer: manager }\n")
-	f.writeExecutable(f.env.Executable, "#!/bin/sh\nexit 0\n")
+	// doctor runs `sv help` and looks for `sv hook` in the usage.
+	f.writeExecutable(f.env.Executable, "#!/bin/sh\necho '  sv hook'\n")
 	t.Setenv("PATH", bin)
 	return f
 }
@@ -146,7 +147,7 @@ func TestProjectChecks(t *testing.T) {
 }
 
 func TestClaudeChecks(t *testing.T) {
-	narrow := `{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`
+	narrow := `{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "sv hook"}]}]}}`
 	for _, c := range []struct {
 		name   string
 		change func(f *fixture)
@@ -155,7 +156,7 @@ func TestClaudeChecks(t *testing.T) {
 		detail string
 	}{
 		{"skill missing", func(f *fixture) { f.remove(claude.SkillPath) }, "skill", StatusWarn, "is missing"},
-		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `specval context`"},
+		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `sv context`"},
 		{"skill cannot be read", func(f *fixture) {
 			f.remove(claude.SkillPath)
 			f.write(filepath.Join(claude.SkillPath, "x"), "") // The skill path is now a directory.
@@ -164,7 +165,17 @@ func TestClaudeChecks(t *testing.T) {
 			f.remove(claude.SkillPath)
 			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill("specs"))
 		}, "skill", StatusOK, "home"},
-		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `specval hook`"},
+		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `sv hook`"},
+		{"hook with the old command", func(f *fixture) {
+			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`)
+		}, "hook", StatusFail, "runs `specval hook`, but the command is now `sv hook`"},
+		{"old hook in home and current hook in the project", func(f *fixture) {
+			f.write(filepath.Join("..", "home", claude.SettingsPath), `{"hooks": {"PostToolUse": [{"hooks": [{"command": "specval hook"}]}]}}`)
+		}, "hook", StatusWarn, "home/.claude/settings.json runs `specval hook`, which no longer exists"},
+		{"old hook after the current hook in one file", func(f *fixture) {
+			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "sv hook"}]},
+			  {"hooks": [{"command": "specval hook"}]}]}}`)
+		}, "hook", StatusWarn, ".claude/settings.json runs `specval hook`, which no longer exists"},
 		{"hook in home", func(f *fixture) {
 			f.remove(claude.SettingsPath)
 			f.write(filepath.Join("..", "home", claude.SettingsPath), narrow)
@@ -193,7 +204,7 @@ func TestUnknownHomeDirectory(t *testing.T) {
 	f.env.Home = ""
 	cwd := t.TempDir()
 	for path, content := range map[string]string{
-		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`,
+		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "sv hook"}]}]}}`,
 		claude.SkillPath:    claude.Skill("specs"),
 	} {
 		p := filepath.Join(cwd, path)
@@ -205,7 +216,7 @@ func TestUnknownHomeDirectory(t *testing.T) {
 		}
 	}
 	t.Chdir(cwd)
-	f.want("hook", StatusFail, "no PostToolUse hook runs `specval hook`")
+	f.want("hook", StatusFail, "no PostToolUse hook runs `sv hook`")
 	f.want("skill", StatusWarn, "is missing")
 }
 
@@ -213,16 +224,21 @@ func TestPathChecks(t *testing.T) {
 	t.Run("not on PATH", func(t *testing.T) {
 		f := newFixture(t)
 		t.Setenv("PATH", t.TempDir())
-		f.want("path", StatusFail, "specval is not on PATH")
+		f.want("path", StatusFail, "sv is not on PATH")
 	})
 	t.Run("does not run", func(t *testing.T) {
 		f := newFixture(t)
 		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho broken\nexit 3\n")
 		f.want("path", StatusFail, "does not run: exit status 3 broken")
 	})
+	t.Run("another program named sv", func(t *testing.T) {
+		f := newFixture(t)
+		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho 'usage: sv [-v] [-w sec] command service ...'\n")
+		f.want("path", StatusFail, "is not specval; another program has the name sv")
+	})
 	t.Run("a different binary", func(t *testing.T) {
 		f := newFixture(t)
-		f.env.Executable = filepath.Join(t.TempDir(), "specval")
+		f.env.Executable = filepath.Join(t.TempDir(), "sv")
 		f.want("path", StatusWarn, "the hook will run")
 	})
 }

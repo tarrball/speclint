@@ -5,12 +5,12 @@ file in the specs directory (`specs/` if you do not change `specs_dir`). Name
 the file with the ID of the ticket: `specs/ORD-142.yaml`. specval does not
 check the name of the file.
 
-`specval new <id>` makes a spec from the template. `specval schema` prints the
+`sv new <id>` makes a spec from the template. `sv schema` prints the
 JSON Schema that each spec must match.
 
 ## Example
 
-This spec is `examples/refund/specs/ORD-142.yaml`. It passes `specval check`.
+This spec is `examples/refund/specs/ORD-142.yaml`. It passes `sv check`.
 
 ```yaml
 specval: 1
@@ -122,7 +122,7 @@ specval also runs these rules on the service registry, one time for each
 | SR003 | error | The registry is a mapping from service names to entries. |
 | SR004 | error | Each entry in the registry is a mapping with a layer, for example `{ layer: manager }`. |
 
-`specval context` prints the spec rules with their full descriptions. To add
+`sv context` prints the spec rules with their full descriptions. To add
 rules for your project, see [rules.md](rules.md).
 
 ## Output
@@ -135,7 +135,7 @@ specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEn
     fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
 ```
 
-`specval check --format json` gives the same findings as JSON:
+`sv check --format json` gives the same findings as JSON:
 
 ```json
 {

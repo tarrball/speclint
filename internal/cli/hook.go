@@ -11,7 +11,7 @@ import (
 	"github.com/tarrball/specval/internal/config"
 )
 
-// Exit codes of specval hook. Claude Code gives them these meanings.
+// Exit codes of sv hook. Claude Code gives them these meanings.
 const (
 	hookPass  exitCode = 0 // Claude continues. Claude Code reads stdout as JSON for Claude.
 	hookError exitCode = 1 // Claude Code shows stderr to the user, and Claude continues.
@@ -47,7 +47,7 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 	if errors.Is(err, config.ErrNotFound) {
 		return hookPass
 	} else if err != nil {
-		fmt.Fprintln(env.Stderr, "specval:", err)
+		fmt.Fprintln(env.Stderr, "sv:", err)
 		return hookError
 	}
 	if rel, err := filepath.Rel(cfg.Abs(cfg.SpecsDir), fp); err != nil || !filepath.IsLocal(rel) {
@@ -62,7 +62,7 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 	// registry to fix it. check and doctor report the registry.
 	r, err := run(ctx, cfg, []string{fp}, base, false)
 	if err != nil {
-		fmt.Fprintln(env.Stderr, "specval:", err)
+		fmt.Fprintln(env.Stderr, "sv:", err)
 		return hookError
 	}
 	if r.Errors > 0 {
@@ -74,7 +74,7 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 		var b strings.Builder
 		printText(&b, r, 1)
 		if err := claude.WriteContext(env.Stdout, "The spec passes, but specval found warnings. If you can, fix them:\n"+b.String()); err != nil {
-			fmt.Fprintln(env.Stderr, "specval:", err)
+			fmt.Fprintln(env.Stderr, "sv:", err)
 			return hookError
 		}
 	}

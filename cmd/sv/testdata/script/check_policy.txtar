@@ -1,40 +1,40 @@
 # Project rules run with the baseline rules. specval does not load files named *_test.rego.
-exits 1 specval check
+exits 1 sv check
 cmp stdout check.txt
 
 # A deny or warn rule without custom.id stops the load.
 cp noid.rego .specval/policy/noid.rego
-exits 2 specval check
+exits 2 sv check
 stderr 'noid.rego:6: deny rule needs a METADATA block with custom.id$'
 rm .specval/policy/noid.rego
 
 # A Rego syntax error stops the load.
 cp syntax.rego .specval/policy/syntax.rego
-exits 2 specval check
+exits 2 sv check
 stderr 'syntax.rego:'
 rm .specval/policy/syntax.rego
 
 # A finding that does not have the correct format is an error.
 cp malformed.rego .specval/policy/malformed.rego
-exits 2 specval check
+exits 2 sv check
 stderr 'a rule returned a finding that does not have the correct format'
 rm .specval/policy/malformed.rego
 
 # A rule cannot use a built-in function that can give a different result each
 # time, such as http.send or time.now_ns. Thus a rule cannot use the network.
 cp network.rego .specval/policy/network.rego
-exits 2 specval check
+exits 2 sv check
 stderr 'network.rego:10: .*undefined function http.send'
 rm .specval/policy/network.rego
 cp clock.rego .specval/policy/clock.rego
-exits 2 specval check
+exits 2 sv check
 stderr 'clock.rego:10: .*undefined function time.now_ns'
 rm .specval/policy/clock.rego
 
 # The built-in rule SV001 uses json.match_schema. A project rule cannot use it,
 # because a schema can load a remote $ref.
 cp schema.rego .specval/policy/schema.rego
-exits 2 specval check
+exits 2 sv check
 stderr 'schema.rego:10: a project rule cannot use json.match_schema, because a schema can load a remote \$ref$'
 
 -- .specval.yaml --

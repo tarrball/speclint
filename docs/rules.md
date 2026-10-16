@@ -72,7 +72,7 @@ Follow these rules:
   `custom.id`. specval does not load a rule that has no `custom.id`.
 - Make each finding with `lib.finding(rego.metadata.rule(), path, msg, fix)`.
   It takes the ID and the title from the `METADATA` block. Thus
-  `specval context` and the findings show the same text.
+  `sv context` and the findings show the same text.
 - Write `path` as a path in the spec, for example `calls[2].to`. specval finds
   the line of that path in the YAML file. If the path is not in the file,
   specval uses the line of the deepest part that is.
@@ -137,5 +137,5 @@ example the prefix of your tickets.
 
 ## See the rules
 
-`specval context` lists each spec rule, with its ID, severity, title, and
-description. `specval doctor` tells you whether your rules compile.
+`sv context` lists each spec rule, with its ID, severity, title, and
+description. `sv doctor` tells you whether your rules compile.

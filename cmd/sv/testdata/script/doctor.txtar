@@ -1,7 +1,7 @@
 # After init, doctor warns only that the registry is empty.
 cd proj
-exits 0 specval init
-exits 0 specval doctor
+exits 0 sv init
+exits 0 sv doctor
 stdout '^✓ config    .*/\.specval\.yaml$'
 stdout '^✓ specs     specs \(0 spec\(s\)\)$'
 stdout '^✓ rules     11 spec rule\(s\) compile, 0 from this project$'
@@ -9,93 +9,93 @@ stdout '^! registry  no services are registered \(data.project.services is empty
 stdout '^    fix: Add each service and its layer to .specval/data/services.yaml. Until you do, each call fails SV101.$'
 stdout '^✓ skill     .claude/skills/spec/SKILL.md$'
 stdout '^✓ hook      .claude/settings.json$'
-stdout '^✓ path      .*/specval$'
+stdout '^✓ path      .*/sv$'
 stdout '^0 failure\(s\), 1 warning\(s\).$'
 
 # The JSON format has the same checks.
-exits 0 specval doctor --format json
+exits 0 sv doctor --format json
 stdout '"ok": true'
 stdout '"name": "registry",\n\s+"detail": "no services are registered'
 
 # An unknown format is a usage error.
-exits 2 specval doctor --format yaml
+exits 2 sv doctor --format yaml
 stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
-! stderr '^specval:'
+! stderr '^sv:'
 
 # With services registered, all checks pass.
 cp $WORK/services.yaml .specval/data/services.yaml
-exits 0 specval doctor
+exits 0 sv doctor
 stdout '^✓ registry  1 service\(s\), .specval/data/services.yaml$'
 stdout '^The specval setup has no problems.$'
 
 # A registry rule failure is a doctor failure.
 cp $WORK/badservices.yaml .specval/data/services.yaml
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^✗ registry  .specval/data/services.yaml:2 PricingThing is in the engine layer but does not end in Engine$'
 cp $WORK/services.yaml .specval/data/services.yaml
 
 # A registered layer that is not a string fails the registry rules, and doctor
 # shows the finding.
 cp $WORK/numberlayer.yaml .specval/data/services.yaml
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^✗ registry  .specval/data/services.yaml:3 NumberEngine has no valid layer'
 
 # A registry that is a list, not a mapping, is a doctor failure.
 cp $WORK/listservices.yaml .specval/data/services.yaml
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^✗ registry  data.project.services must be a mapping of service names to layers$'
-exits 1 specval doctor --format json
+exits 1 sv doctor --format json
 stdout '"ok": false'
 cp $WORK/services.yaml .specval/data/services.yaml
 
 # A policy that does not compile is a doctor failure.
 cp $WORK/broken.rego .specval/policy/broken.rego
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^✗ rules     .specval/policy/broken.rego:4: rego_parse_error: unexpected eof token$'
 stdout '^! registry  specval cannot check the registry until the rules load$'
 rm .specval/policy/broken.rego
 
-# A skill that no longer runs specval context is a warning.
+# A skill that no longer runs sv context is a warning.
 cp $WORK/oldskill.md .claude/skills/spec/SKILL.md
-exits 0 specval doctor
-stdout '^! skill     .claude/skills/spec/SKILL.md no longer tells Claude to run `specval context`$'
+exits 0 sv doctor
+stdout '^! skill     .claude/skills/spec/SKILL.md no longer tells Claude to run `sv context`$'
 rm .claude/skills/spec/SKILL.md
-exits 0 specval doctor
+exits 0 sv doctor
 stdout '^! skill     .claude/skills/spec/SKILL.md is missing, so Claude '
 
 # A matcher that misses a write tool is a warning.
 cp $WORK/narrow.json .claude/settings.json
-exits 0 specval doctor
+exits 0 sv doctor
 stdout '^! hook      matcher "Write" in .claude/settings.json does not match Edit, MultiEdit$'
 
 # disableAllHooks in any settings file is a failure.
 cp $WORK/disabled.json .claude/settings.local.json
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^✗ hook      disableAllHooks in .claude/settings.local.json turns off all hooks$'
 rm .claude/settings.local.json
 
 # A settings file that is not valid JSON is a failure.
 cp $WORK/badjson.json .claude/settings.local.json
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^✗ hook      .claude/settings.local.json is not valid JSON: '
 rm .claude/settings.local.json
 
 # No hook is a failure.
 rm .claude/settings.json
-exits 1 specval doctor
-stdout '^✗ hook      no PostToolUse hook runs `specval hook`, so '
+exits 1 sv doctor
+stdout '^✗ hook      no PostToolUse hook runs `sv hook`, so '
 
 # A missing specs, data, or policy directory is a warning.
 rm specs .specval/policy
-exits 1 specval doctor
+exits 1 sv doctor
 stdout '^! specs     specs does not exist$'
 stdout '^! policy    .specval/policy \(listed in .specval.yaml\) does not exist$'
 
 # Without a .specval.yaml, doctor fails at once.
 cd $WORK/elsewhere
-exits 1 specval doctor
-stdout '^✗ config    no .specval.yaml in .* or in a parent directory; run `specval init`$'
-stdout '^    fix: Run `specval init` in the project root.$'
+exits 1 sv doctor
+stdout '^✗ config    no .specval.yaml in .* or in a parent directory; run `sv init`$'
+stdout '^    fix: Run `sv init` in the project root.$'
 stdout '^1 failure\(s\), 0 warning\(s\).$'
 
 -- proj/.keep --
@@ -119,7 +119,7 @@ deny contains f if {
 -- oldskill.md --
 Write the spec. Then write the code.
 -- narrow.json --
-{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"type": "command", "command": "specval hook"}]}]}}
+{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"type": "command", "command": "sv hook"}]}]}}
 -- disabled.json --
 {"disableAllHooks": true}
 -- badjson.json --

@@ -1,22 +1,22 @@
 # Registry rules run one time for each check, against the data file.
-exits 1 specval check
+exits 1 sv check
 cmp stdout check.txt
 
 # A registry entry must be a mapping with a layer, not the name of a layer.
 cd strings
-exits 1 specval check
+exits 1 sv check
 cmp stdout $WORK/strings.txt
 cd $WORK
 
 # Two data files that define the same top-level key are an error.
 cp extra.yaml .specval/data/extra.yaml
-exits 2 specval check
-stderr '^specval: two data files define the key "services": .*/extra.yaml and .*/services.yaml$'
+exits 2 sv check
+stderr '^sv: two data files define the key "services": .*/extra.yaml and .*/services.yaml$'
 rm .specval/data/extra.yaml
 
 # A data file must be a mapping.
 cp list.yaml .specval/data/list.yaml
-exits 2 specval check
+exits 2 sv check
 stderr 'list.yaml: a data file must be a mapping'
 
 -- .specval.yaml --

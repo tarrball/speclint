@@ -1,13 +1,13 @@
 # Claude Code
 
 specval tells Claude Code to write a spec before it writes code, and checks
-each spec that Claude saves. `specval init` sets up two parts:
+each spec that Claude saves. `sv init` sets up two parts:
 
 - **A skill**, `.claude/skills/spec/SKILL.md`. It tells Claude to run
-  `specval context` while it plans, to write the spec, and to fix each finding
+  `sv context` while it plans, to write the spec, and to fix each finding
   before it starts the implementation.
 - **A hook** in `.claude/settings.json`. It makes Claude Code run
-  `specval hook` after each `Write`, `Edit`, or `MultiEdit`.
+  `sv hook` after each `Write`, `Edit`, or `MultiEdit`.
 
 If `.claude/settings.json` exists, `init` adds the hook to it and keeps the
 other settings. `init` writes the file again with its keys in sorted order.
@@ -15,7 +15,7 @@ other settings. `init` writes the file again with its keys in sorted order.
 ## What the hook does
 
 Claude Code sends the hook a JSON event on stdin. The event gives the path of
-the file that the tool wrote. `specval hook` then does these steps:
+the file that the tool wrote. `sv hook` then does these steps:
 
 1. It ignores a file that is not a spec. A file is a spec if it is a `.yaml`
    or `.yml` file in the specs directory of a specval project. For any other
@@ -24,7 +24,7 @@ the file that the tool wrote. `specval hook` then does these steps:
    it exits 1, for each `.yaml` or `.yml` file in the project.
 2. It checks the spec with the spec rules. It does not report the registry
    rules, because a registry problem is not a problem in the spec.
-   `specval check` and `specval doctor` report the registry.
+   `sv check` and `sv doctor` report the registry.
 3. It gives the result to Claude Code through its exit status:
 
 | Result | Exit status | What Claude Code does |
@@ -46,7 +46,7 @@ while a spec fails. specval does not include these hooks.
 
 ## Check the setup
 
-`specval doctor` checks each part of the setup and gives a fix for each
+`sv doctor` checks each part of the setup and gives a fix for each
 problem. Its exit status is 1 if a check fails. Use `--format json` to get
 the checks as JSON.
 
@@ -57,9 +57,9 @@ the checks as JSON.
 | data, policy | A data or policy path in `.specval.yaml` does not exist (warning). |
 | rules | A data file or a Rego file does not load, or a rule has no `custom.id`. |
 | registry | No services are registered (warning), the registry is not a mapping, or a registry rule fails. |
-| skill | The skill is missing, or it no longer tells Claude to run `specval context` (warning). |
-| hook | No `PostToolUse` hook runs `specval hook` in the project, local, or user settings; a settings file sets `disableAllHooks`; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |
-| path | `specval` is not on `PATH`, or it does not run. If the `specval` on `PATH` is not the binary that runs `doctor`, the check warns. |
+| skill | The skill is missing, or it no longer tells Claude to run `sv context` (warning). |
+| hook | No `PostToolUse` hook runs `sv hook` in the project, local, or user settings; a settings file sets `disableAllHooks`; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |
+| path | `sv` is not on `PATH`, it does not run, or it is another program with the name `sv`. If the `sv` on `PATH` is not the binary that runs `doctor`, the check warns. |
 
-To repair the setup, run `specval init` in the project root. It adds each
+To repair the setup, run `sv init` in the project root. It adds each
 missing part and does not change the other files.
