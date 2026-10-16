@@ -13,6 +13,14 @@ max_acceptance := object.get(limits, "max_acceptance", 5)
 
 max_words := object.get(data.project, ["ste", "max_words"], 25)
 
+# An acceptance criterion is one "Given ..., when ..., then ..." sentence
+# (PLN001), so it has a higher limit.
+max_words_acceptance := object.get(data.project, ["ste", "max_words_acceptance"], 40)
+
+word_limit(path) := max_words_acceptance if startswith(path, "acceptance[")
+
+else := max_words
+
 # words maps each word that STE002 refuses to its fix. The list is only in
 # .specval/data/plan.yaml. Without that data, STE002 checks no words.
 words := object.get(data.project, ["ste", "words"], {})
@@ -95,18 +103,20 @@ warn contains f if {
 }
 
 # METADATA
-# title: A bugfix or a chore does not add a service
-# description: A new service is a feature. A bugfix or a chore changes the services that exist.
+# title: A bugfix does not add a service
+# description: >-
+#   A bugfix changes the services that exist. A feature or a chore can add a service,
+#   for example a chore that moves code into a new manager.
 # custom:
 #   id: PLN003
 warn contains f if {
-	input.kind in {"bugfix", "chore"}
+	input.kind == "bugfix"
 	some i, s in new_list
 	f := lib.finding(
 		rego.metadata.rule(),
 		$"services.new[{i}]",
-		$"A {input.kind} adds the service {s.name}",
-		"Change the kind to feature, or make the change in the services that exist.",
+		$"A bugfix adds the service {s.name}",
+		"Make the fix in the services that exist. If the change needs a new service, change the kind to feature or chore.",
 	)
 }
 
@@ -128,19 +138,22 @@ warn contains f if {
 
 # METADATA
 # title: Each sentence is short
-# description: Each sentence in the text of a spec has 25 or fewer words (ASD-STE100).
+# description: >-
+#   Each sentence in the text of a spec has 25 or fewer words (ASD-STE100). A sentence
+#   in an acceptance criterion can have 40 words.
 # custom:
 #   id: STE001
 warn contains f if {
 	some path, text in texts
 	some sentence in regex.split(`[.!?](\s+|$)`, text)
 	n := word_count(sentence)
-	n > max_words
+	limit := word_limit(path)
+	n > limit
 	f := lib.finding(
 		rego.metadata.rule(),
 		path,
-		$"A sentence in {path} has {n} words, and the limit is {max_words}",
-		$"Divide the sentence into two or more sentences of {max_words} words or fewer.",
+		$"A sentence in {path} has {n} words, and the limit is {limit}",
+		$"Divide the sentence into two or more sentences of {limit} words or fewer.",
 	)
 }
 

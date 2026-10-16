@@ -9,6 +9,8 @@ plan:
 # ASD-STE100 (see docs/style.md). Each word maps to the fix for it.
 ste:
   max_words: 25
+  # An acceptance criterion is one Given/when/then sentence, so it can be longer.
+  max_words_acceptance: 40
   words:
     should: Use "must" for a requirement, or "can" for a possibility.
     etc.: Write each item of the list.

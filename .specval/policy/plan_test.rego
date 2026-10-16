@@ -5,7 +5,7 @@ import rego.v1
 
 project := {
 	"plan": {"max_calls": 2, "max_acceptance": 1},
-	"ste": {"max_words": 12, "words": {"should": "Use must.", "etc.": "Write each item."}},
+	"ste": {"max_words": 12, "max_words_acceptance": 20, "words": {"should": "Use must.", "etc.": "Write each item."}},
 }
 
 ac1 := {"id": "AC1", "text": "Given a spec, when Claude saves it, then the hook checks it."}
@@ -63,6 +63,13 @@ test_pln003_a_bugfix_adds_a_service if {
 	found == {["PLN003", "services.new[0]"]}
 }
 
+test_pln003_a_chore_can_add_a_service if {
+	# For example, a chore that moves code into a new manager.
+	manager := {"name": "CheckManager", "layer": "manager", "purpose": "P"}
+	s := spec({"kind": "chore", "services": {"new": [manager]}})
+	count(plan.warn) == 0 with input as s with data.project as project
+}
+
 test_pln004_a_feature_without_out_of_scope if {
 	feature := spec({"out_of_scope": []})
 	found := {[f.rule, f.path] | some f in plan.warn with input as feature with data.project as project}
@@ -77,6 +84,20 @@ test_ste001_a_long_sentence if {
 	s := spec({"summary": $"The hook checks a spec. {long}"})
 	found := {[f.rule, f.path] | some f in plan.warn with input as s with data.project as project}
 	found == {["STE001", "summary"]}
+}
+
+test_ste001_an_acceptance_criterion_has_a_higher_limit if {
+	# 16 words: more than max_words (12), but not more than max_words_acceptance (20).
+	ok := "Given a spec in the specs directory, when Claude saves it, then the hook checks it."
+	short := spec({"acceptance": [{"id": "AC1", "text": ok}]})
+	count(plan.warn) == 0 with input as short with data.project as project
+
+	# 22 words: more than max_words_acceptance.
+	given := "Given a spec in the specs directory of the project,"
+	long := $"{given} when Claude saves it with the Write tool, then the hook checks it."
+	s := spec({"acceptance": [{"id": "AC1", "text": long}]})
+	found := {[f.rule, f.path] | some f in plan.warn with input as s with data.project as project}
+	found == {["STE001", "acceptance[0].text"]}
 }
 
 test_ste002_words if {
