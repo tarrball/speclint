@@ -110,6 +110,7 @@ correct shape.
 | SV107 | error | One or more calls cover each acceptance criterion. |
 | SV108 | error | Each ID in `covers` is an acceptance criterion of the spec. |
 | SV109 | error | Each service in `services.changed` is registered. |
+| SV110 | error | Each name in `services.new` is there one time only. |
 | SV201 | warning | Each service in `services.changed` is in one or more calls. |
 
 specval also runs these rules on the service registry, one time for each

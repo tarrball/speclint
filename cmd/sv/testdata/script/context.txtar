@@ -77,4 +77,5 @@ The name of each service ends with the suffix of its layer: Manager, Engine, Acc
 - SV107 (error) A call implements each acceptance criterion: The ID of each acceptance criterion is in the `covers` list of one or more calls. Thus each acceptance criterion shows the services that implement it.
 - SV108 (error) Each call covers acceptance criteria of the spec: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
 - SV109 (error) Each changed service is in the registry: Each name in `services.changed` is in the registry.
+- SV110 (error) Each new service has a different name: Each name in `services.new` is there one time only.
 - SV201 (warning) Changed services take part in a call: Each service in `services.changed` is in one or more calls.
