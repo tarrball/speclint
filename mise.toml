@@ -5,8 +5,8 @@ opa = "1.21.2" # Keep in step with github.com/open-policy-agent/opa in go.mod.
 regal = "0.43.0"
 
 [tasks.build]
-description = "Build bin/specval"
-run = "go build -trimpath -ldflags '-s -w' -o bin/specval ./cmd/specval"
+description = "Build bin/sv"
+run = "go build -trimpath -ldflags '-s -w' -o bin/sv ./cmd/sv"
 
 [tasks.test]
 description = "Run all tests"

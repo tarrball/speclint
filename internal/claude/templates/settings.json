@@ -3,7 +3,7 @@
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
-        "hooks": [{ "type": "command", "command": "specval hook" }]
+        "hooks": [{ "type": "command", "command": "sv hook" }]
       }
     ]
   }

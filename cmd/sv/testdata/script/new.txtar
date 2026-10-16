@@ -1,38 +1,38 @@
 # new writes <specs dir>/<id>.yaml from the template and prints its path.
 cd proj
-exits 0 specval new ORD-1
+exits 0 sv new ORD-1
 stdout '^.*/specs/ORD-1.yaml$'
 cmp specs/ORD-1.yaml $WORK/want/ORD-1.yaml
 
 # Flags can come after the id. new quotes the title.
-exits 0 specval new BUG-2 --title 'Fix the "total" field' --kind bugfix
+exits 0 sv new BUG-2 --title 'Fix the "total" field' --kind bugfix
 cmp specs/BUG-2.yaml $WORK/want/BUG-2.yaml
 
 # new does not overwrite a spec.
-exits 2 specval new ORD-1
-stderr '^specval: .*/specs/ORD-1.yaml already exists$'
+exits 2 sv new ORD-1
+stderr '^sv: .*/specs/ORD-1.yaml already exists$'
 
 # The id must be one argument of letters, digits, '.', '_', and '-'.
-exits 2 specval new 'bad id'
-stderr '^specval: usage: specval new <id>; the id starts with a letter or a digit, and contains only letters, digits, ''.'', ''_'', and ''-''$'
-exits 2 specval new
-stderr '^specval: usage: specval new <id>'
-exits 2 specval new A B
-stderr '^specval: usage: specval new <id>'
+exits 2 sv new 'bad id'
+stderr '^sv: usage: sv new <id>; the id starts with a letter or a digit, and contains only letters, digits, ''.'', ''_'', and ''-''$'
+exits 2 sv new
+stderr '^sv: usage: sv new <id>'
+exits 2 sv new A B
+stderr '^sv: usage: sv new <id>'
 
 # The kind must be one of the kinds in the schema.
-exits 2 specval new X-1 --kind epic
-stderr '^specval: the kind "epic" is not valid; use one of: feature, bugfix, chore$'
+exits 2 sv new X-1 --kind epic
+stderr '^sv: the kind "epic" is not valid; use one of: feature, bugfix, chore$'
 ! exists specs/X-1.yaml
 
 # An unknown flag is a usage error.
-exits 2 specval new X --nope
+exits 2 sv new X --nope
 stderr 'flag provided but not defined: -nope'
 
 # Without a .specval.yaml, new exits 2.
 cd $WORK/elsewhere
-exits 2 specval new ORD-3
-stderr '^specval: no .specval.yaml in '
+exits 2 sv new ORD-3
+stderr '^sv: no .specval.yaml in '
 
 -- proj/.specval.yaml --
 -- elsewhere/.keep --

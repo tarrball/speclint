@@ -20,7 +20,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 - Use the same word for the same thing each time.
   A *spec* is always a spec, not a "document" in one place and a "file" in another.
 - Use the simplest common word. Write "use", not "utilize". Write "start", not "initiate".
-- Use technical names as they are: `specval check`, `data.project`, `SV101`.
+- Use technical names as they are: `sv check`, `data.project`, `SV101`.
 - Do not use a noun cluster of more than three words.
   Write "the rules for the service registry", not "service registry rule set".
 - Use "a", "an", and "the". Do not leave them out to make a sentence shorter.
@@ -38,7 +38,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 - Keep an instruction to 20 words or fewer. Keep a description to 25 words or fewer.
 - Give one instruction in each sentence.
-- Write instructions in the imperative: "Run `specval init`."
+- Write instructions in the imperative: "Run `sv init`."
 - Put a condition before the instruction: "If the hook does not run, examine the PATH."
 - Keep a paragraph to one topic and six sentences or fewer.
 - Use a vertical list for a sequence of steps or a set of items.
@@ -62,7 +62,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 ### Layout
 
-- Put the `main` package in `cmd/specval`. Keep it small: it calls into `internal/`.
+- Put the `main` package in `cmd/sv`. Keep it small: it calls into `internal/`.
 - Put all other code in packages under `internal/`. Give each package one purpose.
 - Do not make a package named `util`, `common`, or `helpers`.
 
@@ -82,7 +82,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 ### Input and output
 
-- Do not use `os.Stdout`, `os.Stderr`, `os.Stdin`, `os.Getwd`, or `os.Exit` outside `cmd/specval`.
+- Do not use `os.Stdout`, `os.Stderr`, `os.Stdin`, `os.Getwd`, or `os.Exit` outside `cmd/sv`.
   Pass an `io.Writer`, an `io.Reader`, or a directory as a parameter.
   This lets a test supply its own values.
 - Use `0o644` for files and `0o755` for directories that specval creates.
@@ -110,7 +110,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 A `//nolint` directive must name the linter and give a reason:
 
 ```go
-//nolint:gosec // This check must run the specval binary that is on PATH.
+//nolint:gosec // This check must run the sv binary that is on PATH.
 ```
 
 ## Rego

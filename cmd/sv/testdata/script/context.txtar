@@ -1,25 +1,25 @@
 # context prints the format, layers, registry, and rules for an agent.
 cd $EXAMPLES/refund
-exits 0 specval context
+exits 0 sv context
 cmp stdout $WORK/refund.txt
 ! stderr .
 
 # With an empty registry, context says so.
 cd $WORK/empty
-exits 0 specval context
+exits 0 sv context
 stdout '^## Registered services\n\(none\)$'
 
 # context lists a registered service that has no valid layer on its own line.
 # The registry rules report that service.
 cd $WORK/numberlayer
-exits 0 specval context
+exits 0 sv context
 stdout '^- manager: OrderManager$'
 stdout '^- no valid layer: NumberEngine, StringAccessor$'
 
 # Without a .specval.yaml, context exits 2.
 cd $WORK
-exits 2 specval context
-stderr '^specval: no .specval.yaml in '
+exits 2 sv context
+stderr '^sv: no .specval.yaml in '
 
 -- empty/.specval.yaml --
 -- numberlayer/.specval.yaml --
@@ -31,7 +31,7 @@ services:
 -- refund.txt --
 # Spec rules (specval)
 
-Each change needs a spec at specs/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `specval new <id>`. To check a spec, run `specval check <file>`. Each finding has a fix.
+Each change needs a spec at specs/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `sv new <id>`. To check a spec, run `sv check <file>`. Each finding has a fix.
 
 ## Format
 ```yaml
@@ -67,7 +67,7 @@ The name of each service ends with the suffix of its layer: Manager, Engine, Acc
 
 ## Rules
 - ORD001 (error) Only OrderManager calls PricingEngine: One service controls pricing, so that all discounts apply in the same way.
-- SV001 (error) The spec matches the schema: The spec has the fields, the field names, and the value types that the schema (`specval schema`) gives. The other rules run only after this rule passes.
+- SV001 (error) The spec matches the schema: The spec has the fields, the field names, and the value types that the schema (`sv schema`) gives. The other rules run only after this rule passes.
 - SV101 (error) Calls use known services: The `from` and the `to` of each call are registered services or services in `services.new`.
 - SV102 (error) Calls follow the layer rules: A service can call only the layers that its layer can call (see Layers).
 - SV103 (error) Each new service has the suffix of its layer: The name of a new service ends with the suffix of its layer (Manager, Engine, Accessor, or Resource).

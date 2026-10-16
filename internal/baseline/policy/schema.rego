@@ -14,7 +14,7 @@ hints := data.dpl.schema_hints
 # title: The spec matches the schema
 # description: >-
 #   The spec has the fields, the field names, and the value types that the schema
-#   (`specval schema`) gives. The other rules run only after this rule passes.
+#   (`sv schema`) gives. The other rules run only after this rule passes.
 # custom:
 #   id: SV001
 deny contains f if {
@@ -55,4 +55,4 @@ fix(e) := msg if {
 } else := msg if {
 	hint := hints[norm(e.field)]
 	msg := $"Correct the value of `{display(e.field)}`. {hint}"
-} else := "Run `specval schema` to see the correct format."
+} else := "Run `sv schema` to see the correct format."

@@ -4,13 +4,13 @@
 # - The registry has NoLayerEngine with no layer, and NumberEngine with a layer
 #   that is not a string. SR001 reports both. SV104 reports only NumberEngine,
 #   because NoLayerEngine has no layer to show. SV102 reports neither call.
-exits 1 specval check
+exits 1 sv check
 cmp stdout check.txt
 
 # A registry that is a list, not a mapping, fails SR003. SV101 has no
 # suggestions to give, so it does not report the unknown services.
 cd list
-exits 1 specval check
+exits 1 sv check
 cmp stdout $WORK/list.txt
 
 -- .specval.yaml --

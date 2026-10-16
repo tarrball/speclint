@@ -37,7 +37,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 	}
 	w := env.Stdout
 
-	fmt.Fprintf(w, "# Spec rules (specval)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `specval new <id>`. To check a spec, run `specval check <file>`. Each finding has a fix.\n\n", cfg.SpecsDir)
+	fmt.Fprintf(w, "# Spec rules (specval)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `sv new <id>`. To check a spec, run `sv check <file>`. Each finding has a fix.\n\n", cfg.SpecsDir)
 	fmt.Fprintf(w, "## Format\n```yaml\n%s```\n\n", baseline.Format())
 
 	fmt.Fprint(w, "## Layers\nEach layer can call only the layers after its arrow.\n")

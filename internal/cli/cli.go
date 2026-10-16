@@ -23,23 +23,23 @@ const (
 const usage = `specval checks change specs against architecture rules before you write code.
 
 Usage:
-  specval check [--format text|json] [--strict] [files...]
+  sv check [--format text|json] [--strict] [files...]
         Check the given specs, or each spec in the specs directory.
         The exit status is 1 if a spec has an error, or a warning with --strict.
-  specval context
+  sv context
         Print the spec format, the layers, the registry, and the rules.
         An agent reads this text before it writes a spec.
-  specval new <id> [--kind feature|bugfix|chore] [--title "..."]
+  sv new <id> [--kind feature|bugfix|chore] [--title "..."]
         Make the spec <specs dir>/<id>.yaml from the template.
-  specval schema
+  sv schema
         Print the JSON Schema of a spec.
-  specval init
+  sv init
         Set up specval, the Claude Code skill, and the hook in this directory.
         You can run it again. It adds only the parts that are missing.
-  specval doctor [--format text|json]
+  sv doctor [--format text|json]
         Check the setup: the configuration, the rules, the registry, the
-        Claude Code skill and hook, and the specval binary on PATH.
-  specval hook
+        Claude Code skill and hook, and the sv binary on PATH.
+  sv hook
         Claude Code runs this command after each file write. Do not run it yourself.
         If the file is a spec, specval checks it and sends the errors to Claude.
 `
@@ -106,7 +106,7 @@ func runCommand(ctx context.Context, args []string, env *Env) exitCode {
 		return exitError
 	}
 	if err != nil {
-		fmt.Fprintln(env.Stderr, "specval:", err)
+		fmt.Fprintln(env.Stderr, "sv:", err)
 		if code == exitOK {
 			code = exitError
 		}
@@ -197,7 +197,7 @@ func newFlagSet(name string, env *Env) *flag.FlagSet {
 	fl := flag.NewFlagSet(name, flag.ContinueOnError)
 	fl.SetOutput(env.Stderr)
 	fl.Usage = func() {
-		fmt.Fprintf(fl.Output(), "Usage: specval %s %s\n", name, synopses[name])
+		fmt.Fprintf(fl.Output(), "Usage: sv %s %s\n", name, synopses[name])
 		fl.PrintDefaults()
 	}
 	return fl

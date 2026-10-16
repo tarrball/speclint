@@ -8,7 +8,7 @@ specval checks the spec against a layered architecture and against the rules
 of your project. Each finding tells you how to fix it.
 
 ```
-$ specval check specs/ORD-143.yaml
+$ sv check specs/ORD-143.yaml
 specs/ORD-143.yaml:8 error SV107 No call covers AC2 (acceptance[1])
     fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
 specs/ORD-143.yaml:10 error SV109 ShippingManager is not a registered service (services.changed[1])
@@ -33,18 +33,18 @@ Claude saves it, and sends the findings back to Claude.
 specval needs Go 1.26 or later.
 
 ```
-go install github.com/tarrball/specval/cmd/specval@latest
+go install github.com/tarrball/specval/cmd/sv@latest
 ```
 
 Make sure that the Go bin directory is on your `PATH`. The Claude Code hook
-runs the `specval` that is on `PATH`.
+runs the `sv` that is on `PATH`.
 
 ## Quick start
 
 1. In the root of your repository, set up specval:
 
    ```
-   specval init
+   sv init
    ```
 
    This writes `.specval.yaml`, the service registry, a file for project rules,
@@ -62,13 +62,13 @@ runs the `specval` that is on `PATH`.
 3. Make a spec for a ticket, then write its content:
 
    ```
-   specval new ORD-150 --title "Customer can cancel an order"
+   sv new ORD-150 --title "Customer can cancel an order"
    ```
 
 4. Check the spec:
 
    ```
-   specval check
+   sv check
    ```
 
 5. When you implement the change, add its new services to the registry.
@@ -78,7 +78,7 @@ runs the `specval` that is on `PATH`.
 6. Make sure that the setup works:
 
    ```
-   specval doctor
+   sv doctor
    ```
 
 For a complete project, see [`examples/refund`](examples/refund). It has one
@@ -89,13 +89,13 @@ breaks the schema.
 
 | Command | What it does |
 |---|---|
-| `specval check [files...]` | Checks the given specs, or each spec in the specs directory. Use `--format json` for JSON output, and `--strict` to fail on warnings. |
-| `specval new <id>` | Makes `<specs dir>/<id>.yaml` from the template. Use `--kind` and `--title` to set those fields. |
-| `specval context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
-| `specval schema` | Prints the JSON Schema of a spec. |
-| `specval init` | Sets up specval, the skill, and the hook. You can run it again to restore a missing part. |
-| `specval doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
-| `specval hook` | Claude Code runs this command after each file write. Do not run it yourself. |
+| `sv check [files...]` | Checks the given specs, or each spec in the specs directory. Use `--format json` for JSON output, and `--strict` to fail on warnings. |
+| `sv new <id>` | Makes `<specs dir>/<id>.yaml` from the template. Use `--kind` and `--title` to set those fields. |
+| `sv context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
+| `sv schema` | Prints the JSON Schema of a spec. |
+| `sv init` | Sets up specval, the skill, and the hook. You can run it again to restore a missing part. |
+| `sv doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
+| `sv hook` | Claude Code runs this command after each file write. Do not run it yourself. |
 
 | Exit status | Meaning |
 |---|---|
@@ -107,6 +107,6 @@ breaks the schema.
 
 - [docs/specs.md](docs/specs.md): the spec format and the built-in rules.
 - [docs/rules.md](docs/rules.md): how to add project data and project rules.
-- [docs/claude-code.md](docs/claude-code.md): the skill, the hook, and `specval doctor`.
+- [docs/claude-code.md](docs/claude-code.md): the skill, the hook, and `sv doctor`.
 - [docs/architecture.md](docs/architecture.md): how specval works inside.
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to build, test, and change specval.

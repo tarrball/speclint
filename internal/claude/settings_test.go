@@ -22,8 +22,8 @@ func writeFile(t *testing.T, path, content string) {
 
 func TestSkillRunsSpecvalContext(t *testing.T) {
 	// doctor uses this text to tell that the skill is the specval skill.
-	if !strings.Contains(Skill("specs"), "specval context") {
-		t.Error("the skill does not tell Claude to run `specval context`")
+	if !strings.Contains(Skill("specs"), "sv context") {
+		t.Error("the skill does not tell Claude to run `sv context`")
 	}
 }
 
@@ -43,14 +43,19 @@ func TestInspectSettings(t *testing.T) {
 		},
 		{
 			"pretooluse.json",
-			`{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`,
+			`{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [{"command": "sv hook"}]}]}}`,
 			HookStatus{Exists: true},
 		},
 		{
 			"found.json",
 			`{"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"command": "echo"}]},
-			  {"matcher": "Write|Edit", "hooks": [{"command": "/usr/local/bin/specval hook"}]}]}}`,
+			  {"matcher": "Write|Edit", "hooks": [{"command": "/usr/local/bin/sv hook"}]}]}}`,
 			HookStatus{Exists: true, Found: true, Matcher: "Write|Edit"},
+		},
+		{
+			"old.json",
+			`{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`,
+			HookStatus{Exists: true, Old: true},
 		},
 	} {
 		path := filepath.Join(dir, c.name)

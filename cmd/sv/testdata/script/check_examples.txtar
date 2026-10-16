@@ -1,29 +1,29 @@
 # check runs every spec in the specs directory and exits 1 if one has an error.
 cd $EXAMPLES/refund
-exits 1 specval check
+exits 1 sv check
 cmp stdout $WORK/all.txt
 ! stderr .
 
 # The JSON format has the same findings.
-exits 1 specval check --format json
+exits 1 sv check --format json
 cmp stdout $WORK/all.json
 
 # check takes spec files as arguments. A passing spec exits 0.
-exits 0 specval check specs/ORD-142.yaml
+exits 0 sv check specs/ORD-142.yaml
 cmp stdout $WORK/one.txt
 
 # Flags can come after the file arguments.
-exits 1 specval check specs/ORD-144.yaml --format json
+exits 1 sv check specs/ORD-144.yaml --format json
 stdout '"rule": "SV001"'
 
 # An unknown format is a usage error.
-exits 2 specval check --format yaml
+exits 2 sv check --format yaml
 ! stdout .
 stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
-! stderr '^specval:'
+! stderr '^sv:'
 
 # A missing spec file is an error.
-exits 2 specval check specs/nope.yaml
+exits 2 sv check specs/nope.yaml
 stderr 'specs/nope.yaml: open .*specs/nope.yaml: no such file or directory'
 
 -- one.txt --

@@ -17,7 +17,7 @@ func cmdNew(env *Env, args []string) error {
 		return err
 	}
 	if len(pos) != 1 || !scaffold.ValidID(pos[0]) {
-		return errors.New("usage: specval new <id>; the id starts with a letter or a digit, and contains only letters, digits, '.', '_', and '-'")
+		return errors.New("usage: sv new <id>; the id starts with a letter or a digit, and contains only letters, digits, '.', '_', and '-'")
 	}
 	dir, err := env.workDir()
 	if err != nil {

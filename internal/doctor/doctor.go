@@ -46,7 +46,7 @@ type Env struct {
 	Executable string
 }
 
-const repair = "Run `specval init` in the project root. It adds the missing parts and does not change the other files."
+const repair = "Run `sv init` in the project root. It adds the missing parts and does not change the other files."
 
 // Run checks the project that contains env.Dir. It returns the checks in
 // this order: config, specs, data and policy paths, rules, registry, skill,
@@ -54,7 +54,7 @@ const repair = "Run `specval init` in the project root. It adds the missing part
 func Run(ctx context.Context, env Env) []Check {
 	cfg, err := config.Find(env.Dir)
 	if err != nil {
-		return []Check{{StatusFail, "config", err.Error(), "Run `specval init` in the project root."}}
+		return []Check{{StatusFail, "config", err.Error(), "Run `sv init` in the project root."}}
 	}
 	c := &checker{env: env, cfg: cfg}
 	c.add(StatusOK, "config", filepath.Join(cfg.Root, config.FileName), "")
@@ -123,7 +123,7 @@ func (c *checker) checkPaths() {
 func (c *checker) checkRules(ctx context.Context) *policy.Engine {
 	eng, err := policy.New(ctx, c.cfg)
 	if err != nil {
-		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `specval check` fails.")
+		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `sv check` fails.")
 		return nil
 	}
 	docs := eng.RuleDocs()
@@ -176,7 +176,7 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	}
 	// A registry warning does not fail check, so it does not fail doctor.
 	if len(problems) > 0 {
-		c.add(status, "registry", strings.Join(problems, "; "), "Run `specval check` to see the fix for each problem.")
+		c.add(status, "registry", strings.Join(problems, "; "), "Run `sv check` to see the fix for each problem.")
 	} else {
 		c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s", len(services), c.rel(eng.DataFile("services"))), "")
 	}
@@ -196,7 +196,7 @@ func (c *checker) registryFile(eng *policy.Engine) string {
 }
 
 // checkSkill makes sure that the project or the user has the specval skill,
-// and that the skill still tells Claude to run `specval context`. Claude Code
+// and that the skill still tells Claude to run `sv context`. Claude Code
 // reads the skill from the project first, then from the home directory.
 func (c *checker) checkSkill() {
 	paths := []string{filepath.Join(c.cfg.Root, claude.SkillPath)}
@@ -218,14 +218,14 @@ func (c *checker) checkSkill() {
 	switch {
 	case err != nil:
 		c.add(StatusFail, "skill", c.relText(err.Error()), "Make sure that specval can read the skill.")
-	case !strings.Contains(string(b), "specval context"):
-		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `specval context`", "Delete it, then run `specval init` to write it again from the template.")
+	case !strings.Contains(string(b), "sv context"):
+		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `sv context`", "Delete it, then run `sv init` to write it again from the template.")
 	default:
 		c.add(StatusOK, "skill", c.rel(skill), "")
 	}
 }
 
-// checkHook makes sure that a settings file runs `specval hook` after each
+// checkHook makes sure that a settings file runs `sv hook` after each
 // file write, and that no settings file turns hooks off. Claude Code reads
 // the project settings, the local project settings, and then the user
 // settings.
@@ -234,7 +234,7 @@ func (c *checker) checkHook() {
 	if c.env.Home != "" {
 		paths = append(paths, filepath.Join(c.env.Home, claude.SettingsPath))
 	}
-	var hookFile, disabledIn string
+	var hookFile, oldFile, disabledIn string
 	var hook claude.HookStatus
 	for _, p := range paths {
 		st, err := claude.InspectSettings(p)
@@ -248,10 +248,17 @@ func (c *checker) checkHook() {
 		if st.Found && hookFile == "" {
 			hookFile, hook = p, st
 		}
+		if st.Old && oldFile == "" {
+			oldFile = p
+		}
 	}
 	switch {
+	case hookFile == "" && oldFile != "":
+		c.add(StatusFail, "hook", "the hook in "+c.rel(oldFile)+" runs `specval hook`, but the command is now `sv hook`",
+			"Change the command of the hook to `sv hook`.")
+		return
 	case hookFile == "":
-		c.add(StatusFail, "hook", "no PostToolUse hook runs `specval hook`, so specval does not check the specs that Claude writes", repair)
+		c.add(StatusFail, "hook", "no PostToolUse hook runs `sv hook`, so specval does not check the specs that Claude writes", repair)
 		return
 	case disabledIn != "":
 		c.add(StatusFail, "hook", "disableAllHooks in "+c.rel(disabledIn)+" turns off all hooks", "Remove disableAllHooks from that file.")
@@ -272,18 +279,25 @@ func (c *checker) checkHook() {
 }
 
 // checkPath makes sure that the hook can run specval. The hook runs the
-// specval that is on PATH, which can be different from the one that runs
-// doctor.
+// sv that is on PATH, which can be different from the one that runs doctor.
+// Another program can also have the name sv, for example the sv of runit.
 func (c *checker) checkPath(ctx context.Context) {
-	onPath, err := exec.LookPath("specval")
+	onPath, err := exec.LookPath("sv")
 	if err != nil {
-		c.add(StatusFail, "path", "specval is not on PATH, so Claude Code cannot run `specval hook`",
-			"Put the specval binary in a directory on the PATH that Claude Code uses.")
-	} else if out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput(); err != nil { //nolint:gosec // This check must run the specval binary that is on PATH.
+		c.add(StatusFail, "path", "sv is not on PATH, so Claude Code cannot run `sv hook`",
+			"Put the sv binary in a directory on the PATH that Claude Code uses.")
+		return
+	}
+	out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput() //nolint:gosec // This check must run the sv binary that is on PATH.
+	switch {
+	case err != nil:
 		c.add(StatusFail, "path", fmt.Sprintf("%s does not run: %v %s", onPath, err, strings.TrimSpace(string(out))), "Install specval again.")
-	} else if !sameFile(c.env.Executable, onPath) {
+	case !strings.Contains(string(out), "sv hook"):
+		c.add(StatusFail, "path", onPath+" is not specval; another program has the name sv",
+			"Put the directory of the specval sv binary before the directory of the other sv on PATH.")
+	case !sameFile(c.env.Executable, onPath):
 		c.add(StatusWarn, "path", fmt.Sprintf("the hook will run %s, but you ran %s", onPath, c.env.Executable), "Make sure that they are the same version, or change PATH.")
-	} else {
+	default:
 		c.add(StatusOK, "path", onPath, "")
 	}
 }

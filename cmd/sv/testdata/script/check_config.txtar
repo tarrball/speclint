@@ -1,17 +1,17 @@
 # Without a .specval.yaml here or in a parent, check exits 2.
-exits 2 specval check
+exits 2 sv check
 ! stdout .
-stderr '^specval: no .specval.yaml in .* or in a parent directory; run `specval init`$'
+stderr '^sv: no .specval.yaml in .* or in a parent directory; run `sv init`$'
 
 # check finds .specval.yaml in a parent directory, and uses its specs_dir.
 cd project/sub
-exits 0 specval check
+exits 0 sv check
 cmp stdout $WORK/check.txt
 
 # A .specval.yaml that is not valid YAML is an error.
 cd $WORK/broken
-exits 2 specval check
-stderr '^specval: .*broken/.specval.yaml: yaml: '
+exits 2 sv check
+stderr '^sv: .*broken/.specval.yaml: yaml: '
 
 -- project/.specval.yaml --
 specs_dir: changes
