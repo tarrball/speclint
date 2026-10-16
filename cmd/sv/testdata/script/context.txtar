@@ -16,12 +16,26 @@ exits 0 sv context
 stdout '^- manager: OrderManager$'
 stdout '^- no valid layer: NumberEngine, StringAccessor$'
 
+# context lists the limits of the registry.
+cd $WORK/limits
+exits 0 sv context
+stdout '^These limits make the layer rules stricter:$'
+stdout '^- ConfigUtility can call only: nothing$'
+stdout '^- PricingEngine can be called only by: OrderManager, manager$'
+! stdout 'OrderManager can'
+
 # Without a .specval.yaml, context exits 2.
 cd $WORK
 exits 2 sv context
 stderr '^sv: no .specval.yaml in '
 
 -- empty/.specval.yaml --
+-- limits/.specval.yaml --
+-- limits/.specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  PricingEngine: { layer: engine, called_by: [OrderManager, manager] }
+  ConfigUtility: { layer: utility, may_call: [] }
 -- numberlayer/.specval.yaml --
 -- numberlayer/.specval/data/services.yaml --
 services:
@@ -81,4 +95,5 @@ A service in these layers has no suffix: client, utility.
 - SV108 (error) Each call covers acceptance criteria of the spec: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
 - SV109 (error) Each changed service is in the registry: Each name in `services.changed` is in the registry.
 - SV110 (error) Each new service has a different name: Each name in `services.new` is there one time only.
+- SV111 (error) Calls follow the limits in the registry: A registry entry can limit the calls of a service with `may_call`, and the callers of a service with `called_by`. Each value is a layer or a service. A limit makes the layer rules stricter. It cannot permit more calls.
 - SV201 (warning) Changed services take part in a call: Each service in `services.changed` is in one or more calls.

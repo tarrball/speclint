@@ -3,6 +3,9 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -85,6 +88,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 	if len(registry) == 0 {
 		fmt.Fprint(w, "(none)\n")
 	}
+	printLimits(w, registry)
 
 	fmt.Fprint(w, "\n## Rules\n")
 	for _, d := range eng.RuleDocs() {
@@ -95,4 +99,29 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 		fmt.Fprintf(w, "- %s (%s) %s%s\n", d.ID, d.Severity, d.Title, desc)
 	}
 	return nil
+}
+
+// printLimits writes the limits of the registry. A value in a limit is a
+// layer or a service.
+func printLimits(w io.Writer, registry map[string]policy.Service) {
+	var lines []string
+	for _, name := range slices.Sorted(maps.Keys(registry)) {
+		s := registry[name]
+		if s.MayCall != nil {
+			lines = append(lines, fmt.Sprintf("- %s can call only: %s", name, listOrNothing(s.MayCall)))
+		}
+		if s.CalledBy != nil {
+			lines = append(lines, fmt.Sprintf("- %s can be called only by: %s", name, listOrNothing(s.CalledBy)))
+		}
+	}
+	if len(lines) > 0 {
+		fmt.Fprintf(w, "\nThese limits make the layer rules stricter:\n%s\n", strings.Join(lines, "\n"))
+	}
+}
+
+func listOrNothing(xs []string) string {
+	if len(xs) == 0 {
+		return "nothing"
+	}
+	return strings.Join(xs, ", ")
 }

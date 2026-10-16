@@ -75,8 +75,9 @@ rules do not permit.
 ### 2. The baseline layer model
 
 - [x] Add the client and utility layers.
-- [ ] Add `may_call` and `called_by` to registry entries, with a spec rule and a registry rule.
-- [ ] Update `sv context`, the docs, and the rule tables.
+- [x] Add `may_call` and `called_by` to registry entries, with a spec rule (SV111) and
+      registry rules (SR005, SR006).
+- [x] Update `sv context`, the docs, and the rule tables.
 
 ### 3. Start dogfooding
 

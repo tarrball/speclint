@@ -93,6 +93,27 @@ layers in its row.
   It calls a manager, and the manager does the orchestration.
 - A utility is a service that each layer can use, for example logging.
 
+### Limits for one service
+
+A registry entry can make the layer rules stricter for one service:
+
+- `may_call` lists the services that the service can call.
+- `called_by` lists the services that can call the service.
+
+Each value is a layer or a registered service. An empty list permits no
+service. For example, other utilities can call `ConfigUtility`, but it cannot
+call a utility:
+
+```yaml
+services:
+  ConfigUtility: { layer: utility, may_call: [] }
+  AuditUtility: { layer: utility, called_by: [manager] }
+```
+
+A limit cannot permit a call that the layer rules do not permit. SV111
+reports a call that a limit refuses. A new service in `services.new` has no
+limits.
+
 The service registry, `.specval/data/services.yaml`, gives the layer of each
 service that exists. A spec gives the layer of each new service in
 `services.new`.
@@ -117,6 +138,7 @@ correct shape.
 | SV108 | error | Each ID in `covers` is an acceptance criterion of the spec. |
 | SV109 | error | Each service in `services.changed` is registered. |
 | SV110 | error | Each name in `services.new` is there one time only. |
+| SV111 | error | Each call follows the limits in the registry (`may_call` and `called_by`). |
 | SV201 | warning | Each service in `services.changed` is in one or more calls. |
 
 specval also runs these rules on the service registry, one time for each
@@ -128,6 +150,8 @@ specval also runs these rules on the service registry, one time for each
 | SR002 | error | The name of each registered service ends with the suffix of its layer. |
 | SR003 | error | The registry is a mapping from service names to entries. |
 | SR004 | error | Each entry in the registry is a mapping with a layer, for example `{ layer: manager }`. |
+| SR005 | error | Each limit (`may_call` or `called_by`) is a list of layers and registered services. |
+| SR006 | warning | A limit does not permit a call that the layer rules do not permit. |
 
 `sv context` prints the spec rules with their full descriptions. To add
 rules for your project, see [rules.md](rules.md).

@@ -94,6 +94,31 @@ unknown_fix(name, action) := concat(" ", [
 	names := concat(", ", suggestions(name))
 }
 
+# permits is true if list has the service name or the layer of the service.
+permits(list, name) if name in list
+
+permits(list, name) if layer_of(name) in list
+
+# follows_layers is true if the layer rules permit the call. SV111 checks
+# only these calls, so that SV102 and SV111 do not report the same call.
+follows_layers(c) if {
+	from := layer_of(c.from)
+	to := layer_of(c.to)
+	to in object.get(layers, from, [])
+}
+
+# limit_fix tells how to fix a call that a limit in the registry refuses.
+limit_fix(subject, verb, list, key, owner) := msg if {
+	count(list) > 0
+	names := lib.join(list, "or")
+	msg := $"{subject} {verb} {names}. Change the call, or ask the owners of the registry to change {key} of {owner}."
+}
+
+limit_fix(subject, _, list, key, owner) := msg if {
+	count(list) == 0
+	msg := $"{subject} has an empty {key}. Remove the call, or ask the owners of the registry to change {key} of {owner}."
+}
+
 # METADATA
 # title: Calls use known services
 # description: The `from` and the `to` of each call are registered services or services in `services.new`.
@@ -262,6 +287,50 @@ deny contains f if {
 		$"services.new[{i}].name",
 		$"{s.name} is in services.new more than one time",
 		"Remove this entry, or give the service a different name.",
+	)
+}
+
+# METADATA
+# title: Calls follow the limits in the registry
+# description: >-
+#   A registry entry can limit the calls of a service with `may_call`, and the
+#   callers of a service with `called_by`. Each value is a layer or a service.
+#   A limit makes the layer rules stricter. It cannot permit more calls.
+# custom:
+#   id: SV111
+deny contains f if {
+	some i, c in calls
+	follows_layers(c)
+	allowed := registry[c.from].may_call
+	is_array(allowed)
+	not permits(allowed, c.to)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"calls[{i}]",
+		$"{c.from} cannot call {c.to}, because may_call of {c.from} in the registry does not permit it",
+		limit_fix(c.from, "can call only", allowed, "may_call", c.from),
+	)
+}
+
+# METADATA
+# title: Calls follow the limits in the registry
+# description: >-
+#   A registry entry can limit the calls of a service with `may_call`, and the
+#   callers of a service with `called_by`. Each value is a layer or a service.
+#   A limit makes the layer rules stricter. It cannot permit more calls.
+# custom:
+#   id: SV111
+deny contains f if {
+	some i, c in calls
+	follows_layers(c)
+	allowed := registry[c.to].called_by
+	is_array(allowed)
+	not permits(allowed, c.from)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"calls[{i}]",
+		$"{c.from} cannot call {c.to}, because called_by of {c.to} in the registry does not permit it",
+		limit_fix(c.to, "can be called only by", allowed, "called_by", c.to),
 	)
 }
 

@@ -274,3 +274,61 @@ test_sv110_a_new_service_name_two_times if {
 		["SV103", "services.new[1].name"],
 	}
 }
+
+# limited is a registry with limits for some services.
+limited := {"services": {
+	"OrderManager": {"layer": "manager"},
+	"BillingManager": {"layer": "manager", "may_call": ["accessor", "LogUtility"]},
+	"PricingEngine": {"layer": "engine", "called_by": ["OrderManager"]},
+	"OrderAccessor": {"layer": "accessor"},
+	"ConfigUtility": {"layer": "utility", "may_call": []},
+	"LogUtility": {"layer": "utility"},
+	"AuditUtility": {"layer": "utility", "called_by": ["manager"]},
+}}
+
+test_sv111_calls_that_the_limits_permit if {
+	s := spec({"calls": [
+		call("OrderManager", "PricingEngine"), # PricingEngine: called_by OrderManager
+		call("LogUtility", "ConfigUtility"), # the may_call of ConfigUtility limits only its own calls
+		call("BillingManager", "OrderAccessor"), # a layer in may_call
+		call("BillingManager", "LogUtility"), # a service in may_call
+		call("OrderManager", "AuditUtility"), # a layer in called_by
+	]})
+	count([f | some f in dpl.deny with input as s with data.project as limited; f.rule == "SV111"]) == 0
+}
+
+test_sv111_calls_that_the_limits_refuse if {
+	s := spec({"calls": [
+		call("ConfigUtility", "LogUtility"), # an empty may_call
+		call("BillingManager", "PricingEngine"), # not in may_call, and not in called_by
+		call("LogUtility", "AuditUtility"), # a utility is not in called_by
+		call("BillingManager", "ConfigUtility"), # not in may_call
+	]})
+	paths := {f.path | some f in dpl.deny with input as s with data.project as limited; f.rule == "SV111"}
+	paths == {"calls[0]", "calls[1]", "calls[2]", "calls[3]"}
+}
+
+test_sv111_fixes if {
+	s := spec({"calls": [call("BillingManager", "PricingEngine"), call("ConfigUtility", "LogUtility")]})
+	fixes := {f.fix | some f in dpl.deny with input as s with data.project as limited; f.rule == "SV111"}
+	owners := "ask the owners of the registry to change"
+	fixes == {
+		$"BillingManager can call only accessor or LogUtility. Change the call, or {owners} may_call of BillingManager.",
+		$"PricingEngine can be called only by OrderManager. Change the call, or {owners} called_by of PricingEngine.",
+		$"ConfigUtility has an empty may_call. Remove the call, or {owners} may_call of ConfigUtility.",
+	}
+}
+
+test_sv111_does_not_repeat_sv102 if {
+	# The layer rules refuse a call from a utility to a manager, so only SV102 reports it.
+	s := spec({"calls": [call("ConfigUtility", "OrderManager")]})
+	{f.rule | some f in dpl.deny with input as s with data.project as limited} == {"SV102"}
+}
+
+test_sv111_new_services_have_no_limits if {
+	s := spec({
+		"services": {"new": [new_service("TaxEngine", "engine")]},
+		"calls": [call("OrderManager", "TaxEngine"), call("TaxEngine", "OrderAccessor")],
+	})
+	count(dpl.deny) == 0 with input as s with data.project as limited
+}
