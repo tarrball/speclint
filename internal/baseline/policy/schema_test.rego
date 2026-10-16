@@ -52,7 +52,7 @@ test_unknown_field_fix_lists_the_allowed_fields if {
 	spec := object.union(valid, {"services": {"removed": []}})
 	some f in schema.deny with input as spec
 	f.path == "services"
-	f.fix == "Remove `removed`, or correct its name. The permitted fields here are: changed, new."
+	f.fix == "Remove `removed`, or correct its name. The permitted fields here are: changed, new, relayered."
 }
 
 test_wrong_value_fix_uses_the_hint if {
@@ -71,7 +71,7 @@ test_wrong_type_fix_gives_the_shape if {
 		"out_of_scope": [1],
 	})
 	fixes := {f.path: f.fix | some f in schema.deny with input as spec}
-	fixes.services == "Write `services` as an object with the fields changed, new."
+	fixes.services == "Write `services` as an object with the fields changed, new, relayered."
 	fixes["acceptance[0]"] == "Write `acceptance[0]` as an object with the fields id, text (required: id, text)."
 	fixes["out_of_scope[0]"] == "Write `out_of_scope[0]` as a text value."
 }

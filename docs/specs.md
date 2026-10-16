@@ -54,6 +54,7 @@ out_of_scope:
 | `acceptance` | yes | One or more acceptance criteria. Each has an `id` (`AC1`, `AC2`, ...) and a `text` that you can test. |
 | `services.new` | no | The services that the change adds. Each has a `name`, a `layer`, and a `purpose`. |
 | `services.changed` | no | The registered services whose behavior changes. |
+| `services.relayered` | no | The registered services that the change moves to another layer. Each has a `name` (the name today), a `layer` (the new layer), a `reason`, and an optional `rename`. See [Move a service to another layer](#move-a-service-to-another-layer). |
 | `calls` | yes | Each call from one service to another that the change adds or changes. Each call has `from`, `to`, `op` (the operation, in PascalCase), and `covers` (the acceptance criteria that the call helps to satisfy). |
 | `removed_calls` | no | Each call that the change removes. Each item has `from` and `to`. See [Calls today](#calls-today). |
 | `out_of_scope` | no | The things that the change does not do, but that a reader could expect it to do. |
@@ -71,9 +72,12 @@ service registry as the registry is now. Thus a spec has two states:
 When you implement a spec, do these steps in the same change:
 
 1. Add each service in `services.new` to the service registry.
-2. Update the `calls` of each service in the registry: add the calls of the
+2. For each service in `services.relayered`, change its layer in the
+   registry. If it has a `rename`, change its name in the registry, and in
+   each `calls`, `may_call`, and `called_by` list that has the name.
+3. Update the `calls` of each service in the registry: add the calls of the
    spec, and remove the calls in `removed_calls`.
-3. Set `status: done` in the spec.
+4. Set `status: done` in the spec.
 
 If the spec stays a draft, its new services are now in the registry, so
 SV104 reports each one.
@@ -139,6 +143,38 @@ changes the service:
 
 Thus each change makes the services that it changes follow the layers.
 
+### Move a service to another layer
+
+specval does not make the architecture. If the registry puts a service in the
+wrong layer, the rules make the code follow the wrong design. For example, a
+format that each layer uses is a utility, not an accessor.
+
+To move a registered service, put it in `services.relayered`:
+
+```yaml
+services:
+  relayered:
+    - name: ClaudeAccessor
+      layer: utility
+      rename: ClaudeHook
+      reason: The hook event is a format, not stored data.
+calls:
+  - { from: HookCommand, to: ClaudeHook, op: ReadEvent, covers: [AC1] }
+removed_calls:
+  - { from: ClaudeHook, to: StoreResource }
+```
+
+- `name` is the name of the service today. The rest of the spec uses the new
+  name.
+- If the name does not end with the suffix of the new layer, `rename` gives
+  the new name (SV114). A client or a utility has no suffix, so `rename` is
+  optional for them.
+- The rules check the spec with the registry after the move. SV203 checks each
+  registered call to and from the moved service with the new layer. Put each
+  call that breaks the layers in `removed_calls`, with the new name.
+- A reviewer of the spec sees the move and its `reason`. A move changes the
+  architecture, so review it as such.
+
 The service registry, `.specval/data/services.yaml`, gives the layer of each
 service that exists. A spec gives the layer of each new service in
 `services.new`.
@@ -171,8 +207,14 @@ Thus when you fix the format errors, the next check can find new problems.
 | SV110 | error | Each name in `services.new` is there one time only. |
 | SV111 | error | Each call follows the limits in the registry (`may_call` and `called_by`). |
 | SV112 | error | Each call in `removed_calls` is in the `calls` of its service in the registry. |
+| SV113 | error | Each service in `services.relayered` is registered, with its name today. |
+| SV114 | error | The name of a moved service ends with the suffix of its new layer. If it does not, `rename` gives the new name. |
+| SV115 | error | Each moved service has a known layer. |
+| SV116 | error | Each name in `services.relayered` is there one time only. |
+| SV117 | error | The `rename` of a moved service is not the name of another service, a layer, or another new name. |
 | SV201 | warning | Each service in `services.changed` is in one or more calls. |
 | SV202 | warning | Each call that a changed service keeps follows the layer rules and the limits. |
+| SV203 | warning | Each registered call to or from a moved service that the spec keeps follows the layer rules and the limits after the move. |
 
 specval also runs these rules on the service registry, one time for each
 `check`:

@@ -147,7 +147,7 @@ specs/shape.yaml:4 error SV001 String length must be greater than or equal to 1 
 specs/shape.yaml:7 error SV001 Does not match pattern '^AC[0-9]+$' (acceptance[0].id)
     fix: Correct the value of `acceptance[0].id`. AC and a number, for example AC1.
 specs/shape.yaml:8 error SV001 Additional property removed is not allowed (services)
-    fix: Remove `removed`, or correct its name. The permitted fields here are: changed, new.
+    fix: Remove `removed`, or correct its name. The permitted fields here are: changed, new, relayered.
 specs/shape.yaml:10 error SV001 purpose is required (services.new[0])
     fix: Add `purpose`: One sentence that tells what the service does.
 specs/shape.yaml:10 error SV001 Does not match pattern '^[A-Z][A-Za-z0-9]*$' (services.new[0].name)
