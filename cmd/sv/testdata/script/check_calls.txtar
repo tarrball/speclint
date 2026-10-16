@@ -64,7 +64,7 @@ removed_calls:
   - { from: HookCommand, to: PolicyEngine }
 -- keep.txt --
 specs/keep.yaml:9 warning SV202 HookCommand calls ConfigAccessor in the registry, but clients cannot call accessors (services.changed[0])
-    fix: This spec changes HookCommand, so fix the call. Add { from: HookCommand, to: ConfigAccessor } to removed_calls (a top-level list of the spec). Then move the work to a manager or utility that HookCommand can call.
+    fix: This spec changes HookCommand, so fix the call. Add { from: HookCommand, to: ConfigAccessor } to removed_calls (a top-level list of the spec). Then move the work to a service that HookCommand can call: managers or utilities.
 specval checked 1 spec(s) and found 0 error(s) and 1 warning(s).
 -- badcalls/.specval.yaml --
 -- badcalls/.specval/data/services.yaml --

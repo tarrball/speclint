@@ -50,7 +50,7 @@ func TestModules(t *testing.T) {
 		}
 		names = append(names, m.Name)
 	}
-	want := []string{"(baseline)/dpl.rego", "(baseline)/lib.rego", "(baseline)/registry.rego", "(baseline)/schema.rego"}
+	want := []string{"(baseline)/dpl.rego", "(baseline)/fixes.rego", "(baseline)/lib.rego", "(baseline)/registry.rego", "(baseline)/schema.rego"}
 	if !slices.Equal(names, want) {
 		t.Errorf("Modules = %v, want %v", names, want)
 	}

@@ -375,7 +375,7 @@ test_sv202_a_changed_service_keeps_a_call_that_breaks_the_layers if {
 	f.fix == concat(" ", [
 		"This spec changes HookCommand, so fix the call.",
 		"Add { from: HookCommand, to: ConfigAccessor } to removed_calls (a top-level list of the spec).",
-		"Then move the work to a manager or utility that HookCommand can call.",
+		"Then move the work to a service that HookCommand can call: managers or utilities.",
 	])
 }
 
@@ -397,6 +397,28 @@ test_sv202_a_kept_call_that_a_limit_refuses if {
 		"SV202",
 		"LogUtility calls AuditUtility in the registry, but a limit in the registry refuses it",
 	]}
+}
+
+test_sv202_the_fix_uses_may_call_of_the_caller if {
+	project := {"services": {
+		"ConfigUtility": {"layer": "utility", "may_call": [], "calls": ["LogUtility"]},
+		"AuditUtility": {"layer": "utility", "may_call": ["LogUtility", "accessor"], "calls": ["ConfigUtility"]},
+		"LogUtility": {"layer": "utility"},
+	}}
+	s := spec({"services": {"changed": ["ConfigUtility", "AuditUtility"]}})
+	fixes := {f.fix | some f in dpl.warn with input as s with data.project as project; f.rule == "SV202"}
+	fixes == {
+		concat(" ", [
+			"This spec changes ConfigUtility, so fix the call.",
+			"Add { from: ConfigUtility, to: LogUtility } to removed_calls (a top-level list of the spec).",
+			"ConfigUtility cannot call other services, so move the work out of ConfigUtility.",
+		]),
+		concat(" ", [
+			"This spec changes AuditUtility, so fix the call.",
+			"Add { from: AuditUtility, to: ConfigUtility } to removed_calls (a top-level list of the spec).",
+			"Then move the work to a service that AuditUtility can call: LogUtility.",
+		]),
+	}
 }
 
 test_sv112_a_removed_call_that_is_not_in_the_registry if {
