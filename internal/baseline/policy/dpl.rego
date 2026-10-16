@@ -55,6 +55,12 @@ used contains name if {
 	some name in [c.from, c.to]
 }
 
+# A change that removes a call also uses the services of the call.
+used contains name if {
+	some r in removed
+	some name in [r.from, r.to]
+}
+
 covered contains id if {
 	some c in calls
 	some id in object.get(c, "covers", [])
@@ -138,6 +144,13 @@ refused_by_limits(from, to) if {
 	allowed := registry[to].called_by
 	is_array(allowed)
 	not permits(allowed, from)
+}
+
+# valid_layers is true if both services have a layer that exists. SV202
+# checks only such calls. SR001 and SV105 report a layer that is not valid.
+valid_layers(from, to) if {
+	layers[layer_of(from)]
+	layers[layer_of(to)]
 }
 
 # call_problem tells why the layer rules or the limits refuse a call.
@@ -418,9 +431,8 @@ warn contains f if {
 #   id: SV202
 warn contains f if {
 	some i, name in changed
-	registry[name]
 	some to in registered_calls(name)
-	layer_of(to)
+	valid_layers(name, to)
 	not [name, to] in removed_pairs
 	not follows_layers({"from": name, "to": to})
 	f := kept_call_finding(rego.metadata.rule(), i, name, to)
@@ -436,8 +448,8 @@ warn contains f if {
 #   id: SV202
 warn contains f if {
 	some i, name in changed
-	registry[name]
 	some to in registered_calls(name)
+	valid_layers(name, to)
 	not [name, to] in removed_pairs
 	follows_layers({"from": name, "to": to})
 	refused_by_limits(name, to)

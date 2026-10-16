@@ -407,3 +407,26 @@ test_sv112_a_removed_call_that_is_not_in_the_registry if {
 	paths := {f.path | some f in dpl.deny with input as s with data.project as today; f.rule == "SV112"}
 	paths == {"removed_calls[1]", "removed_calls[2]"}
 }
+
+test_sv201_a_service_in_removed_calls_is_used if {
+	# HookCommand is only in removed_calls. The spec moves the work to
+	# CheckManager, so HookCommand takes part in the change.
+	s := spec({
+		"services": {"changed": ["HookCommand"]},
+		"calls": [call("CheckManager", "ConfigAccessor")],
+		"removed_calls": [{"from": "HookCommand", "to": "ConfigAccessor"}],
+	})
+	count(dpl.warn) == 0 with input as s with data.project as today
+}
+
+test_sv202_a_service_without_a_valid_layer_is_not_checked if {
+	# SR001 reports the layer. SV202 must not tell that a limit refuses the call.
+	project := {"services": {
+		"HookCommand": {"calls": ["ConfigAccessor"]},
+		"NumberCommand": {"layer": 7, "calls": ["ConfigAccessor"]},
+		"ConfigAccessor": {"layer": "accessor"},
+		"OrderManager": {"layer": "manager"},
+	}}
+	s := spec({"services": {"changed": ["HookCommand", "NumberCommand"]}})
+	count([f | some f in dpl.warn with input as s with data.project as project; f.rule == "SV202"]) == 0
+}
