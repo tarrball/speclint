@@ -1,0 +1,26 @@
+specval: 1
+id: skill-text
+kind: feature
+status: done
+title: Tell Claude when to run sv check, and print the path of a new spec relative to the working directory
+summary: >
+  The hook checks a spec only after Write, Edit, or MultiEdit. If Claude
+  writes the spec with a shell command, nothing checks it. The skill does not
+  tell Claude to run sv check after the registry update. It also does not
+  tell about a change with no calls. This change adds these steps to the
+  skill. sv new now prints the path of the new spec relative to the working
+  directory. Its error for a spec that exists tells what to do.
+acceptance:
+  - id: AC1
+    text: Given the skill that sv init writes, when Claude reads it, then it tells Claude to run sv check if the hook did not check the spec, and after the registry update.
+  - id: AC2
+    text: Given the skill that sv init writes, when Claude reads it, then it tells Claude to use calls with no items and services.changed for a change inside one service.
+  - id: AC3
+    text: Given a project, when sv new runs in a directory of the project, then it prints the path of the new spec relative to that directory.
+  - id: AC4
+    text: Given a spec that exists, when sv new runs with its ID, then the error tells to edit that spec or to use another ID.
+calls:
+  - { from: ScaffoldManager, to: ClaudeAccessor, op: Skill, covers: [AC1, AC2] }
+  - { from: NewCommand, to: ScaffoldManager, op: Spec, covers: [AC3, AC4] }
+out_of_scope:
+  - A hook for a spec that a shell command writes. Claude Code gives no file path for a shell command.

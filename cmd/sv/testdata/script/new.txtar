@@ -1,7 +1,8 @@
-# new writes <specs dir>/<id>.yaml from the template and prints its path.
+# new writes <specs dir>/<id>.yaml from the template and prints its path,
+# relative to the working directory.
 cd proj
 exits 0 sv new ORD-1
-stdout '^.*/specs/ORD-1.yaml$'
+stdout '^specs/ORD-1.yaml$'
 cmp specs/ORD-1.yaml $WORK/want/ORD-1.yaml
 
 # Flags can come after the id. new quotes the title.
@@ -10,7 +11,7 @@ cmp specs/BUG-2.yaml $WORK/want/BUG-2.yaml
 
 # new does not overwrite a spec.
 exits 2 sv new ORD-1
-stderr '^sv: .*/specs/ORD-1.yaml already exists$'
+stderr '^sv: specs/ORD-1.yaml already exists; edit it, or use another id$'
 
 # The id must be one argument of letters, digits, '.', '_', and '-'.
 exits 2 sv new 'bad id'

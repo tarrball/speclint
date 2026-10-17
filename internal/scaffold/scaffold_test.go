@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -166,7 +167,7 @@ func TestSpec(t *testing.T) {
 		t.Errorf("spec = %+v", spec)
 	}
 
-	if _, err := writeSpec(cfg, "BUG-7", "bugfix", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
+	if _, err := writeSpec(cfg, "BUG-7", "bugfix", ""); !errors.Is(err, fs.ErrExist) {
 		t.Errorf("second Spec: err = %v, want already exists", err)
 	}
 }
@@ -350,9 +351,21 @@ func TestSpecFindsTheProject(t *testing.T) {
 	if err := os.Mkdir(sub, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// The path is relative to the directory that Spec gets.
 	path, err := Spec(sub, "A-1", "chore", "")
-	if want := filepath.Join(root, "plans", "A-1.yaml"); err != nil || path != want {
+	if want := filepath.Join("..", "plans", "A-1.yaml"); err != nil || path != want {
 		t.Errorf("Spec = %q, %v; want %q", path, err, want)
+	}
+	if _, err := os.Stat(filepath.Join(root, "plans", "A-1.yaml")); err != nil {
+		t.Error(err)
+	}
+	path, err = Spec(root, "A-2", "chore", "")
+	if want := filepath.Join("plans", "A-2.yaml"); err != nil || path != want {
+		t.Errorf("Spec = %q, %v; want %q", path, err, want)
+	}
+	_, err = Spec(root, "A-2", "chore", "")
+	if want := filepath.Join("plans", "A-2.yaml") + " already exists; edit it, or use another id"; err == nil || err.Error() != want {
+		t.Errorf("second Spec: err = %v, want %q", err, want)
 	}
 	if _, err := Spec(t.TempDir(), "A-1", "chore", ""); !errors.Is(err, config.ErrNotFound) {
 		t.Errorf("outside a project: err = %v, want config.ErrNotFound", err)

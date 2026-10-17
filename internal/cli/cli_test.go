@@ -240,11 +240,11 @@ func TestInitAndNew(t *testing.T) {
 		t.Fatalf("init: code %d, stderr %q", code, errOut)
 	}
 	code, out, errOut := runCLI(t, dir, "", "new", "A-1", "--kind", "chore")
-	want := filepath.Join(dir, "specs", "A-1.yaml")
+	want := filepath.Join("specs", "A-1.yaml")
 	if code != exitOK || out != want+"\n" {
 		t.Fatalf("new: code %d, stdout %q, stderr %q", code, out, errOut)
 	}
-	if _, err := os.Stat(want); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, want)); err != nil {
 		t.Error(err)
 	}
 	if code, _, errOut := runCLI(t, dir, "", "new", "bad id"); code != exitError || !strings.Contains(errOut, "usage: sv new <id>") {

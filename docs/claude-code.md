@@ -5,7 +5,10 @@ each spec that Claude saves. `sv init` sets up two parts:
 
 - **A skill**, `.claude/skills/spec/SKILL.md`. It tells Claude to run
   `sv context` while it plans, to write the spec, and to fix each finding
-  before it starts the implementation.
+  before it starts the implementation. The hook does not run when Claude
+  writes a file with a shell command, so the skill tells Claude to run
+  `sv check <file>` then. It also tells Claude to run `sv check` after it
+  updates the registry.
 - **A hook** in `.claude/settings.json`. It makes Claude Code run
   `sv hook` after each `Write`, `Edit`, or `MultiEdit`.
 

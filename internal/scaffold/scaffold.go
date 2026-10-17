@@ -210,17 +210,25 @@ func ValidID(id string) bool {
 }
 
 // Spec writes a new spec, made from the template, to <specs dir>/<id>.yaml
-// in the project that contains dir. It returns the path of the spec. It does
-// not overwrite a file.
+// in the project that contains dir. It returns the path of the spec,
+// relative to dir. It does not overwrite a file.
 func Spec(dir, id, kind, title string) (string, error) {
 	cfg, err := config.Find(dir)
 	if err != nil {
 		return "", err
 	}
-	return writeSpec(cfg, id, kind, title)
+	path, err := writeSpec(cfg, id, kind, title)
+	if errors.Is(err, fs.ErrExist) {
+		return "", fmt.Errorf("%s already exists; edit it, or use another id", relPath(dir, path))
+	} else if err != nil {
+		return "", err
+	}
+	return relPath(dir, path), nil
 }
 
-// writeSpec writes a new spec to the specs directory of cfg.
+// writeSpec writes a new spec to the specs directory of cfg, and returns
+// its absolute path. If the file exists, it returns the path and
+// fs.ErrExist.
 func writeSpec(cfg *config.Config, id, kind, title string) (string, error) {
 	// A valid ID cannot contain a path separator, so the file is in the specs
 	// directory.
@@ -241,7 +249,7 @@ func writeSpec(cfg *config.Config, id, kind, title string) (string, error) {
 		return "", err
 	}
 	if !created {
-		return "", fmt.Errorf("%s already exists", path)
+		return path, fs.ErrExist
 	}
 	return path, nil
 }
