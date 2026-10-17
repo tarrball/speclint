@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tarrball/specval/internal/config"
 	"github.com/tarrball/specval/internal/scaffold"
 )
 
@@ -23,11 +22,7 @@ func cmdNew(env *Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	cfg, err := config.Find(dir)
-	if err != nil {
-		return err
-	}
-	path, err := scaffold.Spec(cfg, pos[0], *kind, *title)
+	path, err := scaffold.Spec(dir, pos[0], *kind, *title)
 	if err != nil {
 		return err
 	}

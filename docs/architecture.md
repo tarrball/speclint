@@ -26,7 +26,7 @@ cmd/sv ─> cli ─┬─> check ────> policy, config
                ├─> describe ─> policy, config
                ├─> doctor ───> policy, claude, config
                ├─> scaffold ─> baseline, claude, config
-               └─> baseline, claude, config
+               └─> baseline, claude
 
 policy ─> baseline, config, yamlpath
 ```

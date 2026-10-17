@@ -1,0 +1,25 @@
+specval: 1
+id: new-scaffold
+kind: chore
+status: done
+title: Let NewCommand call only ScaffoldManager
+summary: >
+  NewCommand finds the configuration, and then gives it to ScaffoldManager.
+  Thus a client calls an accessor, which the layers do not permit. This change
+  makes ScaffoldManager find the configuration from the working directory.
+  NewCommand gives the directory, and writes the path of the new spec. The
+  output and the errors do not change.
+acceptance:
+  - id: AC1
+    text: Given the new script, when it runs sv new, then it passes with no change to its expected output.
+  - id: AC2
+    text: Given a directory that is not in a project, when a test calls ScaffoldManager to write a spec, then it gets the error that tells that the configuration is not found.
+services:
+  changed: [NewCommand, ScaffoldManager]
+calls:
+  - { from: NewCommand, to: ScaffoldManager, op: Spec, covers: [AC1, AC2] }
+  - { from: ScaffoldManager, to: ConfigAccessor, op: Find, covers: [AC1, AC2] }
+removed_calls:
+  - { from: NewCommand, to: ConfigAccessor }
+out_of_scope:
+  - A change to sv init. InitCommand already calls only ScaffoldManager.
