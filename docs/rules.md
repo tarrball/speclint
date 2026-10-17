@@ -81,6 +81,9 @@ Follow these rules:
 - Write `path` as a path in the spec, for example `calls[2].to`. specval finds
   the line of that path in the YAML file. If the path is not in the file,
   specval uses the line of the deepest part that is.
+- If a key in the path comes from the data, use `lib.path_key(prefix, key)`.
+  It writes a key with a dot, a bracket, or a space in brackets and quotes,
+  for example `services["Order.Accessor"]`, so that specval finds its line.
 - Write `fix` as an instruction. An agent applies the fix without other help.
 - Bind each value that can be undefined before you use it in string
   interpolation. `$"{x}"` writes an undefined `x` as `<undefined>`.

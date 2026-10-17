@@ -55,7 +55,7 @@ deny contains f if {
 	not data.dpl.layers[layer]
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}",
+		$"{lib.path_key("services", name)}",
 		$"{name} has no valid layer (got {lib.quote(layer)})",
 		$"Set layer to one of: {concat(", ", data.dpl.layer_order)}.",
 	)
@@ -71,7 +71,7 @@ deny contains f if {
 	not endswith(name, sfx)
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}",
+		$"{lib.path_key("services", name)}",
 		$"{name} is in the {s.layer} layer but does not end in {sfx}",
 		$"Change its name so that it ends in {sfx}, or change its layer.",
 	)
@@ -89,7 +89,7 @@ deny contains f if {
 	data.dpl.layers[name]
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}",
+		$"{lib.path_key("services", name)}",
 		$"{name} is the name of a layer",
 		"Give the service a different name, for example a name in PascalCase.",
 	)
@@ -105,7 +105,7 @@ deny contains f if {
 	not is_object(s)
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}",
+		$"{lib.path_key("services", name)}",
 		$"{name} is not a mapping (got {lib.quote(s)})",
 		entry_fix(name, s),
 	)
@@ -126,7 +126,7 @@ deny contains f if {
 	not is_array(list)
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}.{key}",
+		$"{lib.path_key("services", name)}.{key}",
 		$"{key} of {name} is not a list (got {lib.quote(list)})",
 		$"Write {key} as a list of layers and services, for example [manager, OrderManager].",
 	)
@@ -148,7 +148,7 @@ deny contains f if {
 	not entries[x]
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}.{key}[{j}]",
+		$"{lib.path_key("services", name)}.{key}[{j}]",
 		$"{lib.quote(x)} in {key} of {name} is not a layer or a registered service",
 		$"Use a layer ({concat(", ", data.dpl.layer_order)}) or a registered service.",
 	)
@@ -168,7 +168,7 @@ deny contains f if {
 	not is_array(list)
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}.calls",
+		$"{lib.path_key("services", name)}.calls",
 		$"calls of {name} is not a list (got {lib.quote(list)})",
 		"Write calls as a list of the registered services that the service calls, for example [OrderAccessor].",
 	)
@@ -188,7 +188,7 @@ deny contains f if {
 	not entries[x]
 	f := lib.finding(
 		rego.metadata.rule(),
-		$"services.{name}.calls[{j}]",
+		$"{lib.path_key("services", name)}.calls[{j}]",
 		$"{lib.quote(x)} in calls of {name} is not a registered service",
 		"Use the name of a registered service, or register the service.",
 	)
@@ -228,7 +228,7 @@ warn contains f if {
 
 limit_warning(meta, name, key, j, x, from, to) := lib.finding(
 	meta,
-	$"services.{name}.{key}[{j}]",
+	$"{lib.path_key("services", name)}.{key}[{j}]",
 	$"{key} of {name} has {x}, but the layer rules do not permit a call from a {from} to a {to}",
 	$"Remove {x} from {key}. A limit can only make the layer rules stricter.",
 )

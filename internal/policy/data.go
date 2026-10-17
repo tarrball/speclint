@@ -7,6 +7,8 @@ import (
 
 	"github.com/open-policy-agent/opa/v1/util"
 	"go.yaml.in/yaml/v3"
+
+	"github.com/tarrball/specval/internal/yamlpath"
 )
 
 // Architecture is the baseline layer data, data.dpl.
@@ -128,12 +130,7 @@ func (e keyError) Error() string {
 // for error messages. If two keys of a mapping are the same as text, so that
 // one value would be lost, stringKeys returns a keyError.
 func stringKeys(v any, path string) (any, error) {
-	join := func(key string) string {
-		if path == "" {
-			return key
-		}
-		return path + "." + key
-	}
+	join := func(key string) string { return yamlpath.Key(path, key) }
 	switch v := v.(type) {
 	case map[any]any:
 		out := make(map[string]any, len(v))

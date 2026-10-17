@@ -91,3 +91,72 @@ func TestLineWithKeysThatAreNotStrings(t *testing.T) {
 		}
 	}
 }
+
+func TestQuotedKeys(t *testing.T) {
+	src := `services:
+  Order.Accessor:
+    calls: [A, B]
+  "a[0]":
+    layer: x
+  'say "hi"':
+    layer: y
+  OrderManager:
+    calls: [C]
+`
+	var doc yaml.Node
+	if err := yaml.Unmarshal([]byte(src), &doc); err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]int{
+		`services["Order.Accessor"]`:          2,
+		`services["Order.Accessor"].calls[1]`: 3,
+		`services["a[0]"].layer`:              5,
+		`services["say \"hi\""].layer`:        7,
+		`services.OrderManager.calls[0]`:      9,
+		// Not a valid quoted key: the path stops at services.
+		`services["Order.Accessor`: 1,
+	} {
+		if got := Line(&doc, path); got != want {
+			t.Errorf("Line(%s) = %d, want %d", path, got, want)
+		}
+	}
+}
+
+func TestKeyGivesAPathThatLineReads(t *testing.T) {
+	var doc yaml.Node
+	if err := yaml.Unmarshal([]byte("top:\n  first: 1\n  \"a.b [c] \\\"d\\\"\": 2\n  x-y_1: 3\n"), &doc); err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]struct {
+		path string
+		line int
+	}{
+		"first":       {"top.first", 2},
+		`a.b [c] "d"`: {`top["a.b [c] \"d\""]`, 3},
+		"x-y_1":       {"top.x-y_1", 4},
+	} {
+		path := Key("top", key)
+		if path != want.path || Line(&doc, path) != want.line {
+			t.Errorf("Key(top, %q) = %q (line %d), want %q (line %d)", key, path, Line(&doc, path), want.path, want.line)
+		}
+	}
+	if got := Key("", "a.b"); got != `["a.b"]` {
+		t.Errorf(`Key("", "a.b") = %q`, got)
+	}
+}
+
+func TestTop(t *testing.T) {
+	for path, want := range map[string]string{
+		`services["Order.Accessor"].calls`: "services",
+		"services.OrderManager":            "services",
+		"services[0]":                      "services",
+		`["a.b"].c`:                        "a.b",
+		"limits":                           "limits",
+		"[0]":                              "",
+		"":                                 "",
+	} {
+		if got := Top(path); got != want {
+			t.Errorf("Top(%q) = %q, want %q", path, got, want)
+		}
+	}
+}

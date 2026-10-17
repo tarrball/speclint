@@ -1,0 +1,28 @@
+specval: 1
+id: path-segments
+kind: bugfix
+status: done
+title: Find the line of a path with a key that has a dot or a bracket
+summary: >
+  A finding has a path such as services.OrderManager.calls[0]. specval joins
+  the keys with dots, and splits the path at each dot to find the line. Thus a
+  key with a dot or a bracket gives a path that points to the wrong place.
+  For example, a service named Order.Accessor gets a finding with the wrong
+  line. This change writes such a key in brackets and quotes, as in
+  services["Order.Accessor"]. YamlPath reads the path into segments with a
+  tokenizer. The path stays a string in the findings and in the JSON output.
+acceptance:
+  - id: AC1
+    text: Given a registry with a service whose name has a dot, when sv check reports it, then the finding has the line of that service.
+  - id: AC2
+    text: Given a path with a quoted key, an index, and a plain key, when YamlPath finds its line, then it reads each segment as one key or one index.
+  - id: AC3
+    text: Given a project rule, when it calls lib.path_key with a prefix and a key, then it gets a path that YamlPath reads as the prefix and the key.
+services:
+  changed: [YamlPath, PolicyEngine, Baseline]
+calls:
+  - { from: PolicyEngine, to: YamlPath, op: Line, covers: [AC1, AC2] }
+  - { from: PolicyEngine, to: YamlPath, op: Key, covers: [AC1] }
+  - { from: PolicyEngine, to: Baseline, op: Modules, covers: [AC1, AC3] }
+out_of_scope:
+  - The paths of SV001 findings. OPA gives them with dots, so a key with a dot in a spec can still give the wrong line.

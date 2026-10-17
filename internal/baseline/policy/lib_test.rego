@@ -63,3 +63,12 @@ test_quote_writes_other_values_as_json if {
 	lib.quote(true) == "true"
 	lib.quote({"a": 1}) == `{"a":1}`
 }
+
+test_path_key if {
+	lib.path_key("services", "OrderManager") == "services.OrderManager"
+	lib.path_key("services", "x-y_1") == "services.x-y_1"
+	lib.path_key("services", "Order.Accessor") == `services["Order.Accessor"]`
+	lib.path_key("services", `a "b"`) == `services["a \"b\""]`
+	lib.path_key("", "top") == "top"
+	lib.path_key("", "a.b") == `["a.b"]`
+}

@@ -373,8 +373,7 @@ func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error
 			return nil, err
 		}
 		for _, f := range found {
-			key, _, _ := strings.Cut(f.Path, ".")
-			file, ok := e.dataFile[key]
+			file, ok := e.dataFile[yamlpath.Top(f.Path)]
 			if !ok {
 				file = "(data)"
 			} else {
