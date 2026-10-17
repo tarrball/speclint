@@ -3,6 +3,7 @@ package scaffold
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -141,7 +142,7 @@ func TestValidID(t *testing.T) {
 
 func TestSpec(t *testing.T) {
 	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
-	path, err := Spec(cfg, "BUG-7", "bugfix", `Fix the "total" field`)
+	path, err := writeSpec(cfg, "BUG-7", "bugfix", `Fix the "total" field`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +166,7 @@ func TestSpec(t *testing.T) {
 		t.Errorf("spec = %+v", spec)
 	}
 
-	if _, err := Spec(cfg, "BUG-7", "bugfix", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
+	if _, err := writeSpec(cfg, "BUG-7", "bugfix", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Errorf("second Spec: err = %v, want already exists", err)
 	}
 }
@@ -184,7 +185,7 @@ func TestSpecTitleRoundTrips(t *testing.T) {
 		"'single' quotes",
 		"- not a list",
 	} {
-		path, err := Spec(cfg, fmt.Sprintf("T-%d", i), "chore", title)
+		path, err := writeSpec(cfg, fmt.Sprintf("T-%d", i), "chore", title)
 		if err != nil {
 			t.Errorf("%q: %v", title, err)
 			continue
@@ -208,7 +209,7 @@ func TestSpecTitleRoundTrips(t *testing.T) {
 
 func TestSpecRejectsATitleThatIsNotUTF8(t *testing.T) {
 	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
-	if _, err := Spec(cfg, "T-1", "chore", "bad \xff byte"); err == nil {
+	if _, err := writeSpec(cfg, "T-1", "chore", "bad \xff byte"); err == nil {
 		t.Error("Spec accepted a title that is not valid UTF-8")
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Root, "specs", "T-1.yaml")); !os.IsNotExist(err) {
@@ -340,13 +341,31 @@ func TestInitWritesTheSpecsDirIntoTheSkill(t *testing.T) {
 	}
 }
 
+func TestSpecFindsTheProject(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, config.FileName), []byte("specs_dir: plans\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sub := filepath.Join(root, "src")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path, err := Spec(sub, "A-1", "chore", "")
+	if want := filepath.Join(root, "plans", "A-1.yaml"); err != nil || path != want {
+		t.Errorf("Spec = %q, %v; want %q", path, err, want)
+	}
+	if _, err := Spec(t.TempDir(), "A-1", "chore", ""); !errors.Is(err, config.ErrNotFound) {
+		t.Errorf("outside a project: err = %v, want config.ErrNotFound", err)
+	}
+}
+
 func TestSpecValidatesItsArguments(t *testing.T) {
 	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
 	for _, c := range []struct{ id, kind, want string }{
 		{"../escape", "chore", `the id "../escape" is not valid`},
 		{"A-1", "epic", `the kind "epic" is not valid; use one of: feature, bugfix, chore`},
 	} {
-		if _, err := Spec(cfg, c.id, c.kind, ""); err == nil || !strings.Contains(err.Error(), c.want) {
+		if _, err := writeSpec(cfg, c.id, c.kind, ""); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("Spec(%q, %q): err = %v, want %q", c.id, c.kind, err, c.want)
 		}
 	}
@@ -368,7 +387,7 @@ func TestSpecDoesNotFollowADanglingLink(t *testing.T) {
 	if err := os.Symlink(target, link); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Spec(cfg, "A-1", "chore", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
+	if _, err := writeSpec(cfg, "A-1", "chore", ""); err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Errorf("Spec: err = %v, want already exists", err)
 	}
 	if info, err := os.Lstat(link); err != nil || info.Mode()&os.ModeSymlink == 0 {

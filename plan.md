@@ -95,7 +95,7 @@ rules do not permit.
       `services.relayered` (specs/baseline-utility.yaml). It is data in the binary.
 - [x] ContextCommand calls a new ContextManager (internal/describe), not ConfigAccessor
       and PolicyEngine.
-- [ ] NewCommand calls only ScaffoldManager.
+- [x] NewCommand calls only ScaffoldManager (specs/new-scaffold.yaml).
 - [ ] Move the file reads from `policy` to `ProjectDataAccessor`.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
