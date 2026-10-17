@@ -562,18 +562,18 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 			continue
 		}
 		file := filepath.Join(cfg.Root, ".specval", "policy", "a.rego") + ":"
-		var errors int
+		var count int
 		for line := range strings.SplitSeq(err.Error(), "\n") {
 			if strings.HasPrefix(line, "\t") {
 				continue // This line shows the source and a marker under it.
 			}
-			errors++
+			count++
 			if !strings.HasPrefix(line, file) {
 				t.Errorf("%s: error line %q does not start with the file and line", name, line)
 			}
 		}
-		if errors != c.lines {
-			t.Errorf("%s: %d errors in %q, want %d", name, errors, err, c.lines)
+		if count != c.lines {
+			t.Errorf("%s: %d errors in %q, want %d", name, count, err, c.lines)
 		}
 	}
 }
