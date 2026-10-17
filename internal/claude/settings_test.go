@@ -28,6 +28,19 @@ func TestSkillRunsSpecvalContext(t *testing.T) {
 	}
 }
 
+func TestSkillTellsWhenToRunCheck(t *testing.T) {
+	skill := Skill("specs")
+	for _, want := range []string{
+		"If you write the file in another way, for example with a shell command, run `sv check <file>`.",
+		"set `status: done` in the spec. Then run `sv check`.",
+		"write `calls: []` and put each changed service in `services.changed`",
+	} {
+		if !strings.Contains(skill, want) {
+			t.Errorf("the skill does not contain %q", want)
+		}
+	}
+}
+
 func TestInspectSettings(t *testing.T) {
 	dir := t.TempDir()
 	for _, c := range []struct {

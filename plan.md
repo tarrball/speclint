@@ -128,8 +128,8 @@ From a review of how well an agent can use sv:
 - [ ] `sv init` writes Copilot review instructions that compare a pull request
       with its spec, and prints a line to add to CLAUDE.md. doctor checks them.
 - [ ] `sv init --dry-run`.
-- [ ] The skill: run `sv check` when the hook did not run, and after the
-      registry update. `sv new` prints a relative path.
+- [x] The skill: run `sv check` when the hook did not run, and after the
+      registry update. `sv new` prints a relative path (specs/skill-text.yaml).
 
 ### 5. Brownfield features
 
