@@ -1,0 +1,18 @@
+specval: 1
+id: canceled-eval
+kind: bugfix
+status: done
+title: Stop an evaluation that starts with a canceled context
+summary: >
+  OPA sees a canceled context through a goroutine. A short evaluation can
+  finish before that goroutine stops it. Thus CheckSpec with a canceled
+  context sometimes returns a result, and TestACanceledCheckStops fails in
+  CI. The engine now checks the context before it evaluates the rules.
+acceptance:
+  - id: AC1
+    text: Given a canceled context, when the engine checks a spec or the registry, then it returns the cancel error, and it does not evaluate the rules.
+calls:
+  - { from: CheckManager, to: PolicyEngine, op: CheckSpec, covers: [AC1] }
+  - { from: CheckManager, to: PolicyEngine, op: CheckRegistry, covers: [AC1] }
+out_of_scope:
+  - A cancel that comes during the evaluation. OPA stops the evaluation then.
