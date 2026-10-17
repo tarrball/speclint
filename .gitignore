@@ -1,5 +1,6 @@
-# Build output (mise run build)
+# Build output (mise run build and mise run dist)
 /bin/
+/dist/
 
 # Test and coverage output
 *.test
