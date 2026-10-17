@@ -31,7 +31,9 @@ type command struct {
 	synopsis func() string
 	// help is the description in the usage. Each line is one line of text.
 	help []string
-	run  func(ctx context.Context, env *Env, args []string) (exitCode, error)
+	// examples are command lines for --help. A test runs each one.
+	examples []string
+	run      func(ctx context.Context, env *Env, args []string) (exitCode, error)
 }
 
 // noCode adapts a command that has no exit code of its own.
@@ -56,6 +58,10 @@ func commands() []command {
 				"Check the given specs, or each spec in the specs directory.",
 				"The exit status is 1 if a spec has an error, or a warning with --strict.",
 			},
+			examples: []string{
+				"sv check",
+				"sv check specs/ORD-143.yaml --format json",
+			},
 			run: cmdCheck,
 		},
 		{
@@ -64,20 +70,23 @@ func commands() []command {
 				"Print the spec format, the layers, the registry, and the rules.",
 				"An agent reads this text before it writes a spec.",
 			},
-			run: noCode(cmdContext),
+			examples: []string{"sv context"},
+			run:      noCode(cmdContext),
 		},
 		{
 			name: "new",
 			synopsis: func() string {
 				return `<id> [--kind ` + strings.Join(baseline.Kinds(), "|") + `] [--title "..."]`
 			},
-			help: []string{"Make the spec <specs dir>/<id>.yaml from the template."},
-			run:  noCode(cmdNew),
+			help:     []string{"Make the spec <specs dir>/<id>.yaml from the template."},
+			examples: []string{`sv new ORD-143 --kind bugfix --title "Refund a partial order"`},
+			run:      noCode(cmdNew),
 		},
 		{
-			name: "schema",
-			help: []string{"Print the JSON Schema of a spec."},
-			run:  noCode(cmdSchema),
+			name:     "schema",
+			help:     []string{"Print the JSON Schema of a spec."},
+			examples: []string{"sv schema"},
+			run:      noCode(cmdSchema),
 		},
 		{
 			name: "init",
@@ -85,7 +94,8 @@ func commands() []command {
 				"Set up specval, the Claude Code skill, and the hook in this directory.",
 				"You can run it again. It adds only the parts that are missing.",
 			},
-			run: noCode(cmdInit),
+			examples: []string{"sv init"},
+			run:      noCode(cmdInit),
 		},
 		{
 			name:     "doctor",
@@ -94,12 +104,14 @@ func commands() []command {
 				"Check the setup: the configuration, the rules, the registry, the",
 				"Claude Code skill and hook, and the sv binary on PATH.",
 			},
-			run: cmdDoctor,
+			examples: []string{"sv doctor", "sv doctor --format json"},
+			run:      cmdDoctor,
 		},
 		{
-			name: "version",
-			help: []string{"Print the version of sv and of the spec format."},
-			run:  noCode(cmdVersion),
+			name:     "version",
+			help:     []string{"Print the version of sv and of the spec format."},
+			examples: []string{"sv version"},
+			run:      noCode(cmdVersion),
 		},
 		{
 			name: "hook",
@@ -145,6 +157,43 @@ func usage() string {
 			fmt.Fprintf(&b, "        %s\n", h)
 		}
 	}
+	b.WriteString("\nRun `sv <command> --help` for the flags and examples of a command.\n")
+	return b.String()
+}
+
+// helpText returns the --help text of the command: the synopsis, the
+// description, the flags in fs, and the examples. The usage of a flag is
+// "description: `value`". The help puts the value after the name of the flag,
+// and the description below it.
+func (c *command) helpText(fs *flag.FlagSet) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Usage: %s\n\n", c.line())
+	for _, h := range c.help {
+		fmt.Fprintf(&b, "%s\n", h)
+	}
+	var flags strings.Builder
+	fs.VisitAll(func(f *flag.Flag) {
+		value, usage := flag.UnquoteUsage(f)
+		usage = strings.TrimSuffix(usage, ": "+value)
+		fmt.Fprintf(&flags, "  --%s", f.Name)
+		if value != "" {
+			fmt.Fprintf(&flags, " %s", value)
+		}
+		fmt.Fprintf(&flags, "\n        %s", usage)
+		if f.DefValue != "" && f.DefValue != "false" {
+			fmt.Fprintf(&flags, " (default %s)", f.DefValue)
+		}
+		flags.WriteString("\n")
+	})
+	if flags.Len() > 0 {
+		fmt.Fprintf(&b, "\nFlags:\n%s", flags.String())
+	}
+	if len(c.examples) > 0 {
+		b.WriteString("\nExamples:\n")
+		for _, e := range c.examples {
+			fmt.Fprintf(&b, "  %s\n", e)
+		}
+	}
 	return b.String()
 }
 
@@ -179,21 +228,31 @@ func runCommand(ctx context.Context, args []string, env *Env) exitCode {
 	}
 	var code exitCode
 	var err error
-	switch c := find(args[0]); {
+	c := find(args[0])
+	switch {
 	case c != nil:
 		code, err = c.run(ctx, env, args[1:])
-	case args[0] == "-h", args[0] == "--help", args[0] == "help":
+	case args[0] == "help" && len(args) == 2 && find(args[1]) != nil:
+		// sv help <command> is the same as sv <command> --help.
+		c = find(args[1])
+		code, err = c.run(ctx, env, []string{"--help"})
+	case args[0] == "-h", args[0] == "--help", args[0] == "help" && len(args) == 1:
 		fmt.Fprint(env.Stdout, usage())
+	case args[0] == "help":
+		fmt.Fprintf(env.Stderr, "unknown command %q\n\n%s", args[1], usage())
+		code = exitError
 	default:
 		fmt.Fprintf(env.Stderr, "unknown command %q\n\n%s", args[0], usage())
 		code = exitError
 	}
-	// The flag package has already written the usage for --help, and the
-	// error and the usage for a flag that is not correct.
-	if errors.Is(err, flag.ErrHelp) {
-		return exitOK
-	}
-	if _, ok := errors.AsType[flagError](err); ok {
+	// For a flag that is not correct, the flag package has already written
+	// the error.
+	if fe, ok := errors.AsType[flagError](err); ok {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(env.Stdout, c.helpText(fe.fs))
+			return exitOK
+		}
+		fmt.Fprintf(env.Stderr, "Usage: %s\nRun `sv %s --help` for the flags and examples.\n", c.line(), c.name)
 		return exitError
 	}
 	if err != nil {
@@ -240,7 +299,7 @@ func (f *outputFormat) Set(s string) error {
 // formatFlag adds the --format flag to fl.
 func formatFlag(fl *flag.FlagSet) *outputFormat {
 	f := formatText
-	fl.Var(&f, "format", "output format: text or json")
+	fl.Var(&f, "format", "the output format: `text|json`")
 	return &f
 }
 
@@ -258,7 +317,7 @@ func parseArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 	var pos []string
 	for {
 		if err := fs.Parse(args); err != nil {
-			return nil, flagError{err}
+			return nil, flagError{err, fs}
 		}
 		args = fs.Args()
 		if len(args) == 0 {
@@ -269,8 +328,11 @@ func parseArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 }
 
 // flagError is an error from the flag package, which writes it to stderr
-// itself.
-type flagError struct{ err error }
+// itself. fs is the flag set, for the --help text.
+type flagError struct {
+	err error
+	fs  *flag.FlagSet
+}
 
 func (e flagError) Error() string { return e.err.Error() }
 
@@ -280,10 +342,9 @@ func (e flagError) Unwrap() error { return e.err }
 func newFlagSet(name string, env *Env) *flag.FlagSet {
 	fl := flag.NewFlagSet(name, flag.ContinueOnError)
 	fl.SetOutput(env.Stderr)
-	fl.Usage = func() {
-		fmt.Fprintf(fl.Output(), "Usage: %s\n", find(name).line())
-		fl.PrintDefaults()
-	}
+	// runCommand writes the help or the usage. It knows if the user asked
+	// for help, and the flag package does not.
+	fl.Usage = func() {}
 	return fl
 }
 

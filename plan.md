@@ -123,7 +123,8 @@ From a review of how well an agent can use sv:
 
 - [x] A change inside one service has no calls. The services in
       services.changed then cover the acceptance criteria (SV118).
-- [ ] Give each command a help text with a description and examples, on stdout.
+- [x] Give each command a help text with a description and examples, on stdout
+      (specs/command-help.yaml).
 - [ ] `sv init` writes Copilot review instructions that compare a pull request
       with its spec, and prints a line to add to CLAUDE.md. doctor checks them.
 - [ ] `sv init --dry-run`.

@@ -13,8 +13,8 @@ import (
 func cmdNew(_ context.Context, env *Env, args []string) error {
 	fl := newFlagSet("new", env)
 	kinds := baseline.Kinds()
-	kind := fl.String("kind", kinds[0], strings.Join(kinds[:len(kinds)-1], ", ")+", or "+kinds[len(kinds)-1])
-	title := fl.String("title", "", "one-line title")
+	kind := fl.String("kind", kinds[0], "the kind of the change: `"+strings.Join(kinds, "|")+"`")
+	title := fl.String("title", "", "the title of the spec, on one line: `text`")
 	pos, err := parseArgs(fl, args)
 	if err != nil {
 		return err
