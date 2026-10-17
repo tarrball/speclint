@@ -118,10 +118,20 @@ func (c *checker) checkPaths() {
 	}
 }
 
+// loadEngine reads the data files and the rule files of cfg, and makes an
+// engine.
+func loadEngine(ctx context.Context, cfg *config.Config) (*policy.Engine, error) {
+	src, err := cfg.ReadSources()
+	if err != nil {
+		return nil, err
+	}
+	return policy.New(ctx, src.Data, src.Policies)
+}
+
 // checkRules loads the data and compiles the rules. It returns nil if they
 // do not load.
 func (c *checker) checkRules(ctx context.Context) *policy.Engine {
-	eng, err := policy.New(ctx, c.cfg)
+	eng, err := loadEngine(ctx, c.cfg)
 	if err != nil {
 		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `sv check` fails.")
 		return nil

@@ -125,6 +125,50 @@ func (c *Config) PolicyFiles() ([]string, error) {
 	return out, nil
 }
 
+// Sources holds the content of the project data files and the project rule
+// files, by absolute path.
+type Sources struct {
+	Data     map[string][]byte
+	Policies map[string][]byte
+}
+
+// ReadSources reads the project data files and the project rule files.
+func (c *Config) ReadSources() (*Sources, error) {
+	data, err := c.DataFiles()
+	if err != nil {
+		return nil, err
+	}
+	policies, err := c.PolicyFiles()
+	if err != nil {
+		return nil, err
+	}
+	src := &Sources{}
+	if src.Data, err = readAll(data); err != nil {
+		return nil, err
+	}
+	if src.Policies, err = readAll(policies); err != nil {
+		return nil, err
+	}
+	return src, nil
+}
+
+// ReadSpec reads the spec file at path.
+func ReadSpec(path string) ([]byte, error) {
+	return os.ReadFile(path)
+}
+
+func readAll(paths []string) (map[string][]byte, error) {
+	out := make(map[string][]byte, len(paths))
+	for _, p := range paths {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return nil, err
+		}
+		out[p] = b
+	}
+	return out, nil
+}
+
 // isPolicy reports whether path is a Rego file that is not a Rego test file.
 func isPolicy(path string) bool {
 	return strings.HasSuffix(path, ".rego") && !strings.HasSuffix(path, "_test.rego")

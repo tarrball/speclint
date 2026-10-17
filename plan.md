@@ -96,7 +96,9 @@ rules do not permit.
 - [x] ContextCommand calls a new ContextManager (internal/describe), not ConfigAccessor
       and PolicyEngine.
 - [x] NewCommand calls only ScaffoldManager (specs/new-scaffold.yaml).
-- [ ] Move the file reads from `policy` to `ProjectDataAccessor`.
+- [x] Move the file reads out of `policy` (specs/pure-engine.yaml). ConfigAccessor
+      reads the files, not a new ProjectDataAccessor: an accessor cannot call
+      another accessor, and ConfigAccessor already lists the files.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
 - [ ] Fix the bugs from the review: `settings.json` order and escapes, multi-document specs.

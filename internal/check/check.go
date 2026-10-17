@@ -113,7 +113,11 @@ func SpecFile(ctx context.Context, path, base string) (*Report, error) {
 // run checks the given spec files and, if registry is true, the registry. The
 // spec files must be absolute paths. run reports paths relative to base.
 func run(ctx context.Context, cfg *config.Config, files []string, base string, registry bool) (*Report, error) {
-	eng, err := policy.New(ctx, cfg)
+	src, err := cfg.ReadSources()
+	if err != nil {
+		return nil, err
+	}
+	eng, err := policy.New(ctx, src.Data, src.Policies)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +138,11 @@ func run(ctx context.Context, cfg *config.Config, files []string, base string, r
 		}
 	}
 	for _, f := range files {
-		res, err := eng.CheckSpec(ctx, f)
+		b, err := config.ReadSpec(f)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", rel(f), err)
+		}
+		res, err := eng.CheckSpec(ctx, b)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", rel(f), err)
 		}

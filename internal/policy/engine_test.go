@@ -41,9 +41,28 @@ func project(t *testing.T, files map[string]string) *config.Config {
 	return cfg
 }
 
+// load reads the data files and the rule files of cfg, and makes an engine.
+func load(cfg *config.Config) (*Engine, error) {
+	src, err := cfg.ReadSources()
+	if err != nil {
+		return nil, err
+	}
+	return New(context.Background(), src.Data, src.Policies)
+}
+
+// read returns the content of the file at path.
+func read(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
 func newEngine(t *testing.T, cfg *config.Config) *Engine {
 	t.Helper()
-	eng, err := New(context.Background(), cfg)
+	eng, err := load(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +72,7 @@ func newEngine(t *testing.T, cfg *config.Config) *Engine {
 // check returns the findings for the spec at specs/<name> in cfg.
 func check(t *testing.T, cfg *config.Config, name string) []Finding {
 	t.Helper()
-	found, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", name))
+	found, err := newEngine(t, cfg).CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", name)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +98,7 @@ func TestExampleSpecs(t *testing.T) {
 		"ORD-143.yaml": {"ORD001", "SV101", "SV102", "SV107", "SV108", "SV109"},
 		"ORD-144.yaml": slices.Repeat([]string{"SV001"}, 6),
 	} {
-		res, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", spec))
+		res, err := eng.CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", spec)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -219,10 +238,10 @@ deny contains f if {
 		"specs/done.yaml":  spec("done"),
 	})
 	eng := newEngine(t, cfg)
-	if _, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "draft.yaml")); err == nil {
+	if _, err := eng.CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "draft.yaml"))); err == nil {
 		t.Error("draft: got no error, want the conflict")
 	}
-	found, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "done.yaml"))
+	found, err := eng.CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "done.yaml")))
 	if err != nil || len(found.Findings) != 0 {
 		t.Errorf("done: got %v, %v, want no findings and no error", found, err)
 	}
@@ -238,7 +257,7 @@ func TestCheckSpecTellsWhenTheFormatStopsTheCheck(t *testing.T) {
 	})
 	eng := newEngine(t, cfg)
 	for spec, want := range map[string]bool{"yaml.yaml": true, "keys.yaml": true, "draft.yaml": true, "done.yaml": false} {
-		res, err := eng.CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", spec))
+		res, err := eng.CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", spec)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -285,10 +304,23 @@ calls:
 	}
 }
 
-func TestCheckSpecMissingFile(t *testing.T) {
-	cfg := project(t, map[string]string{})
-	if _, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "nope.yaml")); !os.IsNotExist(err) {
-		t.Errorf("err = %v, want a not-exist error", err)
+func TestTheEngineReadsNoFiles(t *testing.T) {
+	// The paths do not exist. The engine uses them only in messages.
+	data := map[string][]byte{"/nowhere/services.yaml": []byte(registry)}
+	policies := map[string][]byte{"/nowhere/a.rego": []byte("package specval.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains f if {\n\tinput.id == \"X\"\n\tf := {\"rule\": \"PRJ001\", \"path\": \"id\", \"msg\": \"m\", \"fix\": \"f\"}\n}\n")}
+	eng, err := New(context.Background(), data, policies)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := eng.CheckSpec(context.Background(), []byte("specval: 1\nid: X\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: [{ from: OrderManager, to: Nobody, op: Get, covers: [AC1] }]\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := rules(res.Findings); !slices.Equal(got, []string{"PRJ001", "SV101"}) {
+		t.Errorf("rules = %v, want [PRJ001 SV101]", got)
+	}
+	if got := eng.DataFile("services"); got != "/nowhere/services.yaml" {
+		t.Errorf("DataFile(services) = %q", got)
 	}
 }
 
@@ -354,7 +386,7 @@ func TestNewErrors(t *testing.T) {
 		},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := New(context.Background(), project(t, c.files))
+			_, err := load(project(t, c.files))
 			if err == nil || !strings.Contains(err.Error(), c.want) {
 				t.Errorf("err = %v, want it to contain %q", err, c.want)
 			}
@@ -366,7 +398,7 @@ func TestRulesOutsideTheSpecvalPackagesNeedNoID(t *testing.T) {
 	cfg := project(t, map[string]string{
 		".specval/policy/helpers.rego": "package helpers\n\ndeny contains \"x\" if true\n",
 	})
-	if _, err := New(context.Background(), cfg); err != nil {
+	if _, err := load(cfg); err != nil {
 		t.Errorf("New = %v, want no error", err)
 	}
 }
@@ -383,7 +415,7 @@ func TestAMalformedFindingIsAnError(t *testing.T) {
 					"deny contains " + value + " if true\n",
 				"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
 			})
-			_, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
+			_, err := newEngine(t, cfg).CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
 			if err == nil || !strings.Contains(err.Error(), "a rule returned a finding that does not have the correct format") {
 				t.Errorf("err = %v, want a format error", err)
 			}
@@ -519,7 +551,7 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 		"two":     {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n\nz if w\n", 2},
 	} {
 		cfg := project(t, map[string]string{".specval/policy/a.rego": c.src})
-		_, err := New(context.Background(), cfg)
+		_, err := load(cfg)
 		if err == nil {
 			t.Errorf("%s: no error", name)
 			continue
@@ -604,7 +636,7 @@ func TestNestedRulePackagesAreRejected(t *testing.T) {
 		cfg := project(t, map[string]string{
 			".specval/policy/a.rego": "package " + pkg + "\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
 		})
-		_, err := New(context.Background(), cfg)
+		_, err := load(cfg)
 		if err == nil || !strings.Contains(err.Error(), "package "+pkg+" is too deep") {
 			t.Errorf("%s: err = %v, want a package depth error", pkg, err)
 		}
@@ -631,7 +663,7 @@ func TestKeysThatAreNotStrings(t *testing.T) {
 // and "1". specval must not keep one of them by chance.
 func TestKeysThatAreTheSameAsText(t *testing.T) {
 	cfg := project(t, map[string]string{".specval/data/limits.yaml": "limits: {0x1: a, \"1\": b}\n"})
-	if _, err := New(context.Background(), cfg); err == nil || !strings.Contains(err.Error(), `limits.yaml: two keys are "1" as text (limits.1)`) {
+	if _, err := load(cfg); err == nil || !strings.Contains(err.Error(), `limits.yaml: two keys are "1" as text (limits.1)`) {
 		t.Errorf("data file: err = %v", err)
 	}
 	cfg = project(t, map[string]string{
@@ -649,7 +681,7 @@ func TestKeysThatAreTheSameAsText(t *testing.T) {
 		".specval/data/services.yaml": registry,
 		"specs/a.yaml":                "specval: 1\nstatus: done\nout_of_scope: [{0x1: a, \"1\": b}]\n",
 	})
-	res, err := newEngine(t, cfg).CheckSpec(context.Background(), filepath.Join(cfg.Root, "specs", "a.yaml"))
+	res, err := newEngine(t, cfg).CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
 	if err != nil || len(res.Findings) != 1 || res.Findings[0].Rule != "SV000" || res.Stopped {
 		t.Errorf("done spec: got %+v, %v; want one SV000 and Stopped false", res, err)
 	}
@@ -659,14 +691,14 @@ func TestNestedRulePackagesInBracketNotation(t *testing.T) {
 	nested := project(t, map[string]string{
 		".specval/policy/a.rego": "package specval.spec.team[\"pricing-rules\"]\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
 	})
-	if _, err := New(context.Background(), nested); err == nil || !strings.Contains(err.Error(), "is too deep") {
+	if _, err := load(nested); err == nil || !strings.Contains(err.Error(), "is too deep") {
 		t.Errorf("nested: err = %v, want a package depth error", err)
 	}
 	// One level in bracket notation is a rule package, so it needs custom.id.
 	noID := project(t, map[string]string{
 		".specval/policy/a.rego": "package specval.spec[\"pricing-rules\"]\n\nimport rego.v1\n\ndeny contains \"x\" if true\n",
 	})
-	if _, err := New(context.Background(), noID); err == nil || !strings.Contains(err.Error(), "custom.id") {
+	if _, err := load(noID); err == nil || !strings.Contains(err.Error(), "custom.id") {
 		t.Errorf("one level: err = %v, want a custom.id error", err)
 	}
 }

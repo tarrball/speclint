@@ -1,0 +1,33 @@
+specval: 1
+id: pure-engine
+kind: chore
+status: done
+title: Move the file reads out of the policy engine
+summary: >
+  The policy engine lists and reads the data files, the policy files, and the
+  spec files. Thus an engine does IO and depends on the layout of a project on
+  disk. This change makes ConfigAccessor read the data, policy, and spec files.
+  The managers give the content to the engine. The engine reads no files and
+  does not import internal/config. The output does not change.
+acceptance:
+  - id: AC1
+    text: Given the scripts, when they run sv check, sv hook, sv context, and sv doctor, then they pass with no change to their expected output.
+  - id: AC2
+    text: Given the data files and the policy files of a project, when a test calls ConfigAccessor, then it gets the content of each file with its path.
+  - id: AC3
+    text: Given the content of a spec, when a test calls the policy engine, then the engine gives the findings and reads no file.
+services:
+  changed: [PolicyEngine, ConfigAccessor, CheckManager, ContextManager, DoctorManager]
+calls:
+  - { from: CheckManager, to: ConfigAccessor, op: ReadSources, covers: [AC1, AC2] }
+  - { from: CheckManager, to: ConfigAccessor, op: ReadSpec, covers: [AC1] }
+  - { from: CheckManager, to: PolicyEngine, op: CheckSpec, covers: [AC1, AC3] }
+  - { from: ContextManager, to: ConfigAccessor, op: ReadSources, covers: [AC1] }
+  - { from: ContextManager, to: PolicyEngine, op: New, covers: [AC1] }
+  - { from: DoctorManager, to: ConfigAccessor, op: ReadSources, covers: [AC1] }
+  - { from: DoctorManager, to: PolicyEngine, op: New, covers: [AC1] }
+removed_calls:
+  - { from: PolicyEngine, to: ConfigAccessor }
+out_of_scope:
+  - A new ProjectDataAccessor. An accessor cannot call another accessor, so it could not get the list of files from ConfigAccessor. ConfigAccessor already lists these files.
+  - Specs from stdin. The new API permits it, but this change does not add it.

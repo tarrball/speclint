@@ -21,7 +21,7 @@ services:
   DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
   ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [Baseline, ClaudeAccessor, ConfigAccessor] }
 
-  PolicyEngine: { layer: engine, package: internal/policy, calls: [Baseline, ConfigAccessor, YamlPath] }
+  PolicyEngine: { layer: engine, package: internal/policy, calls: [Baseline, YamlPath] }
 
   # The settings file and the skill of Claude Code (internal/claude/settings.go).
   ClaudeAccessor: { layer: accessor, package: internal/claude, calls: [] }

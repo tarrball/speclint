@@ -24,10 +24,11 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/sv   # rewrite expected CLI outp
   makes the report for `check` and `hook`.
 - `internal/describe/`: ContextManager. It gives the layers, the registry, and
   the rules for `context`.
-- `internal/config/`: finds and reads `.specval.yaml`, and lists the spec, data,
-  and policy files.
+- `internal/config/`: finds and reads `.specval.yaml`, and lists and reads the
+  spec, data, and policy files.
 - `internal/policy/`: the `Engine`. It loads data and Rego rules, evaluates specs
-  and the registry, and returns findings.
+  and the registry, and returns findings. It reads no files: the managers give
+  it the content.
 - `internal/baseline/`: the built-in schema, layer data, and Rego rules (embedded).
   `policy/*_test.rego` are Rego unit tests. `policy_test.go` runs them.
 - `internal/yamlpath/`: finds the line of a path such as `calls[2].to` in YAML.
