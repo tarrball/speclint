@@ -107,26 +107,42 @@ func InspectSettings(path string) (HookStatus, error) {
 // AddHook changes only the PostToolUse list. It keeps the order of the keys,
 // the text of each other value, and the indent of the file.
 func AddHook(path string) (bool, error) {
-	st, err := InspectSettings(path)
-	if err != nil || st.Found {
+	out, err := hooked(path)
+	if err != nil || out == nil {
 		return false, err
-	}
-	var out []byte
-	if st.Exists {
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return false, err
-		}
-		if out, err = addHook(b); err != nil {
-			return false, fmt.Errorf("%s: %w", path, err)
-		}
-	} else {
-		out = settingsTemplate
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, err
 	}
 	return true, os.WriteFile(path, out, 0o644)
+}
+
+// NeedsHook tells if AddHook adds the hook to the settings file at path. It
+// gives the same errors as AddHook, and it does not write the file.
+func NeedsHook(path string) (bool, error) {
+	out, err := hooked(path)
+	return out != nil, err
+}
+
+// hooked returns the settings file at path with the hook added, or nil if
+// the file already has the hook.
+func hooked(path string) ([]byte, error) {
+	st, err := InspectSettings(path)
+	if err != nil || st.Found {
+		return nil, err
+	}
+	if !st.Exists {
+		return settingsTemplate, nil
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	out, err := addHook(b)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return out, nil
 }
 
 // addHook returns the settings in b with the hooks of the template added to

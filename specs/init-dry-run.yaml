@@ -1,0 +1,26 @@
+specval: 1
+id: init-dry-run
+kind: feature
+status: done
+title: Let sv init show what it will change, and keep the policy files of a project
+summary: >
+  sv init creates files and adds the hook to the settings of Claude Code. An
+  agent must see these changes before it makes them. sv init --dry-run
+  prints the files that init creates and the hook that it adds, and it writes
+  nothing. Also, init now adds project.rego only if the policy paths have no
+  Rego file. A project that has its own rules does not get the example file.
+acceptance:
+  - id: AC1
+    text: Given a directory with no project, when sv init --dry-run runs, then it prints each file that init creates and the hook that it adds, and it writes no file and no directory.
+  - id: AC2
+    text: Given a settings file that is not valid JSON, when sv init --dry-run runs, then it gives the same error as sv init.
+  - id: AC3
+    text: Given a project that has the hook, when sv init --dry-run runs, then it tells that the hook exists.
+  - id: AC4
+    text: Given a policy directory with a Rego file, when sv init runs, then it does not create project.rego, and it prints the policy file that exists.
+calls:
+  - { from: InitCommand, to: ScaffoldManager, op: DryRun, covers: [AC1, AC2, AC3] }
+  - { from: ScaffoldManager, to: ClaudeAccessor, op: NeedsHook, covers: [AC1, AC3] }
+  - { from: ScaffoldManager, to: ConfigAccessor, op: PolicyFiles, covers: [AC4] }
+out_of_scope:
+  - A dry run for sv new. It creates one new file, and it does not change a file that exists.

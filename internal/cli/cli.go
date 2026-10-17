@@ -89,13 +89,15 @@ func commands() []command {
 			run:      noCode(cmdSchema),
 		},
 		{
-			name: "init",
+			name:     "init",
+			synopsis: text("[--dry-run]"),
 			help: []string{
 				"Set up specval, the Claude Code skill and hook, and the Copilot review",
 				"instructions in this directory.",
 				"You can run it again. It adds only the parts that are missing.",
+				"With --dry-run, it prints the changes and writes nothing.",
 			},
-			examples: []string{"sv init"},
+			examples: []string{"sv init --dry-run", "sv init"},
 			run:      noCode(cmdInit),
 		},
 		{

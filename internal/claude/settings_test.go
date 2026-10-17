@@ -334,3 +334,36 @@ func TestAddHookWithNullValues(t *testing.T) {
 		}
 	}
 }
+
+func TestNeedsHookDoesNotWrite(t *testing.T) {
+	dir := t.TempDir()
+	missing := filepath.Join(dir, "missing.json")
+	if need, err := NeedsHook(missing); err != nil || !need {
+		t.Errorf("NeedsHook(missing) = %v, %v", need, err)
+	}
+	if _, err := os.Stat(missing); !os.IsNotExist(err) {
+		t.Errorf("NeedsHook made the file: %v", err)
+	}
+	other := filepath.Join(dir, "other.json")
+	writeFile(t, other, `{"model": "opus"}`)
+	if need, err := NeedsHook(other); err != nil || !need {
+		t.Errorf("NeedsHook(other) = %v, %v", need, err)
+	}
+	if b, err := os.ReadFile(other); err != nil || string(b) != `{"model": "opus"}` {
+		t.Errorf("NeedsHook changed the file: %q, %v", b, err)
+	}
+	if _, err := AddHook(other); err != nil {
+		t.Fatal(err)
+	}
+	if need, err := NeedsHook(other); err != nil || need {
+		t.Errorf("NeedsHook after AddHook = %v, %v", need, err)
+	}
+	// NeedsHook gives the errors of AddHook, for example a hooks field that is
+	// not an object.
+	wrong := filepath.Join(dir, "wrong.json")
+	writeFile(t, wrong, `{"hooks": {"PostToolUse": {}}}`)
+	_, addErr := AddHook(wrong)
+	if _, err := NeedsHook(wrong); err == nil || addErr == nil || err.Error() != addErr.Error() {
+		t.Errorf("NeedsHook error %v, AddHook error %v", err, addErr)
+	}
+}

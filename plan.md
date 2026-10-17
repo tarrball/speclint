@@ -128,8 +128,8 @@ From a review of how well an agent can use sv:
 - [x] `sv init` writes Copilot review instructions that compare a pull request
       with its spec, and prints a line to add to CLAUDE.md. doctor checks them
       (specs/copilot-review.yaml).
-- [ ] `sv init --dry-run`. Do not add `project.rego` to a policy directory that
-      already has a `.rego` file.
+- [x] `sv init --dry-run`. Do not add `project.rego` to a policy directory that
+      already has a `.rego` file (specs/init-dry-run.yaml).
 - [x] The skill: run `sv check` when the hook did not run, and after the
       registry update. `sv new` prints a relative path (specs/skill-text.yaml).
 
