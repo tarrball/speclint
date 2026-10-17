@@ -17,6 +17,19 @@ test_a_valid_spec_has_no_findings if {
 	count(schema.deny) == 0 with input as valid
 }
 
+test_a_moved_service_can_have_any_registered_name if {
+	# The registry permits a name that is not PascalCase, for example
+	# orderAccessor. SV113 checks that the name is registered.
+	move := {"name": "orderAccessor", "layer": "engine", "rename": "OrderEngine", "reason": "R"}
+	count(schema.deny) == 0 with input as object.union(valid, {"services": {"relayered": [move]}})
+
+	# The new name is PascalCase.
+	bad := object.union(move, {"rename": "orderEngine"})
+	{f.path | some f in schema.deny with input as object.union(valid, {"services": {"relayered": [bad]}})} == {
+		"services.relayered[0].rename",
+	}
+}
+
 test_display if {
 	schema.display("(root)") == ""
 	schema.display("(Root)") == ""

@@ -193,6 +193,9 @@ deny contains f if {
 warn contains f if {
 	some name, i in move_at
 	from := new_name(name)
+
+	# SV202 reports the calls of a moved service that the spec also changes.
+	not from in changed
 	some to in registered_calls(from)
 	valid_layers(from, to)
 	not [from, to] in removed_pairs

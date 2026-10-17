@@ -81,6 +81,14 @@ test_sv203_a_kept_call_to_a_moved_service if {
 	]))
 }
 
+test_sv203_leaves_a_changed_moved_service_to_sv202 if {
+	# The spec moves and changes ClaudeHook, and keeps its call to
+	# StoreResource. The call gets one finding.
+	s := move_spec([to_hook], {"removed_calls": [], "services": {"relayered": [to_hook], "changed": ["ClaudeHook"]}})
+	found := {[f.rule, f.path] | some f in dpl.warn with input as s with data.project as before}
+	found == {["SV202", "services.changed[0]"]}
+}
+
 test_sv203_leaves_a_changed_caller_to_sv202 if {
 	move := {"name": "PriceAccessor", "layer": "resource", "rename": "PriceResource", "reason": "R"}
 	changed := spec({"services": {"relayered": [move], "changed": ["OrderManager"]}})
