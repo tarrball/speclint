@@ -13,6 +13,16 @@ finding(meta, path, msg, fix) := {
 	"fix": fix,
 }
 
+# path_key returns the path of key in the mapping at prefix, for a finding.
+# A key with a character other than a letter, a digit, "_", or "-" is in
+# brackets and quotes, for example services["Order.Accessor"]. Thus specval
+# finds the line of the key. An empty prefix is the top level.
+path_key(prefix, key) := $"{prefix}[{json.marshal(key)}]" if {
+	not regex.match(`^[A-Za-z0-9_-]+$`, key)
+} else := key if {
+	prefix == ""
+} else := $"{prefix}.{key}"
+
 # join writes ["a", "b", "c"] as "a, b <word> c".
 join(xs, _) := xs[0] if count(xs) == 1
 

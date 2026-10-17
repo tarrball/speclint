@@ -108,7 +108,8 @@ rules do not permit.
       ID rule text (specs/command-table.yaml).
 - [x] Add a `version` command, signal handling, and a time limit for evaluation
       (specs/version-signals-timeout.yaml).
-- [ ] Use path segments inside the code. The JSON output keeps the path strings.
+- [x] Read paths into segments (yamlpath), and quote a key that is not plain
+      (`lib.path_key`). The paths stay strings (specs/path-segments.yaml).
 - [x] Add a test that compares the registry with the imports of the packages
       (TestRegistryAgreesWithTheImports). The list of known violations is empty,
       because the registry and the imports agree.
