@@ -305,3 +305,19 @@ func TestAddHookWritesTheTemplateAsItIs(t *testing.T) {
 		t.Errorf("settings:\n%s\nwant the template:\n%s", b, settingsTemplate)
 	}
 }
+
+func TestAddHookWithNullValues(t *testing.T) {
+	// encoding/json reads null as an empty value, so InspectSettings accepts
+	// these files. AddHook must add the hook to them.
+	for _, settings := range []string{`null`, `{"hooks": null}`, `{"hooks": {"PostToolUse": null}}`} {
+		path := filepath.Join(t.TempDir(), "settings.json")
+		writeFile(t, path, settings)
+		if added, err := AddHook(path); err != nil || !added {
+			t.Errorf("%s: AddHook = %v, %v", settings, added, err)
+			continue
+		}
+		if st, err := InspectSettings(path); err != nil || !st.Found {
+			t.Errorf("%s: InspectSettings = %+v, %v; want the hook", settings, st, err)
+		}
+	}
+}

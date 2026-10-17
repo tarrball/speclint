@@ -183,10 +183,10 @@ type member struct {
 // object is a JSON object with its keys in the order of the file.
 type object []member
 
-// members reads a JSON object and keeps the order of its keys. A nil b is
-// an empty object.
+// members reads a JSON object and keeps the order of its keys. A nil b and
+// a JSON null are an empty object, as for encoding/json.
 func members(b []byte) (object, error) {
-	if b == nil {
+	if b == nil || string(bytes.TrimSpace(b)) == "null" {
 		return nil, nil
 	}
 	dec := json.NewDecoder(bytes.NewReader(b))
