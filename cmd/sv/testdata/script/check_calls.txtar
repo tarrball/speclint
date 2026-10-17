@@ -12,6 +12,18 @@ stdout 'found 0 error\(s\) and 0 warning\(s\)'
 exits 1 sv check specs/unknown.yaml
 stdout '^specs/unknown.yaml:12 error SV112 HookCommand does not call PolicyEngine in the registry \(removed_calls\[1\]\)$'
 
+# A change inside one service has no calls. The services in services.changed
+# cover each acceptance criterion. SV118 reports a spec with no calls and no
+# changed service.
+# SV202 still checks the calls that the changed service keeps.
+exits 0 sv check specs/inside.yaml
+stdout 'found 0 error\(s\) and 1 warning\(s\)'
+stdout ' warning SV202 HookCommand calls ConfigAccessor'
+! stdout 'SV107|SV118|SV201'
+exits 1 sv check specs/nothing.yaml
+stdout '^specs/nothing.yaml:8 error SV118 The spec has no calls and no service in services.changed \(calls\)$'
+! stdout SV107
+
 # SR008: each registered call is to a registered service.
 cd $WORK/badcalls
 exits 1 sv check
@@ -62,6 +74,26 @@ calls:
 removed_calls:
   - { from: HookCommand, to: ConfigAccessor }
   - { from: HookCommand, to: PolicyEngine }
+-- specs/inside.yaml --
+specval: 1
+id: INSIDE-1
+kind: chore
+title: Change the hook only
+summary: The hook writes a shorter message. It adds no call.
+acceptance:
+  - { id: AC1, text: "Given a spec with errors, when Claude saves it, then the message is short." }
+services:
+  changed: [HookCommand]
+calls: []
+-- specs/nothing.yaml --
+specval: 1
+id: NOTHING-1
+kind: chore
+title: Change nothing
+summary: The spec names no call and no service.
+acceptance:
+  - { id: AC1, text: "Given nothing, when nothing happens, then nothing changes." }
+calls: []
 -- keep.txt --
 specs/keep.yaml:9 warning SV202 HookCommand calls ConfigAccessor in the registry, but clients cannot call accessors (services.changed[0])
     fix: This spec changes HookCommand, so fix the call. Add { from: HookCommand, to: ConfigAccessor } to removed_calls (a top-level list of the spec). Then move the work to a service that HookCommand can call: managers or utilities. If ConfigAccessor belongs in another layer, move it with services.relayered.

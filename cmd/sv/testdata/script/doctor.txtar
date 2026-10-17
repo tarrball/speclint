@@ -4,7 +4,7 @@ exits 0 sv init
 exits 0 sv doctor
 stdout '^✓ config    .*/\.specval\.yaml$'
 stdout '^✓ specs     specs \(0 spec\(s\)\)$'
-stdout '^✓ rules     21 spec rule\(s\) compile, 0 from this project$'
+stdout '^✓ rules     22 spec rule\(s\) compile, 0 from this project$'
 stdout '^! registry  no services are registered \(data.project.services is empty\)$'
 stdout '^    fix: Add each service and its layer to .specval/data/services.yaml. Until you do, each call fails SV101.$'
 stdout '^✓ skill     .claude/skills/spec/SKILL.md$'

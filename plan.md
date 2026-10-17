@@ -117,6 +117,19 @@ rules do not permit.
   can disagree with it. The test reads the registry, so it cannot.
 - [x] Make release binaries: `mise run dist -- <tag>` and a workflow on each `v*` tag.
 
+### 4b. Agent use (before v0.1.0)
+
+From a review of how well an agent can use sv:
+
+- [x] A change inside one service has no calls. The services in
+      services.changed then cover the acceptance criteria (SV118).
+- [ ] Give each command a help text with a description and examples, on stdout.
+- [ ] `sv init` writes Copilot review instructions that compare a pull request
+      with its spec, and prints a line to add to CLAUDE.md. doctor checks them.
+- [ ] `sv init --dry-run`.
+- [ ] The skill: run `sv check` when the hook did not run, and after the
+      registry update. `sv new` prints a relative path.
+
 ### 5. Brownfield features
 
 Design these from a real brownfield project: the next repository, a project
