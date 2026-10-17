@@ -101,7 +101,8 @@ rules do not permit.
       another accessor, and ConfigAccessor already lists the files.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
-- [ ] Fix the bugs from the review: `settings.json` order and escapes, multi-document specs.
+- [x] Keep `settings.json` as it is when init adds the hook (specs/settings-json.yaml).
+- [ ] Report a spec file with more than one YAML document.
 - [ ] Use one table for the commands. Get the kinds and the ID text from the schema.
 - [ ] Add a `version` command, signal handling, and a time limit for evaluation.
 - [ ] Use path segments inside the code. The JSON output keeps the path strings.

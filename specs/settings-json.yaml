@@ -1,0 +1,27 @@
+specval: 1
+id: settings-json
+kind: bugfix
+status: done
+title: Keep the settings file of Claude Code as it is when sv init adds the hook
+summary: >
+  When sv init adds the hook to a settings file that exists, it decodes the
+  file into a map and encodes it again. Thus it sorts the keys, and it changes
+  large numbers. It also writes the characters &, <, and > as \u0026,
+  \u003c, and \u003e. This change edits the file in place. It adds the hook to the
+  PostToolUse list. It keeps the order of the keys, the text of each other
+  value, and the indent of the file.
+acceptance:
+  - id: AC1
+    text: Given a settings file with keys in an order, when sv init adds the hook, then the keys stay in the same order.
+  - id: AC2
+    text: Given a settings file with a command that contains && and a large number, when sv init adds the hook, then the text of these values does not change.
+  - id: AC3
+    text: Given a settings file with an indent of four spaces, when sv init adds the hook, then the file keeps that indent.
+  - id: AC4
+    text: Given a project with no settings file, when sv init runs, then it writes the settings template as it is.
+services:
+  changed: [ClaudeAccessor]
+calls:
+  - { from: ScaffoldManager, to: ClaudeAccessor, op: AddHook, covers: [AC1, AC2, AC3, AC4] }
+out_of_scope:
+  - Comments in the settings file. Claude Code reads JSON, which has no comments.

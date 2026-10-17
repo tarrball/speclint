@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -212,6 +213,111 @@ func TestSkillFrontmatterIsValidYAML(t *testing.T) {
 		}
 		if !strings.Contains(parts[2], dir+"/<ticket-id>.yaml") {
 			t.Errorf("%q: the body does not name the specs directory", dir)
+		}
+	}
+}
+
+func TestAddHookKeepsTheFileAsItIs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	// The keys are not in lexical order, a command has &&, a number is
+	// larger than a float64 can hold, and the indent is four spaces.
+	writeFile(t, path, `{
+    "model": "opus",
+    "env": {"LIMIT": 12345678901234567890, "RATIO": 1.0},
+    "hooks": {
+        "Stop": [],
+        "PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "a && b <c>"}]}]
+    },
+    "apiKeyHelper": "x"
+}
+`)
+	if added, err := AddHook(path); err != nil || !added {
+		t.Fatalf("AddHook = %v, %v", added, err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(b)
+	want := `{
+    "model": "opus",
+    "env": {
+        "LIMIT": 12345678901234567890,
+        "RATIO": 1.0
+    },
+    "hooks": {
+        "Stop": [],
+        "PostToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "a && b <c>"
+                    }
+                ]
+            },
+            {
+                "matcher": "Write|Edit|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "sv hook"
+                    }
+                ]
+            }
+        ]
+    },
+    "apiKeyHelper": "x"
+}
+`
+	if got != want {
+		t.Errorf("settings:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestAddHookWithoutHooks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	writeFile(t, path, `{"model": "opus"}`)
+	if added, err := AddHook(path); err != nil || !added {
+		t.Fatalf("AddHook = %v, %v", added, err)
+	}
+	st, err := InspectSettings(path)
+	if err != nil || !st.Found {
+		t.Errorf("InspectSettings = %+v, %v; want the hook", st, err)
+	}
+	b, _ := os.ReadFile(path)
+	if !strings.HasPrefix(string(b), "{\n  \"model\": \"opus\",\n  \"hooks\": {") {
+		t.Errorf("settings:\n%s", b)
+	}
+}
+
+func TestAddHookWritesTheTemplateAsItIs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".claude", "settings.json")
+	if _, err := AddHook(path); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(b, settingsTemplate) {
+		t.Errorf("settings:\n%s\nwant the template:\n%s", b, settingsTemplate)
+	}
+}
+
+func TestAddHookWithNullValues(t *testing.T) {
+	// encoding/json reads null as an empty value, so InspectSettings accepts
+	// these files. AddHook must add the hook to them.
+	for _, settings := range []string{`null`, `{"hooks": null}`, `{"hooks": {"PostToolUse": null}}`} {
+		path := filepath.Join(t.TempDir(), "settings.json")
+		writeFile(t, path, settings)
+		if added, err := AddHook(path); err != nil || !added {
+			t.Errorf("%s: AddHook = %v, %v", settings, added, err)
+			continue
+		}
+		if st, err := InspectSettings(path); err != nil || !st.Found {
+			t.Errorf("%s: InspectSettings = %+v, %v; want the hook", settings, st, err)
 		}
 	}
 }
