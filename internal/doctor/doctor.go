@@ -3,7 +3,9 @@ package doctor
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"os/exec"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/tarrball/specval/internal/claude"
 	"github.com/tarrball/specval/internal/config"
+	"github.com/tarrball/specval/internal/copilot"
 	"github.com/tarrball/specval/internal/policy"
 )
 
@@ -62,6 +65,7 @@ func Run(ctx context.Context, env Env) []Check {
 	c.checkPaths()
 	c.checkRegistry(ctx, c.checkRules(ctx))
 	c.checkSkill()
+	c.checkCopilot()
 	c.checkHook()
 	c.checkPath(ctx)
 	return c.checks
@@ -232,6 +236,21 @@ func (c *checker) checkSkill() {
 		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `sv context`", "Delete it, then run `sv init` to write it again from the template.")
 	default:
 		c.add(StatusOK, "skill", c.rel(skill), "")
+	}
+}
+
+// checkCopilot makes sure that the project has the Copilot review
+// instructions. A project that does not use Copilot can ignore the warning.
+func (c *checker) checkCopilot() {
+	// Read the file, so that a directory or a file that specval cannot read
+	// is a failure.
+	switch _, err := os.ReadFile(filepath.Join(c.cfg.Root, copilot.InstructionsPath)); {
+	case errors.Is(err, fs.ErrNotExist):
+		c.add(StatusWarn, "copilot", copilot.InstructionsPath+" is missing, so Copilot does not compare a pull request with its spec", repair)
+	case err != nil:
+		c.add(StatusFail, "copilot", c.relText(err.Error()), "Make sure that specval can read the instructions.")
+	default:
+		c.add(StatusOK, "copilot", copilot.InstructionsPath, "")
 	}
 }
 

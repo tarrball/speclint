@@ -19,14 +19,16 @@ services:
 
   CheckManager: { layer: manager, package: internal/check, calls: [ConfigAccessor, PolicyEngine] }
   ContextManager: { layer: manager, package: internal/describe, calls: [ConfigAccessor, PolicyEngine] }
-  DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
-  ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [Baseline, ClaudeAccessor, ConfigAccessor] }
+  DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, CopilotAccessor, PolicyEngine] }
+  ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [Baseline, ClaudeAccessor, ConfigAccessor, CopilotAccessor] }
 
   PolicyEngine: { layer: engine, package: internal/policy, calls: [Baseline, YamlPath] }
 
   # The settings file and the skill of Claude Code (internal/claude/settings.go).
   ClaudeAccessor: { layer: accessor, package: internal/claude, calls: [] }
   ConfigAccessor: { layer: accessor, package: internal/config, calls: [] }
+  # The Copilot review instructions that compare a pull request with its spec.
+  CopilotAccessor: { layer: accessor, package: internal/copilot, calls: [] }
 
   # The file system, and the process state: stdio, environment, and PATH.
   FileSystemResource: { layer: resource }

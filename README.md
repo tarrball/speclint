@@ -62,7 +62,9 @@ runs the `sv` that is on `PATH`. `sv version` tells which version you have.
    ```
 
    This writes `.specval.yaml`, the service registry, a file for project rules,
-   the Claude Code skill, and the hook.
+   the Claude Code skill, the hook, and the Copilot review instructions. If
+   your `CLAUDE.md` does not tell about specval, `init` prints a line to add
+   to it.
 
 2. Add your services and their layers to `.specval/data/services.yaml`:
 
@@ -107,7 +109,7 @@ breaks the schema.
 | `sv new <id>` | Makes `<specs dir>/<id>.yaml` from the template. Use `--kind` and `--title` to set those fields. |
 | `sv context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
 | `sv schema` | Prints the JSON Schema of a spec. |
-| `sv init` | Sets up specval, the skill, and the hook. You can run it again to restore a missing part. |
+| `sv init` | Sets up specval, the skill, the hook, and the Copilot review instructions. You can run it again to restore a missing part. |
 | `sv doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
 | `sv version` | Prints the version of sv and of the spec format. |
 | `sv hook` | Claude Code runs this command after each file write. Do not run it yourself. |
@@ -125,6 +127,6 @@ not finish in that time, the command fails with exit status 2.
 
 - [docs/specs.md](docs/specs.md): the spec format and the built-in rules.
 - [docs/rules.md](docs/rules.md): how to add project data and project rules.
-- [docs/claude-code.md](docs/claude-code.md): the skill, the hook, and `sv doctor`.
+- [docs/claude-code.md](docs/claude-code.md): the skill, the hook, the Copilot review, and `sv doctor`.
 - [docs/architecture.md](docs/architecture.md): how specval works inside.
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to build, test, and change specval.

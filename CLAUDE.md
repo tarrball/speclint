@@ -33,6 +33,7 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/sv   # rewrite expected CLI outp
   `policy/*_test.rego` are Rego unit tests. `policy_test.go` runs them.
 - `internal/yamlpath/`: finds the line of a path such as `calls[2].to` in YAML.
 - `internal/claude/`: the Claude Code settings file, hook event, and skill.
+- `internal/copilot/`: the Copilot review instructions that `sv init` writes.
 - `internal/scaffold/`: the files that `sv init` and `sv new` write.
 - `internal/doctor/`: the checks that `sv doctor` runs.
 - `.specval/`, `specs/`: the configuration, registry, and specs of specval itself

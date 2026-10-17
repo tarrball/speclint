@@ -47,11 +47,13 @@ Usage:
   sv schema
         Print the JSON Schema of a spec.
   sv init
-        Set up specval, the Claude Code skill, and the hook in this directory.
+        Set up specval, the Claude Code skill and hook, and the Copilot review
+        instructions in this directory.
         You can run it again. It adds only the parts that are missing.
   sv doctor [--format text|json]
         Check the setup: the configuration, the rules, the registry, the
-        Claude Code skill and hook, and the sv binary on PATH.
+        Claude Code skill and hook, the Copilot review instructions, and the
+        sv binary on PATH.
   sv version
         Print the version of sv and of the spec format.
   sv hook

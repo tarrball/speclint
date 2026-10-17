@@ -1,0 +1,36 @@
+specval: 1
+id: copilot-review
+kind: feature
+status: done
+title: Let Copilot compare a pull request with its spec, and suggest a CLAUDE.md line
+summary: >
+  A team wants to know how well a coding agent follows the spec. sv init now
+  writes Copilot review instructions. After its usual review, Copilot adds a
+  "Spec deviations" section that compares the code with the spec and the
+  registry. The section is for information, and it does not block the pull
+  request. sv doctor warns if the instructions are missing. sv init also
+  prints a line to add to CLAUDE.md, if CLAUDE.md does not tell about
+  specval. It does not change CLAUDE.md, because the user owns that file.
+acceptance:
+  - id: AC1
+    text: Given a project with no Copilot instructions, when sv init runs, then it writes .github/instructions/specval.instructions.md with the specs directory and the registry file of the project.
+  - id: AC2
+    text: Given Copilot instructions that exist, when sv init runs, then it does not change them.
+  - id: AC3
+    text: Given a project with no Copilot instructions, when sv doctor runs, then it gives a warning that tells to run sv init.
+  - id: AC4
+    text: Given a project with no CLAUDE.md, or a CLAUDE.md that does not contain specval, when sv init runs, then it prints the line to add, and it does not write CLAUDE.md.
+  - id: AC5
+    text: Given a CLAUDE.md that contains specval, when sv init runs, then it does not print the line.
+services:
+  new:
+    - name: CopilotAccessor
+      layer: accessor
+      purpose: The Copilot review instructions that sv init writes and sv doctor checks.
+calls:
+  - { from: ScaffoldManager, to: CopilotAccessor, op: Instructions, covers: [AC1, AC2] }
+  - { from: DoctorManager, to: CopilotAccessor, op: InstructionsPath, covers: [AC3] }
+  - { from: ScaffoldManager, to: ClaudeAccessor, op: MemoryHint, covers: [AC4, AC5] }
+out_of_scope:
+  - A change by sv init to the CLAUDE.md or .github/copilot-instructions.md of a project. The user owns these files.
+  - Instructions for other review tools.

@@ -16,6 +16,7 @@ code. For the rules of the code, see [style.md](style.md).
 | `internal/baseline` | The built-in schema, layer data, format example, and Rego rules. The binary contains them. |
 | `internal/yamlpath` | Finds the line of a path such as `calls[2].to` in a YAML document. |
 | `internal/claude` | Reads and changes the Claude Code settings file, reads the hook event, and holds the skill. |
+| `internal/copilot` | Holds the Copilot review instructions. |
 | `internal/scaffold` | Writes the files of `sv init` and `sv new`. |
 | `internal/doctor` | The checks of `sv doctor`. |
 
