@@ -5,7 +5,8 @@ cmp stdout created.txt
 exists specs
 cmp .specval.yaml want/config.yaml
 cmp .claude/settings.json want/settings.json
-exists .specval/data/services.yaml .specval/policy/project.rego .claude/skills/spec/SKILL.md
+exists .specval/data/services.yaml .specval/policy/project.rego .claude/skills/spec/SKILL.md .github/instructions/specval.instructions.md
+! exists CLAUDE.md
 
 # The new project passes check.
 exits 0 sv check
@@ -45,13 +46,21 @@ created  .specval.yaml
 created  .specval/data/services.yaml
 created  .specval/policy/project.rego
 created  .claude/skills/spec/SKILL.md
+created  .github/instructions/specval.instructions.md
 hooked   .claude/settings.json
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  This project uses specval. Before you write code for a change, use the spec skill to write a spec that passes `sv check`.
 -- exists.txt --
 exists   .specval.yaml
 exists   .specval/data/services.yaml (services)
 exists   .specval/policy/project.rego
 exists   .claude/skills/spec/SKILL.md
+exists   .github/instructions/specval.instructions.md
 exists   .claude/settings.json (sv hook)
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  This project uses specval. Before you write code for a change, use the spec skill to write a spec that passes `sv check`.
 -- want/config.yaml --
 # The specval configuration. A path is relative to this file.
 specs_dir: specs

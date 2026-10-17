@@ -16,6 +16,7 @@ import (
 
 	"github.com/tarrball/specval/internal/claude"
 	"github.com/tarrball/specval/internal/config"
+	"github.com/tarrball/specval/internal/copilot"
 )
 
 func TestInitCreatesAProject(t *testing.T) {
@@ -28,12 +29,16 @@ func TestInitCreatesAProject(t *testing.T) {
 created  .specval/data/services.yaml
 created  .specval/policy/project.rego
 created  .claude/skills/spec/SKILL.md
+created  .github/instructions/specval.instructions.md
 hooked   .claude/settings.json
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  ` + claude.MemoryLine + `
 `
 	if out.String() != want {
 		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
 	}
-	for _, p := range []string{config.FileName, ".specval/data/services.yaml", ".specval/policy/project.rego", claude.SkillPath, claude.SettingsPath} {
+	for _, p := range []string{config.FileName, ".specval/data/services.yaml", ".specval/policy/project.rego", claude.SkillPath, copilot.InstructionsPath, claude.SettingsPath} {
 		if _, err := os.Stat(filepath.Join(dir, p)); err != nil {
 			t.Errorf("%s: %v", p, err)
 		}
@@ -68,6 +73,10 @@ func TestInitDoesNotOverwrite(t *testing.T) {
 	if err := os.WriteFile(services, []byte("services: {X: {layer: manager}}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	instructions := filepath.Join(dir, copilot.InstructionsPath)
+	if err := os.WriteFile(instructions, []byte("Our own review rules.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	var out bytes.Buffer
 	if err := Init(dir, &out); err != nil {
 		t.Fatal(err)
@@ -81,6 +90,65 @@ func TestInitDoesNotOverwrite(t *testing.T) {
 	}
 	if !strings.Contains(string(b), "X:") {
 		t.Error("second Init overwrote services.yaml")
+	}
+	if b, err := os.ReadFile(instructions); err != nil || string(b) != "Our own review rules.\n" {
+		t.Errorf("second Init changed the Copilot instructions: %q, %v", b, err)
+	}
+}
+
+func TestInitWritesTheCopilotInstructions(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: changes\ndata: [arch/registry.yaml]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(dir, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, copilot.InstructionsPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"`changes/<id>.yaml`", "`arch/registry.yaml`", "Spec deviations"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("the instructions do not contain %q:\n%s", want, b)
+		}
+	}
+}
+
+func TestInitPrintsTheMemoryLine(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		files map[string]string
+		hint  bool
+	}{
+		{"no CLAUDE.md", nil, true},
+		{"CLAUDE.md without specval", map[string]string{"CLAUDE.md": "# Notes\n"}, true},
+		{"CLAUDE.md with specval", map[string]string{"CLAUDE.md": "Use specval.\n"}, false},
+		{".claude/CLAUDE.md with specval", map[string]string{"CLAUDE.md": "# Notes\n", ".claude/CLAUDE.md": "Use specval.\n"}, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			for p, content := range c.files {
+				if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, p)), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(dir, p), []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var out bytes.Buffer
+			if err := Init(dir, &out); err != nil {
+				t.Fatal(err)
+			}
+			if got := strings.Contains(out.String(), claude.MemoryLine); got != c.hint {
+				t.Errorf("hint = %v, want %v:\n%s", got, c.hint, out.String())
+			}
+			// Init does not write CLAUDE.md.
+			b, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
+			if want, ok := c.files["CLAUDE.md"]; ok != (err == nil) || string(b) != want {
+				t.Errorf("CLAUDE.md = %q, %v; want %q", b, err, want)
+			}
+		})
 	}
 }
 

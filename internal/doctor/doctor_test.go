@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/tarrball/specval/internal/claude"
+	"github.com/tarrball/specval/internal/copilot"
 	"github.com/tarrball/specval/internal/scaffold"
 )
 
@@ -92,7 +93,7 @@ func TestHealthyProject(t *testing.T) {
 			t.Errorf("%s: %s %s", c.Name, c.Status, c.Detail)
 		}
 	}
-	if got := strings.Join(names, " "); got != "config specs rules registry skill hook path" {
+	if got := strings.Join(names, " "); got != "config specs rules registry skill copilot hook path" {
 		t.Errorf("checks = %s", got)
 	}
 }
@@ -165,6 +166,7 @@ func TestClaudeChecks(t *testing.T) {
 			f.remove(claude.SkillPath)
 			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill("specs"))
 		}, "skill", StatusOK, "home"},
+		{"copilot instructions missing", func(f *fixture) { f.remove(copilot.InstructionsPath) }, "copilot", StatusWarn, "is missing, so Copilot does not compare a pull request with its spec"},
 		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `sv hook`"},
 		{"hook with the old command", func(f *fixture) {
 			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`)

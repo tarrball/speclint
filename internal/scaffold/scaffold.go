@@ -18,6 +18,7 @@ import (
 	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/claude"
 	"github.com/tarrball/specval/internal/config"
+	"github.com/tarrball/specval/internal/copilot"
 )
 
 var (
@@ -43,10 +44,13 @@ var (
 //   - the data and policy files
 //   - the specs directory
 //   - the Claude Code skill
+//   - the Copilot review instructions
 //   - the hook in the Claude Code settings
 //
 // Init does not change a file that exists. The one exception is the settings
 // file, to which it adds the hook. Init writes one line to w for each file.
+// If no CLAUDE.md tells about specval, Init then writes a line for the user
+// to add to it.
 func Init(dir string, w io.Writer) error {
 	// Read the settings file first, so that a file that is not valid stops
 	// Init before it writes anything.
@@ -76,11 +80,16 @@ func Init(dir string, w io.Writer) error {
 	if registry != "" {
 		services, servicesContent = registry, ""
 	}
+	registryPath := relPath(dir, services)
+	if services == "" {
+		registryPath = "the data files that " + config.FileName + " lists"
+	}
 	files := []struct{ path, content string }{
 		{config.FileName, configTemplate},
 		{services, servicesContent},
 		{firstFile(cfg, cfg.Policy, "project.rego", ".rego"), projectTemplate},
 		{claude.SkillPath, claude.Skill(cfg.SpecsDir)},
+		{copilot.InstructionsPath, copilot.Instructions(cfg.SpecsDir, registryPath)},
 	}
 	for _, f := range files {
 		switch f.path {
@@ -109,6 +118,14 @@ func Init(dir string, w io.Writer) error {
 	} else {
 		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(sv hook)")
 	}
+	if err != nil {
+		return err
+	}
+	hint, err := claude.MemoryHint(dir)
+	if err != nil || hint == "" {
+		return err
+	}
+	_, err = fmt.Fprintf(w, "\nAdd this line to CLAUDE.md, so that Claude uses the spec skill for each change:\n  %s\n", hint)
 	return err
 }
 
