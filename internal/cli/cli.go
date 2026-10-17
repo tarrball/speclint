@@ -91,7 +91,8 @@ func commands() []command {
 		{
 			name: "init",
 			help: []string{
-				"Set up specval, the Claude Code skill, and the hook in this directory.",
+				"Set up specval, the Claude Code skill and hook, and the Copilot review",
+				"instructions in this directory.",
 				"You can run it again. It adds only the parts that are missing.",
 			},
 			examples: []string{"sv init"},
@@ -102,7 +103,8 @@ func commands() []command {
 			synopsis: text("[--format text|json]"),
 			help: []string{
 				"Check the setup: the configuration, the rules, the registry, the",
-				"Claude Code skill and hook, and the sv binary on PATH.",
+				"Claude Code skill and hook, the Copilot review instructions, and the",
+				"sv binary on PATH.",
 			},
 			examples: []string{"sv doctor", "sv doctor --format json"},
 			run:      cmdDoctor,
