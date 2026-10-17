@@ -74,6 +74,11 @@ covered contains id if {
 	some id in object.get(c, "covers", [])
 }
 
+# no_calls is true if the spec has no calls. Such a change is inside the
+# services in services.changed, and they cover each acceptance criterion.
+# SV118 reports a spec that has no calls and no changed service.
+no_calls if count(calls) == 0
+
 layer_of(name) := registry[name].layer
 
 layer_of(name) := new_services[name].layer if not registry[name]
@@ -244,6 +249,7 @@ deny contains f if {
 # custom:
 #   id: SV107
 deny contains f if {
+	not no_calls
 	some i, ac in acceptance
 	not covered[ac.id]
 	f := lib.finding(
@@ -251,6 +257,25 @@ deny contains f if {
 		$"acceptance[{i}]",
 		$"No call covers {ac.id}",
 		$"Add {ac.id} to `covers` on the call(s) that implement it, or add the missing call.",
+	)
+}
+
+# METADATA
+# title: A spec with no calls names the services that it changes
+# description: >-
+#   A change inside one service adds no call between services. Such a spec has
+#   `calls: []`, and it puts the service in `services.changed`. The services in
+#   `services.changed` then cover each acceptance criterion.
+# custom:
+#   id: SV118
+deny contains f if {
+	no_calls
+	count(changed) == 0
+	f := lib.finding(
+		rego.metadata.rule(),
+		"calls",
+		"The spec has no calls and no service in services.changed",
+		"Add the calls that the change adds or changes. If the change is inside one or more services, add them to services.changed.",
 	)
 }
 
@@ -370,6 +395,7 @@ deny contains f if {
 # custom:
 #   id: SV201
 warn contains f if {
+	not no_calls
 	some i, name in changed
 	registry[name]
 	not used[name]

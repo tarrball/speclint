@@ -225,6 +225,22 @@ test_sv107_acceptance_criterion_without_a_call if {
 	{[f.rule, f.path] | some f in findings} == {["SV107", "acceptance[1]"]}
 }
 
+test_sv107_changed_services_cover_a_spec_with_no_calls if {
+	s := spec({
+		"acceptance": [{"id": "AC1", "text": "T"}, {"id": "AC2", "text": "T"}],
+		"services": {"changed": ["OrderManager", "PricingEngine"]},
+		"calls": [],
+	})
+	count(dpl.deny) == 0 with input as s with data.project as project
+	count(dpl.warn) == 0 with input as s with data.project as project
+}
+
+test_sv118_no_calls_and_no_changed_service if {
+	s := spec({"calls": []})
+	findings := dpl.deny with input as s with data.project as project
+	{[f.rule, f.path] | some f in findings} == {["SV118", "calls"]}
+}
+
 test_sv108_call_covers_an_unknown_criterion if {
 	s := spec({"calls": [{"from": "OrderManager", "to": "OrderAccessor", "op": "Get", "covers": ["AC1", "AC9"]}]})
 	some f in dpl.deny with input as s with data.project as project

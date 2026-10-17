@@ -55,7 +55,7 @@ out_of_scope:
 | `services.new` | no | The services that the change adds. Each has a `name`, a `layer`, and a `purpose`. |
 | `services.changed` | no | The registered services whose behavior changes. |
 | `services.relayered` | no | The registered services that the change moves to another layer. Each has a `name` (the name today), a `layer` (the new layer), a `reason`, and an optional `rename`. See [Move a service to another layer](#move-a-service-to-another-layer). |
-| `calls` | yes | Each call from one service to another that the change adds or changes. Each call has `from`, `to`, `op` (the operation, in PascalCase), and `covers` (the acceptance criteria that the call helps to satisfy). |
+| `calls` | yes | Each call from one service to another that the change adds or changes. Each call has `from`, `to`, `op` (the operation, in PascalCase), and `covers` (the acceptance criteria that the call helps to satisfy). A change inside one service has `calls: []`. |
 | `removed_calls` | no | Each call that the change removes. Each item has `from` and `to`. See [Calls today](#calls-today). |
 | `out_of_scope` | no | The things that the change does not do, but that a reader could expect it to do. |
 
@@ -120,6 +120,22 @@ services:
 A limit cannot permit a call that the layer rules do not permit. SV111
 reports a call that a limit refuses. A new service in `services.new` has no
 limits.
+
+### A change inside one service
+
+Some changes add no call between services, for example a new help text in a
+command. Such a spec has `calls: []`, and it puts each service that it changes
+in `services.changed`:
+
+```yaml
+services:
+  changed: [CheckCommand, DoctorCommand]
+calls: []
+```
+
+The services in `services.changed` then cover each acceptance criterion
+(SV107), and SV201 does not apply. If the spec has no calls and no service in
+`services.changed`, SV118 reports it.
 
 ### Calls today
 
@@ -212,6 +228,7 @@ Thus when you fix the format errors, the next check can find new problems.
 | SV115 | error | Each moved service has a known layer. |
 | SV116 | error | Each name in `services.relayered` is there one time only. |
 | SV117 | error | The `rename` of a moved service is not the name of another service, a layer, or another new name. |
+| SV118 | error | A spec with no calls has one or more services in `services.changed`. |
 | SV201 | warning | Each service in `services.changed` is in one or more calls. |
 | SV202 | warning | Each call that a changed service keeps follows the layer rules and the limits. |
 | SV203 | warning | Each registered call to or from a moved service that the spec keeps follows the layer rules and the limits after the move. |
