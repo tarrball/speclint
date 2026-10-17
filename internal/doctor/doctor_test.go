@@ -167,6 +167,10 @@ func TestClaudeChecks(t *testing.T) {
 			f.write(filepath.Join("..", "home", claude.SkillPath), claude.Skill("specs"))
 		}, "skill", StatusOK, "home"},
 		{"copilot instructions missing", func(f *fixture) { f.remove(copilot.InstructionsPath) }, "copilot", StatusWarn, "is missing, so Copilot does not compare a pull request with its spec"},
+		{"copilot instructions cannot be read", func(f *fixture) {
+			f.remove(copilot.InstructionsPath)
+			f.write(filepath.Join(copilot.InstructionsPath, "x"), "") // The instructions path is now a directory.
+		}, "copilot", StatusFail, "specval.instructions.md"},
 		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `sv hook`"},
 		{"hook with the old command", func(f *fixture) {
 			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`)

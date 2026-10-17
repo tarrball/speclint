@@ -242,7 +242,9 @@ func (c *checker) checkSkill() {
 // checkCopilot makes sure that the project has the Copilot review
 // instructions. A project that does not use Copilot can ignore the warning.
 func (c *checker) checkCopilot() {
-	switch _, err := os.Stat(filepath.Join(c.cfg.Root, copilot.InstructionsPath)); {
+	// Read the file, so that a directory or a file that specval cannot read
+	// is a failure.
+	switch _, err := os.ReadFile(filepath.Join(c.cfg.Root, copilot.InstructionsPath)); {
 	case errors.Is(err, fs.ErrNotExist):
 		c.add(StatusWarn, "copilot", copilot.InstructionsPath+" is missing, so Copilot does not compare a pull request with its spec", repair)
 	case err != nil:

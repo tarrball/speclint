@@ -32,5 +32,5 @@ calls:
   - { from: DoctorManager, to: CopilotAccessor, op: InstructionsPath, covers: [AC3] }
   - { from: ScaffoldManager, to: ClaudeAccessor, op: MemoryHint, covers: [AC4, AC5] }
 out_of_scope:
-  - A change to CLAUDE.md or to .github/copilot-instructions.md. The user owns them.
+  - A change by sv init to the CLAUDE.md or .github/copilot-instructions.md of a project. The user owns these files.
   - Instructions for other review tools.
