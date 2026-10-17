@@ -200,6 +200,10 @@ func quote(s string) (string, error) {
 	return strings.TrimSuffix(string(b), "\n"), nil
 }
 
+// IDRule tells which IDs are valid, in the words of the errors.
+// baseline.IDPattern, from the schema, is the rule.
+const IDRule = "the id starts with a letter or a digit, and contains only letters, digits, '.', '_', and '-'"
+
 // ValidID reports whether id can be the ID of a spec.
 func ValidID(id string) bool {
 	return baseline.IDPattern().MatchString(id)
@@ -221,7 +225,7 @@ func writeSpec(cfg *config.Config, id, kind, title string) (string, error) {
 	// A valid ID cannot contain a path separator, so the file is in the specs
 	// directory.
 	if !ValidID(id) {
-		return "", fmt.Errorf("the id %q is not valid; it must start with a letter or a digit, and contain only letters, digits, '.', '_', and '-'", id)
+		return "", fmt.Errorf("the id %q is not valid; %s", id, IDRule)
 	}
 	if kinds := baseline.Kinds(); !slices.Contains(kinds, kind) {
 		return "", fmt.Errorf("the kind %q is not valid; use one of: %s", kind, strings.Join(kinds, ", "))

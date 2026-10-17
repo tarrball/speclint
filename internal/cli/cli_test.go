@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/check"
 	"github.com/tarrball/specval/internal/doctor"
 	"github.com/tarrball/specval/internal/policy"
@@ -32,12 +33,12 @@ func runCLI(t *testing.T, dir, stdin string, args ...string) (code exitCode, std
 
 func TestRunUsage(t *testing.T) {
 	code, out, errOut := runCLI(t, t.TempDir(), "")
-	if code != exitError || out != "" || errOut != usage {
+	if code != exitError || out != "" || errOut != usage() {
 		t.Errorf("no command: code %d, stdout %q, stderr %q", code, out, errOut)
 	}
 	for _, arg := range []string{"help", "-h", "--help"} {
 		code, out, errOut := runCLI(t, t.TempDir(), "", arg)
-		if code != exitOK || out != usage || errOut != "" {
+		if code != exitOK || out != usage() || errOut != "" {
 			t.Errorf("%s: code %d, stdout %q, stderr %q", arg, code, out, errOut)
 		}
 	}
@@ -293,5 +294,21 @@ func TestCommandsRejectExtraArguments(t *testing.T) {
 		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
 			t.Errorf("%s extra wrote files: %v", cmd, entries)
 		}
+	}
+}
+
+func TestHelpAndUsageComeFromTheCommandTable(t *testing.T) {
+	for _, c := range commands() {
+		if !strings.Contains(usage(), "\n  "+c.line()+"\n") {
+			t.Errorf("the usage has no line %q", c.line())
+		}
+		_, _, errOut := runCLI(t, t.TempDir(), "", c.name, "--help")
+		if first, _, _ := strings.Cut(errOut, "\n"); first != "Usage: "+c.line() {
+			t.Errorf("%s --help: first line %q, want %q", c.name, first, "Usage: "+c.line())
+		}
+	}
+	// The kinds of sv new come from the schema.
+	if !strings.Contains(find("new").line(), "--kind "+strings.Join(baseline.Kinds(), "|")) {
+		t.Errorf("new: %q does not have the kinds of the schema", find("new").line())
 	}
 }
