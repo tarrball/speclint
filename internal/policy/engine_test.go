@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/config"
@@ -714,5 +715,40 @@ func TestRegistryLineForAKeyThatIsNotAString(t *testing.T) {
 	found := got[filepath.Join(cfg.Root, ".specval", "data", "services.yaml")]
 	if len(found) != 1 || found[0].Rule != "SR004" || found[0].Path != "services.1" || found[0].Line != 3 {
 		t.Errorf("got %+v, want one SR004 at services.1, line 3", found)
+	}
+}
+
+func TestTheRulesHaveATimeLimit(t *testing.T) {
+	old := evalTimeout
+	evalTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { evalTimeout = old })
+	cfg := project(t, map[string]string{
+		".specval/policy/slow.rego": "package specval.spec.slow\n\nimport rego.v1\n\n" +
+			"# METADATA\n# title: Slow\n# custom:\n#   id: SLOW001\n" +
+			"deny contains f if {\n\tsome i in numbers.range(1, 5000)\n\tsome j in numbers.range(1, 5000)\n\ti * j < 0\n" +
+			"\tf := {\"rule\": \"SLOW001\", \"path\": \"\", \"msg\": \"m\", \"fix\": \"f\"}\n}\n",
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+	})
+	eng := newEngine(t, cfg)
+	start := time.Now()
+	_, err := eng.CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
+	if err == nil || err.Error() != "the rules did not finish in 50ms; a rule can have a loop that is too large" {
+		t.Errorf("err = %v, want the time limit", err)
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Errorf("the check took %s", d)
+	}
+}
+
+func TestACanceledCheckStops(t *testing.T) {
+	cfg := project(t, map[string]string{
+		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+	})
+	eng := newEngine(t, cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := eng.CheckSpec(ctx, read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
+	if err == nil || strings.Contains(err.Error(), "did not finish") {
+		t.Errorf("err = %v, want the cancel, not the time limit", err)
 	}
 }

@@ -1,0 +1,31 @@
+specval: 1
+id: version-signals-timeout
+kind: feature
+status: done
+title: Add sv version, stop on a signal, and limit the time of the rules
+summary: >
+  An experiment must record which specval it used, but sv cannot tell its
+  version. sv also does not stop its work on Ctrl-C. A project rule with a
+  very large loop can run until Claude Code stops the hook. This change adds
+  sv version, which prints the version of sv and of the spec format. sv stops
+  its work on an interrupt or a terminate signal. Each evaluation of the rules
+  has a time limit, and the error tells that a rule did not finish.
+acceptance:
+  - id: AC1
+    text: Given a binary that go install made, when sv version runs, then it prints the module version and the version of the spec format.
+  - id: AC2
+    text: Given a binary that has no module version, when sv version runs, then it prints the VCS revision, or devel if there is none.
+  - id: AC3
+    text: Given a project rule that does not finish in the time limit, when sv check runs, then it exits 2 with an error that names the time limit.
+  - id: AC4
+    text: Given a check that runs, when sv gets an interrupt signal, then the evaluation stops and sv exits.
+services:
+  new:
+    - { name: VersionCommand, layer: client, purpose: Prints the version of sv and of the spec format }
+  changed: [PolicyEngine]
+calls:
+  - { from: VersionCommand, to: Baseline, op: FormatVersion, covers: [AC1, AC2] }
+  - { from: CheckManager, to: PolicyEngine, op: CheckSpec, covers: [AC3, AC4] }
+out_of_scope:
+  - A flag or a setting for the time limit. A later change can add one if a project needs it.
+  - Release binaries. They come in a later change, and they set the version at build time.

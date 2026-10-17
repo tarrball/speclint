@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/check"
@@ -310,5 +311,28 @@ func TestHelpAndUsageComeFromTheCommandTable(t *testing.T) {
 	// The kinds of sv new come from the schema.
 	if !strings.Contains(find("new").line(), "--kind "+strings.Join(baseline.Kinds(), "|")) {
 		t.Errorf("new: %q does not have the kinds of the schema", find("new").line())
+	}
+}
+
+func TestHookStopsWhenItIsCanceledDuringTheRead(t *testing.T) {
+	// stdin stays open, and the event is not complete.
+	r, w := io.Pipe()
+	t.Cleanup(func() { _ = w.Close() })
+	go func() { _, _ = w.Write([]byte(`{"tool_input": `)) }()
+	ctx, cancel := context.WithCancel(context.Background())
+	var errOut bytes.Buffer
+	done := make(chan int, 1)
+	go func() {
+		done <- Run(ctx, []string{"hook"}, &Env{Stdin: r, Stdout: io.Discard, Stderr: &errOut, Dir: t.TempDir()})
+	}()
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	select {
+	case code := <-done:
+		if exitCode(code) != hookError || !strings.Contains(errOut.String(), "stopped before the hook event was read") {
+			t.Errorf("code %d, stderr %q; want 1 and the stop", code, errOut.String())
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the hook did not stop after the cancel")
 	}
 }

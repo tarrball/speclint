@@ -95,7 +95,11 @@ breaks the schema.
 | `sv schema` | Prints the JSON Schema of a spec. |
 | `sv init` | Sets up specval, the skill, and the hook. You can run it again to restore a missing part. |
 | `sv doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
+| `sv version` | Prints the version of sv and of the spec format. |
 | `sv hook` | Claude Code runs this command after each file write. Do not run it yourself. |
+
+Each evaluation of the rules has a time limit of 10 seconds. If a rule does
+not finish in that time, the command fails with exit status 2.
 
 | Exit status | Meaning |
 |---|---|

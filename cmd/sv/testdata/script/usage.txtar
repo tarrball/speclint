@@ -38,6 +38,8 @@ Usage:
   sv doctor [--format text|json]
         Check the setup: the configuration, the rules, the registry, the
         Claude Code skill and hook, and the sv binary on PATH.
+  sv version
+        Print the version of sv and of the spec format.
   sv hook
         Claude Code runs this command after each file write. Do not run it yourself.
         If the file is a spec, specval checks it and sends the errors to Claude.

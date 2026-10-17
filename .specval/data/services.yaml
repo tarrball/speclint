@@ -15,6 +15,7 @@ services:
   InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
   NewCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
   SchemaCommand: { layer: client, package: internal/cli, calls: [Baseline] }
+  VersionCommand: { layer: client, package: internal/cli, calls: [Baseline] }
 
   CheckManager: { layer: manager, package: internal/check, calls: [ConfigAccessor, PolicyEngine] }
   ContextManager: { layer: manager, package: internal/describe, calls: [ConfigAccessor, PolicyEngine] }

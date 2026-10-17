@@ -97,6 +97,11 @@ func commands() []command {
 			run: cmdDoctor,
 		},
 		{
+			name: "version",
+			help: []string{"Print the version of sv and of the spec format."},
+			run:  noCode(cmdVersion),
+		},
+		{
 			name: "hook",
 			help: []string{
 				"Claude Code runs this command after each file write. Do not run it yourself.",
@@ -156,6 +161,8 @@ type Env struct {
 	// Executable is the path of the specval binary that runs the command.
 	// It is "" if the path is not known.
 	Executable string
+	// Version is the version of the binary, for example v0.1.0.
+	Version string
 }
 
 // Run runs the command in args, which does not include the program name.
