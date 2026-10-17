@@ -32,7 +32,11 @@ func Find(ctx context.Context, dir string) (*Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	eng, err := policy.New(ctx, cfg)
+	src, err := cfg.ReadSources()
+	if err != nil {
+		return nil, err
+	}
+	eng, err := policy.New(ctx, src.Data, src.Policies)
 	if err != nil {
 		return nil, err
 	}

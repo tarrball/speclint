@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/open-policy-agent/opa/v1/util"
 	"go.yaml.in/yaml/v3"
@@ -89,11 +88,7 @@ func (e *Engine) DataFile(key string) string {
 	return e.dataFile[key]
 }
 
-func (e *Engine) loadDataFile(path string, project map[string]any) error {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
+func (e *Engine) loadDataFile(path string, b []byte, project map[string]any) error {
 	var node yaml.Node
 	if err := yaml.Unmarshal(b, &node); err != nil {
 		return fmt.Errorf("%s: %w", path, err)

@@ -11,8 +11,8 @@ code. For the rules of the code, see [style.md](style.md).
 | `internal/cli` | The commands. Each command has its own file. The commands get their input and output only from `cli.Env`. |
 | `internal/check` | `CheckManager`. Finds the configuration and the specs, checks the registry and the specs with the `Engine`, and makes the report. It does not read or write stdio. |
 | `internal/describe` | `ContextManager`. Finds the configuration, loads the `Engine`, and gives the layers, the registered services, and the rules for `sv context`. |
-| `internal/config` | Finds `.specval.yaml` and lists the spec, data, and policy files. |
-| `internal/policy` | The `Engine`. It loads the data and the rules, evaluates them, and returns findings. |
+| `internal/config` | Finds `.specval.yaml`, and lists and reads the spec, data, and policy files. |
+| `internal/policy` | The `Engine`. It loads the data and the rules, evaluates them, and returns findings. It gets the content of each file from its caller, and reads no files. |
 | `internal/baseline` | The built-in schema, layer data, format example, and Rego rules. The binary contains them. |
 | `internal/yamlpath` | Finds the line of a path such as `calls[2].to` in a YAML document. |
 | `internal/claude` | Reads and changes the Claude Code settings file, reads the hook event, and holds the skill. |
@@ -28,7 +28,7 @@ cmd/sv ─> cli ─┬─> check ────> policy, config
                ├─> scaffold ─> baseline, claude, config
                └─> baseline, claude
 
-policy ─> baseline, config, yamlpath
+policy ─> baseline, yamlpath
 ```
 
 ## How `sv check` works
@@ -37,7 +37,8 @@ policy ─> baseline, config, yamlpath
 
 1. `config.Find` reads `.specval.yaml` from the directory of the first spec,
    or from a parent directory. All specs must be in the same project.
-2. `policy.New` makes an `Engine`:
+2. `Config.ReadSources` reads the project data files and rule files.
+   `policy.New` makes an `Engine` from their content:
    1. `baseline.Data` makes `data.dpl`. It holds the layer rules from
       `dpl.yaml` and the schema. It also holds four tables that the schema
       rule uses to write fixes: the permitted keys, the description, the
@@ -51,7 +52,7 @@ policy ─> baseline, config, yamlpath
       registry rules.
 3. `Engine.CheckRegistry` runs the registry rules one time. It gives each
    finding the data file and the line of its path.
-4. `Engine.CheckSpec` runs for each spec:
+4. `config.ReadSpec` reads each spec, and `Engine.CheckSpec` checks its content:
    1. It parses the YAML. A syntax error becomes an SV000 finding.
    2. It evaluates the spec rules with the spec as `input`. If the schema rule
       (SV001) finds an error, it returns only the schema errors, and sets

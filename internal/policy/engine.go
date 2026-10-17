@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -19,7 +19,6 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/config"
 	"github.com/tarrball/specval/internal/yamlpath"
 )
 
@@ -54,30 +53,28 @@ type Engine struct {
 	regQ     rego.PreparedEvalQuery
 }
 
-// New loads the baseline and the project data and rules of cfg, and
-// compiles the rules.
-func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
+// New loads the baseline, the project data, and the project rules, and
+// compiles the rules. data and policies map the path of each project data
+// file and rule file to its content. The engine reads no files. It uses the
+// paths only in messages, and it loads the files in the order of their paths.
+func New(ctx context.Context, data, policies map[string][]byte) (*Engine, error) {
 	e := &Engine{dataFile: map[string]string{}, nodes: map[string]*yaml.Node{}, baseline: map[*ast.Module]bool{}}
 
 	dpl, err := baseline.Data()
 	if err != nil {
 		return nil, err
 	}
-	dataFiles, err := cfg.DataFiles()
-	if err != nil {
-		return nil, err
-	}
 	project := map[string]any{}
-	for _, path := range dataFiles {
-		if err := e.loadDataFile(path, project); err != nil {
+	for _, path := range slices.Sorted(maps.Keys(data)) {
+		if err := e.loadDataFile(path, data[path], project); err != nil {
 			return nil, err
 		}
 	}
-	var data map[string]any
-	if err := roundTrip(map[string]any{"dpl": dpl, "project": project}, &data); err != nil {
+	var all map[string]any
+	if err := roundTrip(map[string]any{"dpl": dpl, "project": project}, &all); err != nil {
 		return nil, err
 	}
-	e.data = data
+	e.data = all
 
 	mods, err := baseline.Modules()
 	if err != nil {
@@ -90,16 +87,8 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 		}
 		e.baseline[mod] = true
 	}
-	policyFiles, err := cfg.PolicyFiles()
-	if err != nil {
-		return nil, err
-	}
-	for _, path := range policyFiles {
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-		mod, err := e.addModule(path, string(b))
+	for _, path := range slices.Sorted(maps.Keys(policies)) {
+		mod, err := e.addModule(path, string(policies[path]))
 		if err != nil {
 			return nil, newRegoError(err)
 		}
@@ -108,7 +97,7 @@ func New(ctx context.Context, cfg *config.Config) (*Engine, error) {
 		}
 	}
 
-	store := inmem.NewFromObject(data)
+	store := inmem.NewFromObject(all)
 	if e.schemaQ, err = e.prepare(ctx, schemaQuery, store); err != nil {
 		return nil, newRegoError(err)
 	}
@@ -260,12 +249,8 @@ type SpecResult struct {
 	Stopped bool
 }
 
-// CheckSpec validates the spec file at path.
-func (e *Engine) CheckSpec(ctx context.Context, path string) (SpecResult, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return SpecResult{}, err
-	}
+// CheckSpec validates the content of a spec file.
+func (e *Engine) CheckSpec(ctx context.Context, b []byte) (SpecResult, error) {
 	var node yaml.Node
 	var doc any
 	// specval cannot read the status of a spec that is not valid YAML, so it
@@ -282,7 +267,7 @@ func (e *Engine) CheckSpec(ctx context.Context, path string) (SpecResult, error)
 		doc = map[string]any{}
 	}
 	done := isDone(doc)
-	doc, err = stringKeys(doc, "")
+	doc, err := stringKeys(doc, "")
 	if keyErr, ok := errors.AsType[keyError](err); ok {
 		return stopped(done, Finding{
 			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError,

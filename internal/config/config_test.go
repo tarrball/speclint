@@ -184,3 +184,41 @@ func TestFileListsCleanAbsolutePaths(t *testing.T) {
 		t.Errorf("DataFiles = %v, want %v", got, want)
 	}
 }
+
+func TestReadSources(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{
+		FileName:                      "",
+		".specval/data/services.yaml": "services: {}\n",
+		".specval/policy/a.rego":      "package a\n",
+		".specval/policy/a_test.rego": "package a_test\n",
+	})
+	c, err := Find(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, err := c.ReadSources()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := filepath.Join(dir, ".specval", "data", "services.yaml")
+	policy := filepath.Join(dir, ".specval", "policy", "a.rego")
+	if len(src.Data) != 1 || string(src.Data[data]) != "services: {}\n" {
+		t.Errorf("Data = %q", src.Data)
+	}
+	// A Rego test file is not a rule file.
+	if len(src.Policies) != 1 || string(src.Policies[policy]) != "package a\n" {
+		t.Errorf("Policies = %q", src.Policies)
+	}
+}
+
+func TestReadSpec(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"a.yaml": "id: A\n"})
+	if b, err := ReadSpec(filepath.Join(dir, "a.yaml")); err != nil || string(b) != "id: A\n" {
+		t.Errorf("ReadSpec = %q, %v", b, err)
+	}
+	if _, err := ReadSpec(filepath.Join(dir, "nope.yaml")); !os.IsNotExist(err) {
+		t.Errorf("missing file: err = %v, want a not-exist error", err)
+	}
+}
