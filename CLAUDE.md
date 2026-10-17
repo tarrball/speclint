@@ -53,6 +53,8 @@ exception: doctor reads PATH, because the hook runs the `sv` on PATH.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branches, commits, and pull requests.
 - Before you change Go code under `cmd/` or `internal/`, write a spec in `specs/`
   that passes `sv check` (see CONTRIBUTING.md, "Specs").
+- The calls in `.specval/data/services.yaml` agree with the imports between the
+  packages. `TestRegistryAgreesWithTheImports` fails if they do not.
 - Do not ignore an error. Do not add a `//nolint` without a linter name and a reason.
 - A change in behavior needs a test that fails without it.
 - If you change CLI output, update the scripts with `UPDATE_SCRIPTS=1`. Then read

@@ -48,8 +48,11 @@ specval checks its own changes (dogfooding). The registry of specval is
   help with this.
 - In the same pull request, update the registry as the spec tells (see "The
   life of a spec" in docs/specs.md), and set `status: done` in the spec.
-- A change to only documentation, CI, or Rego rules does not need a spec, because
-  it has no calls between services.
+- A change to only documentation, CI, tests, or Rego rules does not need a spec,
+  because it has no calls between services.
+- `TestRegistryAgreesWithTheImports` (cmd/sv) compares the registry with the
+  imports of the Go packages. If you add an import between two packages, add
+  the call to the registry in the same pull request.
 
 ## Branches and pull requests
 

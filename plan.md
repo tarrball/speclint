@@ -108,9 +108,11 @@ rules do not permit.
 - [x] Add a `version` command, signal handling, and a time limit for evaluation
       (specs/version-signals-timeout.yaml).
 - [ ] Use path segments inside the code. The JSON output keeps the path strings.
-- [ ] Add depguard rules that agree with the registry.
-- [ ] Add a test that compares the registry with `go list -deps`. It starts with a
-      list of known violations. Each PR makes the list shorter.
+- [x] Add a test that compares the registry with the imports of the packages
+      (TestRegistryAgreesWithTheImports). The list of known violations is empty,
+      because the registry and the imports agree.
+- Not done: depguard rules. They would be a second copy of the registry, which
+  can disagree with it. The test reads the registry, so it cannot.
 - [ ] Make release binaries.
 
 ### 5. Brownfield features
