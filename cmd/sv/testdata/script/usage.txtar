@@ -12,6 +12,20 @@ cmp stdout usage.txt
 exits 0 sv --help
 cmp stdout usage.txt
 
+# sv <command> --help and sv help <command> print the help of the command to
+# stdout: the synopsis, the description, the flags, and the examples.
+exits 0 sv check --help
+cmp stdout check-help.txt
+! stderr .
+exits 0 sv help check
+cmp stdout check-help.txt
+
+# A flag that is not correct prints the error, the synopsis, and a pointer to
+# --help to stderr, and exits 2.
+exits 2 sv check --nope
+! stdout .
+cmp stderr check-flag.txt
+
 # An unknown command prints an error and the usage, and exits 2.
 exits 2 sv frobnicate
 ! stdout .
@@ -43,3 +57,24 @@ Usage:
   sv hook
         Claude Code runs this command after each file write. Do not run it yourself.
         If the file is a spec, specval checks it and sends the errors to Claude.
+
+Run `sv <command> --help` for the flags and examples of a command.
+-- check-help.txt --
+Usage: sv check [--format text|json] [--strict] [files...]
+
+Check the given specs, or each spec in the specs directory.
+The exit status is 1 if a spec has an error, or a warning with --strict.
+
+Flags:
+  --format text|json
+        the output format (default text)
+  --strict
+        exit with status 1 also for a warning
+
+Examples:
+  sv check
+  sv check specs/ORD-143.yaml --format json
+-- check-flag.txt --
+flag provided but not defined: -nope
+Usage: sv check [--format text|json] [--strict] [files...]
+Run `sv check --help` for the flags and examples.

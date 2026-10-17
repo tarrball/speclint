@@ -1,0 +1,26 @@
+specval: 1
+id: command-help
+kind: feature
+status: done
+title: Give each command a help text with its description, flags, and examples
+summary: >
+  An agent learns a command from its --help. Now sv <command> --help writes
+  only the synopsis and the flags, and it writes them to stderr. This change
+  writes the help to stdout: the synopsis, the description from the command
+  table, the flags, and one or more examples. sv help <command> writes the
+  same text. A flag that is not correct writes the error, the synopsis, and a
+  pointer to --help to stderr.
+acceptance:
+  - id: AC1
+    text: Given a command, when it runs with --help, then stdout has the synopsis, the description, the flags, and the examples, stderr is empty, and the exit status is 0.
+  - id: AC2
+    text: Given a command, when sv help runs with the name of the command, then stdout is the same as the --help of the command.
+  - id: AC3
+    text: Given a flag that is not correct, when the command runs, then stderr has the error, the synopsis, and a pointer to --help, stdout is empty, and the exit status is 2.
+  - id: AC4
+    text: Given the examples in the command table, when each example runs, then no example gets a flag or argument error.
+services:
+  changed: [CheckCommand, ContextCommand, DoctorCommand, HookCommand, InitCommand, NewCommand, SchemaCommand, VersionCommand]
+calls: []
+out_of_scope:
+  - A JSON description of the commands. sv context gives the spec format and the rules, and the help of each command is short.

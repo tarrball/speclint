@@ -11,7 +11,7 @@ import (
 func cmdCheck(ctx context.Context, env *Env, args []string) (exitCode, error) {
 	fl := newFlagSet("check", env)
 	format := formatFlag(fl)
-	strict := fl.Bool("strict", false, "fail on warnings too")
+	strict := fl.Bool("strict", false, "exit with status 1 also for a warning")
 	files, err := parseArgs(fl, args)
 	if err != nil {
 		return exitError, err

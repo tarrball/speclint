@@ -276,7 +276,7 @@ func TestHelpFlagExitsZeroAndDoesNothing(t *testing.T) {
 	for _, cmd := range []string{"check", "context", "new", "schema", "init", "doctor", "hook"} {
 		dir := t.TempDir()
 		code, out, errOut := runCLI(t, dir, `{"tool_input": {"file_path": "specs/a.yaml"}}`, cmd, "--help")
-		if code != exitOK || out != "" || !strings.Contains(errOut, "Usage: sv "+cmd) {
+		if code != exitOK || errOut != "" || !strings.HasPrefix(out, "Usage: sv "+cmd) {
 			t.Errorf("%s --help: code %d, stdout %q, stderr %q", cmd, code, out, errOut)
 		}
 		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
@@ -303,14 +303,97 @@ func TestHelpAndUsageComeFromTheCommandTable(t *testing.T) {
 		if !strings.Contains(usage(), "\n  "+c.line()+"\n") {
 			t.Errorf("the usage has no line %q", c.line())
 		}
-		_, _, errOut := runCLI(t, t.TempDir(), "", c.name, "--help")
-		if first, _, _ := strings.Cut(errOut, "\n"); first != "Usage: "+c.line() {
+		_, out, _ := runCLI(t, t.TempDir(), "", c.name, "--help")
+		if first, _, _ := strings.Cut(out, "\n"); first != "Usage: "+c.line() {
 			t.Errorf("%s --help: first line %q, want %q", c.name, first, "Usage: "+c.line())
 		}
 	}
 	// The kinds of sv new come from the schema.
 	if !strings.Contains(find("new").line(), "--kind "+strings.Join(baseline.Kinds(), "|")) {
 		t.Errorf("new: %q does not have the kinds of the schema", find("new").line())
+	}
+}
+
+func TestHelpHasTheDescriptionFlagsAndExamples(t *testing.T) {
+	for _, c := range commands() {
+		_, out, _ := runCLI(t, t.TempDir(), "", c.name, "--help")
+		for _, want := range slices.Concat(c.help, c.examples) {
+			if !strings.Contains(out, "\n"+want+"\n") && !strings.Contains(out, "\n  "+want+"\n") {
+				t.Errorf("%s --help has no line %q:\n%s", c.name, want, out)
+			}
+		}
+		if c.name != "hook" && len(c.examples) == 0 {
+			t.Errorf("%s has no examples", c.name)
+		}
+	}
+	_, out, _ := runCLI(t, t.TempDir(), "", "new", "--help")
+	if !strings.Contains(out, "\n  --kind "+strings.Join(baseline.Kinds(), "|")+"\n        the kind of the change (default ") {
+		t.Errorf("new --help does not give the kind flag:\n%s", out)
+	}
+}
+
+func TestHelpCommandIsTheSameAsTheHelpFlag(t *testing.T) {
+	for _, c := range commands() {
+		code, out, errOut := runCLI(t, t.TempDir(), "", "help", c.name)
+		_, want, _ := runCLI(t, t.TempDir(), "", c.name, "--help")
+		if code != exitOK || errOut != "" || out != want {
+			t.Errorf("help %s: code %d, stderr %q, stdout %q, want %q", c.name, code, errOut, out, want)
+		}
+	}
+	code, out, errOut := runCLI(t, t.TempDir(), "", "help", "nope")
+	if code != exitError || out != "" || !strings.HasPrefix(errOut, `unknown command "nope"`) {
+		t.Errorf("help nope: code %d, stdout %q, stderr %q", code, out, errOut)
+	}
+}
+
+func TestFlagErrorPointsToHelp(t *testing.T) {
+	code, out, errOut := runCLI(t, t.TempDir(), "", "check", "--nope")
+	want := "flag provided but not defined: -nope\nUsage: " + find("check").line() + "\nRun `sv check --help` for the flags and examples.\n"
+	if code != exitError || out != "" || errOut != want {
+		t.Errorf("check --nope: code %d, stdout %q, stderr %q, want %q", code, out, errOut, want)
+	}
+}
+
+// splitLine splits an example command line into arguments. A part in
+// double quotes is one argument.
+func splitLine(line string) []string {
+	var args []string
+	for i, part := range strings.Split(line, `"`) {
+		if i%2 == 1 {
+			args = append(args, part)
+			continue
+		}
+		args = append(args, strings.Fields(part)...)
+	}
+	return args
+}
+
+func TestExamplesHaveNoFlagOrArgumentErrors(t *testing.T) {
+	// The doctor examples run the sv on PATH. A fake sv makes the test
+	// independent of the software on the machine.
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "sv"), []byte("#!/bin/sh\necho '  sv hook'\n"), 0o755); err != nil { // The fake binary must be executable.
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
+	dir := t.TempDir()
+	if code, _, errOut := runCLI(t, dir, "", "init"); code != exitOK {
+		t.Fatalf("init: code %d, stderr %q", code, errOut)
+	}
+	for _, c := range commands() {
+		for _, e := range c.examples {
+			args := splitLine(e)
+			if args[0] != "sv" || args[1] != c.name {
+				t.Errorf("example %q does not start with sv %s", e, c.name)
+				continue
+			}
+			_, _, errOut := runCLI(t, dir, "", args[1:]...)
+			for _, bad := range []string{"Usage:", "usage:", "takes no arguments"} {
+				if strings.Contains(errOut, bad) {
+					t.Errorf("example %q: stderr %q", e, errOut)
+				}
+			}
+		}
 	}
 }
 
