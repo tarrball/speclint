@@ -2,12 +2,16 @@ package policy
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/open-policy-agent/opa/v1/rego"
+	"github.com/open-policy-agent/opa/v1/topdown"
 
 	"github.com/tarrball/specval/internal/baseline"
 	"github.com/tarrball/specval/internal/config"
@@ -750,6 +754,22 @@ func TestACanceledCheckStops(t *testing.T) {
 	_, err := eng.CheckSpec(ctx, read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
 	if err == nil || strings.Contains(err.Error(), "did not finish") {
 		t.Errorf("err = %v, want the cancel, not the time limit", err)
+	}
+}
+
+func TestEvalDoesNotStartWithACanceledContext(t *testing.T) {
+	q, err := rego.New(rego.Query("x := 1")).PrepareForEval(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	tracer := topdown.NewBufferTracer()
+	if _, err := eval(ctx, q, rego.EvalQueryTracer(tracer)); !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+	if len(*tracer) != 0 {
+		t.Errorf("the evaluation started: %d trace events", len(*tracer))
 	}
 }
 

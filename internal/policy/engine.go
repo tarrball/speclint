@@ -355,6 +355,11 @@ var evalTimeout = 10 * time.Second
 // eval evaluates q with the time limit. If the limit stops the evaluation,
 // the error tells that a rule did not finish.
 func eval(ctx context.Context, q rego.PreparedEvalQuery, opts ...rego.EvalOption) (rego.ResultSet, error) {
+	// OPA sees a cancel through a goroutine, and a short evaluation can
+	// finish first. Thus a context that is already canceled stops here.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithTimeout(ctx, evalTimeout)
 	defer cancel()
 	rs, err := q.Eval(ctx, opts...)
