@@ -1,0 +1,29 @@
+specval: 1
+id: baseline-utility
+kind: chore
+status: done
+title: Make the baseline a utility
+summary: >
+  The registry puts internal/baseline in the accessor layer. But the baseline
+  is data in the binary: the schema, the layers, and the built-in rules. It
+  reads no store and does no IO, and it does not change at run time. Thus it
+  is a utility that each layer can use, as ClaudeHook is. As an accessor, it
+  makes the schema and context commands break the layers. This change moves
+  it to the utility layer with the name Baseline. Only the registry changes.
+acceptance:
+  - id: AC1
+    text: Given the registry after this change, when a spec changes SchemaCommand, then sv check gives no warning for its call to Baseline.
+  - id: AC2
+    text: Given the registry after this change, when sv check runs on the specs of specval, then it finds no error and no warning.
+services:
+  relayered:
+    - name: BaselineAccessor
+      layer: utility
+      rename: Baseline
+      reason: The baseline is data in the binary. It reads no store and does no IO.
+calls:
+  - { from: SchemaCommand, to: Baseline, op: Schema, covers: [AC1] }
+  - { from: PolicyEngine, to: Baseline, op: Modules, covers: [AC2] }
+out_of_scope:
+  - A change to the Go code. The package keeps its name.
+  - The calls of ContextCommand to ConfigAccessor and PolicyEngine. ContextManager comes in a later change.
