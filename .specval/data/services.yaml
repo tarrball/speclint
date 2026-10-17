@@ -9,20 +9,19 @@
 services:
   # The commands. Each command is an entry point.
   CheckCommand: { layer: client, package: internal/cli, calls: [CheckManager] }
-  ContextCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor, ConfigAccessor, PolicyEngine] }
+  ContextCommand: { layer: client, package: internal/cli, calls: [Baseline, ConfigAccessor, PolicyEngine] }
   DoctorCommand: { layer: client, package: internal/cli, calls: [DoctorManager] }
   HookCommand: { layer: client, package: internal/cli, calls: [CheckManager, ClaudeHook] }
   InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
   NewCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, ScaffoldManager] }
-  SchemaCommand: { layer: client, package: internal/cli, calls: [BaselineAccessor] }
+  SchemaCommand: { layer: client, package: internal/cli, calls: [Baseline] }
 
   CheckManager: { layer: manager, package: internal/check, calls: [ConfigAccessor, PolicyEngine] }
   DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
-  ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [BaselineAccessor, ClaudeAccessor, ConfigAccessor] }
+  ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [Baseline, ClaudeAccessor, ConfigAccessor] }
 
-  PolicyEngine: { layer: engine, package: internal/policy, calls: [BaselineAccessor, ConfigAccessor, YamlPath] }
+  PolicyEngine: { layer: engine, package: internal/policy, calls: [Baseline, ConfigAccessor, YamlPath] }
 
-  BaselineAccessor: { layer: accessor, package: internal/baseline, calls: [] }
   # The settings file and the skill of Claude Code (internal/claude/settings.go).
   ClaudeAccessor: { layer: accessor, package: internal/claude, calls: [] }
   ConfigAccessor: { layer: accessor, package: internal/config, calls: [] }
@@ -35,4 +34,7 @@ services:
   # event and encodes the result. The caller gives the reader and the writer, so
   # it stores no data. Thus it is a utility, not an accessor.
   ClaudeHook: { layer: utility, package: internal/claude, may_call: [], calls: [] }
+  # The schema, the layers, and the built-in rules. They are in the binary, so
+  # the baseline reads no store and does no IO.
+  Baseline: { layer: utility, package: internal/baseline, may_call: [], calls: [] }
   YamlPath: { layer: utility, package: internal/yamlpath, may_call: [], calls: [] }

@@ -91,6 +91,10 @@ rules do not permit.
 
 - [x] Extract `CheckManager` (internal/check). The check and hook commands call only
       CheckManager, and the hook gets the protocol from ClaudeHook.
+- [x] Move the baseline to the utility layer as `Baseline`, with
+      `services.relayered` (specs/baseline-utility.yaml). It is data in the binary.
+- [ ] ContextCommand calls a new ContextManager, not ConfigAccessor and PolicyEngine.
+- [ ] NewCommand calls only ScaffoldManager.
 - [ ] Move the file reads from `policy` to `ProjectDataAccessor`.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
@@ -105,7 +109,9 @@ rules do not permit.
 
 ### 5. Brownfield features
 
-Design these from the results of phase 4.
+Design these from a real brownfield project: the next repository, a project
+on Supabase with real tickets. Its layers (for example edge functions and
+database functions) and its old code will show what these features must do.
 
 - [ ] A project file that changes the layers. It has the shape of `dpl.yaml`, and the rules see it as `data.dpl`.
 - [ ] Turn a rule off, or change its severity, in `.specval.yaml`.
