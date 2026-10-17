@@ -217,7 +217,7 @@ Thus when you fix the format errors, the next check can find new problems.
 | SV104 | error | A service in `services.new` is not already registered. |
 | SV105 | error | Each new service has a known layer. |
 | SV106 | error | Each new service is in one or more calls. |
-| SV107 | error | One or more calls cover each acceptance criterion. |
+| SV107 | error | One or more calls cover each acceptance criterion. In a spec with no calls, the services in `services.changed` cover them. |
 | SV108 | error | Each ID in `covers` is an acceptance criterion of the spec. |
 | SV109 | error | Each service in `services.changed` is registered. |
 | SV110 | error | Each name in `services.new` is there one time only. |
@@ -229,7 +229,7 @@ Thus when you fix the format errors, the next check can find new problems.
 | SV116 | error | Each name in `services.relayered` is there one time only. |
 | SV117 | error | The `rename` of a moved service is not the name of another service, a layer, or another new name. |
 | SV118 | error | A spec with no calls has one or more services in `services.changed`. |
-| SV201 | warning | Each service in `services.changed` is in one or more calls. |
+| SV201 | warning | In a spec with calls, each service in `services.changed` is in one or more calls. |
 | SV202 | warning | Each call that a changed service keeps follows the layer rules and the limits. |
 | SV203 | warning | Each registered call to or from a moved service that the spec keeps follows the layer rules and the limits after the move. |
 

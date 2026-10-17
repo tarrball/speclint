@@ -91,7 +91,7 @@ A service in these layers has no suffix: client, utility.
 - SV104 (error) A new service is not in the registry: A service that is in the registry goes under `services.changed`, not under `services.new`.
 - SV105 (error) New services use a known layer: The `layer` of a new service is one of the layers.
 - SV106 (error) Each new service is in a call: Each service in `services.new` is in one or more calls.
-- SV107 (error) A call implements each acceptance criterion: The ID of each acceptance criterion is in the `covers` list of one or more calls. Thus each acceptance criterion shows the services that implement it.
+- SV107 (error) A call implements each acceptance criterion: The ID of each acceptance criterion is in the `covers` list of one or more calls. Thus each acceptance criterion shows the services that implement it. In a spec with no calls, the services in `services.changed` cover each criterion.
 - SV108 (error) Each call covers acceptance criteria of the spec: Each ID in the `covers` list of a call is an acceptance criterion of the spec.
 - SV109 (error) Each changed service is in the registry: Each name in `services.changed` is in the registry.
 - SV110 (error) Each new service has a different name: Each name in `services.new` is there one time only.
@@ -102,6 +102,7 @@ A service in these layers has no suffix: client, utility.
 - SV115 (error) Moved services use a known layer: The `layer` of each entry in `services.relayered` is one of the layers.
 - SV116 (error) A service moves one time only: Each name in `services.relayered` is there one time only.
 - SV117 (error) The new name of a moved service is free: The `rename` of a moved service is not the name of a registered service, a new service, a layer, or the new name of another moved service.
-- SV201 (warning) Changed services take part in a call: Each service in `services.changed` is in one or more calls.
+- SV118 (error) A spec with no calls names the services that it changes: A change inside one service adds no call between services. Such a spec has `calls: []`, and it puts the service in `services.changed`. The services in `services.changed` then cover each acceptance criterion.
+- SV201 (warning) Changed services take part in a call: In a spec with calls, each service in `services.changed` is in one or more calls.
 - SV202 (warning) A changed service keeps only calls that the rules permit: The registry records the calls of each service today. For each service in `services.changed`, each call that the spec does not remove follows the layer rules and the limits. Thus a change does not keep a call that breaks the layers.
 - SV203 (warning) A moved service keeps only calls that the rules permit: For each service in `services.relayered`, each registered call to or from it that the spec does not remove follows the layer rules and the limits after the move.

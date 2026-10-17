@@ -443,7 +443,7 @@ warn contains "x" if false
 	for _, d := range docs {
 		ids = append(ids, d.ID)
 	}
-	want := []string{"PRJ201", "SV001", "SV101", "SV102", "SV103", "SV104", "SV105", "SV106", "SV107", "SV108", "SV109", "SV110", "SV111", "SV112", "SV113", "SV114", "SV115", "SV116", "SV117", "SV201", "SV202", "SV203"}
+	want := []string{"PRJ201", "SV001", "SV101", "SV102", "SV103", "SV104", "SV105", "SV106", "SV107", "SV108", "SV109", "SV110", "SV111", "SV112", "SV113", "SV114", "SV115", "SV116", "SV117", "SV118", "SV201", "SV202", "SV203"}
 	if !slices.Equal(ids, want) {
 		t.Errorf("IDs = %v, want %v (sorted, spec rules only)", ids, want)
 	}
