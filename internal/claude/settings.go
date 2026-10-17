@@ -3,6 +3,7 @@
 package claude
 
 import (
+	"bytes"
 	_ "embed" // For the go:embed directives.
 	"encoding/json"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -101,44 +103,188 @@ func InspectSettings(path string) (HookStatus, error) {
 // AddHook adds the specval PostToolUse hook to a settings file. It keeps the
 // other settings, and creates the file if it does not exist. It returns false
 // if the hook was already there.
+//
+// AddHook changes only the PostToolUse list. It keeps the order of the keys,
+// the text of each other value, and the indent of the file.
 func AddHook(path string) (bool, error) {
 	st, err := InspectSettings(path)
 	if err != nil || st.Found {
 		return false, err
 	}
-	s := map[string]any{}
+	var out []byte
 	if st.Exists {
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return false, err
 		}
-		if err := json.Unmarshal(b, &s); err != nil {
-			return false, err
+		if out, err = addHook(b); err != nil {
+			return false, fmt.Errorf("%s: %w", path, err)
 		}
-	}
-	var tmpl struct {
-		Hooks struct {
-			PostToolUse []any `json:"PostToolUse"`
-		} `json:"hooks"`
-	}
-	if err := json.Unmarshal(settingsTemplate, &tmpl); err != nil {
-		return false, err
-	}
-	hooks, _ := s["hooks"].(map[string]any)
-	if hooks == nil {
-		hooks = map[string]any{}
-		s["hooks"] = hooks
-	}
-	post, _ := hooks["PostToolUse"].([]any)
-	hooks["PostToolUse"] = append(post, tmpl.Hooks.PostToolUse...)
-	out, err := json.MarshalIndent(s, "", "  ")
-	if err != nil {
-		return false, err
+	} else {
+		out = settingsTemplate
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, err
 	}
-	return true, os.WriteFile(path, append(out, '\n'), 0o644)
+	return true, os.WriteFile(path, out, 0o644)
+}
+
+// addHook returns the settings in b with the hooks of the template added to
+// hooks.PostToolUse.
+func addHook(b []byte) ([]byte, error) {
+	var tmpl struct {
+		Hooks struct {
+			PostToolUse []json.RawMessage `json:"PostToolUse"`
+		} `json:"hooks"`
+	}
+	if err := json.Unmarshal(settingsTemplate, &tmpl); err != nil {
+		return nil, err
+	}
+	top, err := members(b)
+	if err != nil {
+		return nil, err
+	}
+	hooks, err := members(top.get("hooks"))
+	if err != nil {
+		return nil, err
+	}
+	var post []json.RawMessage
+	if v := hooks.get("PostToolUse"); v != nil {
+		if err := json.Unmarshal(v, &post); err != nil {
+			return nil, err
+		}
+	}
+	post = append(post, tmpl.Hooks.PostToolUse...)
+	hooks = hooks.set("PostToolUse", encodeArray(post))
+	obj, err := hooks.encode()
+	if err != nil {
+		return nil, err
+	}
+	top = top.set("hooks", obj)
+	raw, err := top.encode()
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, raw, "", indentOf(b)); err != nil {
+		return nil, err
+	}
+	buf.WriteByte('\n')
+	return buf.Bytes(), nil
+}
+
+// member is one key and its value in a JSON object. The value is the text
+// from the file, so that it does not change.
+type member struct {
+	key   string
+	value json.RawMessage
+}
+
+// object is a JSON object with its keys in the order of the file.
+type object []member
+
+// members reads a JSON object and keeps the order of its keys. A nil b is
+// an empty object.
+func members(b []byte) (object, error) {
+	if b == nil {
+		return nil, nil
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	if t, err := dec.Token(); err != nil {
+		return nil, err
+	} else if t != json.Delim('{') {
+		return nil, errors.New("the settings must be a JSON object")
+	}
+	var obj object
+	for dec.More() {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, _ := t.(string)
+		var v json.RawMessage
+		if err := dec.Decode(&v); err != nil {
+			return nil, err
+		}
+		obj = append(obj, member{key, v})
+	}
+	return obj, nil
+}
+
+// get returns the value of key, or nil. If the key is in the object more
+// than one time, the last value counts, as in encoding/json.
+func (o object) get(key string) json.RawMessage {
+	for _, m := range slices.Backward(o) {
+		if m.key == key {
+			return m.value
+		}
+	}
+	return nil
+}
+
+// set changes the last value of key, or adds the key at the end.
+func (o object) set(key string, v json.RawMessage) object {
+	for i, m := range slices.Backward(o) {
+		if m.key == key {
+			o[i].value = v
+			return o
+		}
+	}
+	return append(o, member{key, v})
+}
+
+func (o object) encode() (json.RawMessage, error) {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, m := range o {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		k, err := marshal(m.key)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(k)
+		buf.WriteByte(':')
+		buf.Write(m.value)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
+
+func encodeArray(items []json.RawMessage) json.RawMessage {
+	var buf bytes.Buffer
+	buf.WriteByte('[')
+	for i, v := range items {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		buf.Write(v)
+	}
+	buf.WriteByte(']')
+	return buf.Bytes()
+}
+
+// marshal encodes v as JSON, and does not write &, <, and > as \u escapes.
+func marshal(v any) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return nil, err
+	}
+	return bytes.TrimSuffix(buf.Bytes(), []byte("\n")), nil
+}
+
+// indentOf returns the indent of the first indented line in b, or two spaces.
+func indentOf(b []byte) string {
+	for line := range bytes.Lines(b) {
+		trimmed := bytes.TrimLeft(line, " \t")
+		if n := len(line) - len(trimmed); n > 0 && len(bytes.TrimSpace(trimmed)) > 0 {
+			return string(line[:n])
+		}
+	}
+	return "  "
 }
 
 // MatcherCovers reports whether a hook matcher fires for a tool name.

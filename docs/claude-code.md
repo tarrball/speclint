@@ -10,7 +10,8 @@ each spec that Claude saves. `sv init` sets up two parts:
   `sv hook` after each `Write`, `Edit`, or `MultiEdit`.
 
 If `.claude/settings.json` exists, `init` adds the hook to it and keeps the
-other settings. `init` writes the file again with its keys in sorted order.
+other settings. It changes only the `PostToolUse` list. The other keys keep
+their order and their text, and the file keeps its indent.
 
 ## What the hook does
 

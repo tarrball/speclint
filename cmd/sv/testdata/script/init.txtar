@@ -66,40 +66,35 @@ data: [.specval/data]
   "hooks": {
     "PostToolUse": [
       {
-        "hooks": [
-          {
-            "command": "sv hook",
-            "type": "command"
-          }
-        ],
-        "matcher": "Write|Edit|MultiEdit"
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [{ "type": "command", "command": "sv hook" }]
       }
     ]
   }
 }
 -- want/merged.json --
 {
+  "model": "opus",
   "hooks": {
     "PostToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
-            "command": "echo hi",
-            "type": "command"
+            "type": "command",
+            "command": "echo hi"
           }
-        ],
-        "matcher": "Bash"
+        ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
-            "command": "sv hook",
-            "type": "command"
+            "type": "command",
+            "command": "sv hook"
           }
-        ],
-        "matcher": "Write|Edit|MultiEdit"
+        ]
       }
     ]
-  },
-  "model": "opus"
+  }
 }
