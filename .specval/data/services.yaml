@@ -13,7 +13,7 @@ services:
   DoctorCommand: { layer: client, package: internal/cli, calls: [DoctorManager] }
   HookCommand: { layer: client, package: internal/cli, calls: [CheckManager, ClaudeHook] }
   InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
-  NewCommand: { layer: client, package: internal/cli, calls: [ConfigAccessor, ScaffoldManager] }
+  NewCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
   SchemaCommand: { layer: client, package: internal/cli, calls: [Baseline] }
 
   CheckManager: { layer: manager, package: internal/check, calls: [ConfigAccessor, PolicyEngine] }

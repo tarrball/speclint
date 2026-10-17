@@ -205,9 +205,19 @@ func ValidID(id string) bool {
 	return baseline.IDPattern().MatchString(id)
 }
 
-// Spec writes a new spec, made from the template, to <specs dir>/<id>.yaml.
-// It returns the path of the spec. It does not overwrite a file.
-func Spec(cfg *config.Config, id, kind, title string) (string, error) {
+// Spec writes a new spec, made from the template, to <specs dir>/<id>.yaml
+// in the project that contains dir. It returns the path of the spec. It does
+// not overwrite a file.
+func Spec(dir, id, kind, title string) (string, error) {
+	cfg, err := config.Find(dir)
+	if err != nil {
+		return "", err
+	}
+	return writeSpec(cfg, id, kind, title)
+}
+
+// writeSpec writes a new spec to the specs directory of cfg.
+func writeSpec(cfg *config.Config, id, kind, title string) (string, error) {
 	// A valid ID cannot contain a path separator, so the file is in the specs
 	// directory.
 	if !ValidID(id) {
