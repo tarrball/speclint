@@ -75,6 +75,14 @@ func setUp(dir string, w io.Writer, dry bool) error {
 			return err
 		}
 	}
+	// Check the specs path before Init writes anything, so that Init and
+	// DryRun fail in the same way.
+	specsDir := cfg.Abs(cfg.SpecsDir)
+	if info, err := os.Stat(specsDir); err == nil && !info.IsDir() {
+		return fmt.Errorf("%s is not a directory; the specs directory must be a directory", relPath(dir, specsDir))
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
 	// A data file can already define the registry. Then Init must not write a
 	// second one, because two files cannot define the same key.
 	registry, err := registryFile(cfg)
@@ -136,7 +144,7 @@ func setUp(dir string, w io.Writer, dry bool) error {
 		if _, err := fmt.Fprintln(w, "\nThis is a dry run. sv init wrote nothing."); err != nil {
 			return err
 		}
-	} else if err := os.MkdirAll(cfg.Abs(cfg.SpecsDir), 0o755); err != nil {
+	} else if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
 	}
 	hint, err := claude.MemoryHint(dir)

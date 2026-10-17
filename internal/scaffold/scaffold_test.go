@@ -541,22 +541,34 @@ func TestDryRunAfterInit(t *testing.T) {
 }
 
 func TestDryRunGivesTheErrorsOfInit(t *testing.T) {
-	for _, content := range []string{"{not json", `{"hooks": {"PostToolUse": {}}}`} {
+	for name, file := range map[string]struct{ path, content string }{
+		"settings not JSON":     {claude.SettingsPath, "{not json"},
+		"settings wrong shape":  {claude.SettingsPath, `{"hooks": {"PostToolUse": {}}}`},
+		"specs path is a file":  {"specs", "not a directory\n"},
+		"configured specs file": {config.FileName, "specs_dir: plan.md\n"},
+	} {
 		dir := t.TempDir()
-		settings := filepath.Join(dir, claude.SettingsPath)
-		if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
+		path := filepath.Join(dir, file.path)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(settings, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(file.content), 0o644); err != nil {
 			t.Fatal(err)
 		}
+		if name == "configured specs file" {
+			if err := os.WriteFile(filepath.Join(dir, "plan.md"), nil, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		before := files(t, dir)
 		dryErr := DryRun(dir, &bytes.Buffer{})
-		if got := files(t, dir); len(got) != 2 {
-			t.Errorf("%s: DryRun wrote files: %v", content, got)
-		}
 		initErr := Init(dir, &bytes.Buffer{})
 		if dryErr == nil || initErr == nil || dryErr.Error() != initErr.Error() {
-			t.Errorf("%s: DryRun error %v, Init error %v", content, dryErr, initErr)
+			t.Errorf("%s: DryRun error %v, Init error %v", name, dryErr, initErr)
+		}
+		// Init fails before it writes anything.
+		if after := files(t, dir); !slices.Equal(before, after) {
+			t.Errorf("%s: the files changed: %v, then %v", name, before, after)
 		}
 	}
 }
