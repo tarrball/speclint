@@ -46,8 +46,8 @@ specval checks its own changes (dogfooding). The registry of specval is
   `extract-check-manager`.
 - Make the spec pass before you write the code. The Claude Code skill and hook
   help with this.
-- In the same pull request, register each service in `services.new`, and set
-  `status: done` in the spec.
+- In the same pull request, update the registry as the spec tells (see "The
+  life of a spec" in docs/specs.md), and set `status: done` in the spec.
 - A change to only documentation, CI, or Rego rules does not need a spec, because
   it has no calls between services.
 

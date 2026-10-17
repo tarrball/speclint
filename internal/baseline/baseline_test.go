@@ -50,7 +50,7 @@ func TestModules(t *testing.T) {
 		}
 		names = append(names, m.Name)
 	}
-	want := []string{"(baseline)/dpl.rego", "(baseline)/fixes.rego", "(baseline)/lib.rego", "(baseline)/registry.rego", "(baseline)/schema.rego"}
+	want := []string{"(baseline)/dpl.rego", "(baseline)/fixes.rego", "(baseline)/lib.rego", "(baseline)/registry.rego", "(baseline)/relayer.rego", "(baseline)/schema.rego"}
 	if !slices.Equal(names, want) {
 		t.Errorf("Modules = %v, want %v", names, want)
 	}
@@ -69,7 +69,7 @@ func TestData(t *testing.T) {
 	keys := d["schema_keys"].(map[string][]string)
 	for path, want := range map[string][]string{
 		"(root)":         {"acceptance", "calls", "id", "kind", "out_of_scope", "removed_calls", "services", "specval", "status", "summary", "title"},
-		"services":       {"changed", "new"},
+		"services":       {"changed", "new", "relayered"},
 		"services.new.*": {"layer", "name", "purpose"},
 		"calls.*":        {"covers", "from", "op", "to"},
 	} {

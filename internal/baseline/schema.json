@@ -54,6 +54,21 @@
           "type": "array",
           "description": "The registered services whose behavior changes.",
           "items": { "type": "string" }
+        },
+        "relayered": {
+          "type": "array",
+          "description": "The registered services that this change moves to another layer. A reviewer sees each move in the spec.",
+          "items": {
+            "type": "object",
+            "required": ["name", "layer", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "minLength": 1, "description": "The name of the service in the registry today." },
+              "layer": { "type": "string", "description": "The new layer of the service, for example utility." },
+              "rename": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$", "description": "The new name of the service, if its name does not end with the suffix of the new layer. The rest of the spec uses the new name." },
+              "reason": { "type": "string", "minLength": 1, "description": "One sentence that tells why the service belongs in the new layer." }
+            }
+          }
         }
       }
     },

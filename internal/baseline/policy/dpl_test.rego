@@ -376,6 +376,7 @@ test_sv202_a_changed_service_keeps_a_call_that_breaks_the_layers if {
 		"This spec changes HookCommand, so fix the call.",
 		"Add { from: HookCommand, to: ConfigAccessor } to removed_calls (a top-level list of the spec).",
 		"Then move the work to a service that HookCommand can call: managers or utilities.",
+		"If ConfigAccessor belongs in another layer, move it with services.relayered.",
 	])
 }
 

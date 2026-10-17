@@ -211,10 +211,10 @@ Changes because of experiment 1b:
       ClaudeAccessor keeps the settings and the skill.
 - [x] SV202: name the layers that the caller can call, and tell that
       `removed_calls` is a top-level field (specs/better-fixes.yaml).
-- [ ] A spec can change the architecture, for example
-      `services.relayered: [{ name, layer, reason }]`. specval checks each
-      registered call of the service with the new layer. The fix of SV202 can
-      then offer this change, which a reviewer sees in the spec.
+- [x] A spec can change the architecture: `services.relayered: [{ name, layer,
+      rename, reason }]`. specval checks the spec with the registry after the
+      move (SV113 to SV117, SV203). The fix of SV202 offers the move, which a
+      reviewer sees in the spec (specs/relayered.yaml).
 
 ### The next experiments
 

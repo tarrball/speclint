@@ -28,7 +28,9 @@ layer_fix(from, to, target) := msg if {
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
 # It is undefined if the registry is not an object. SR003 reports that case.
-unknown_fix(name, action) := concat(" ", [
+unknown_fix(name, action) := $"This spec renames {name} to {new} in services.relayered. Use {new}." if {
+	new := renames[name]
+} else := concat(" ", [
 	$"If {name} is new, {action} services.new with a layer and purpose.",
 	$"Otherwise use a registered service: {names}.",
 ]) if {
@@ -63,6 +65,13 @@ limit_fix(subject, _, list, key, owner) := msg if {
 	count(list) == 0
 	msg := $"{subject} has an empty {key}. Remove the call, or ask the owners of the registry to change {key} of {owner}."
 }
+
+# relayer_hint offers services.relayered for a call that the layer rules
+# refuse. A limit is a choice of the owners of the registry, so a move does
+# not fix it.
+relayer_hint(from, to) := [$"If {to} belongs in another layer, move it with services.relayered."] if {
+	not follows_layers({"from": from, "to": to})
+} else := []
 
 # move_work tells where the work of a removed call can go: the services that
 # the caller can call. If the caller has may_call, only the items in may_call

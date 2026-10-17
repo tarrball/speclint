@@ -97,5 +97,11 @@ A service in these layers has no suffix: client, utility.
 - SV110 (error) Each new service has a different name: Each name in `services.new` is there one time only.
 - SV111 (error) Calls follow the limits in the registry: A registry entry can limit the calls of a service with `may_call`, and the callers of a service with `called_by`. Each value is a layer or a service. A limit makes the layer rules stricter. It cannot permit more calls.
 - SV112 (error) Each removed call is in the registry: Each call in `removed_calls` is in the `calls` of its service in the registry.
+- SV113 (error) Each moved service is in the registry: Each `name` in `services.relayered` is a registered service, with its name today.
+- SV114 (error) A moved service has the suffix of its new layer: The name of a moved service ends with the suffix of its new layer. If the name today does not, `rename` gives the new name.
+- SV115 (error) Moved services use a known layer: The `layer` of each entry in `services.relayered` is one of the layers.
+- SV116 (error) A service moves one time only: Each name in `services.relayered` is there one time only.
+- SV117 (error) The new name of a moved service is free: The `rename` of a moved service is not the name of a registered service, a new service, a layer, or the new name of another moved service.
 - SV201 (warning) Changed services take part in a call: Each service in `services.changed` is in one or more calls.
 - SV202 (warning) A changed service keeps only calls that the rules permit: The registry records the calls of each service today. For each service in `services.changed`, each call that the spec does not remove follows the layer rules and the limits. Thus a change does not keep a call that breaks the layers.
+- SV203 (warning) A moved service keeps only calls that the rules permit: For each service in `services.relayered`, each registered call to or from it that the spec does not remove follows the layer rules and the limits after the move.

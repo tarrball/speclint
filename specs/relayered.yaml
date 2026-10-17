@@ -1,0 +1,33 @@
+specval: 1
+id: relayered
+kind: feature
+status: done
+title: Let a spec move a registered service to another layer
+summary: >
+  specval does not make the architecture. If the registry puts a service in
+  the wrong layer, specval makes the code follow the wrong design. In
+  experiment 1b, the hook protocol was an accessor, and the agent moved it into
+  a manager. Today the only fix is a change to the registry that no spec shows.
+  This change adds services.relayered. A spec can move a registered service to
+  a new layer, with a new name if the suffix must change. Each move has a
+  reason that a reviewer sees. The rules check the spec with the registry after the move.
+acceptance:
+  - id: AC1
+    text: Given a spec that moves a registered service, when sv check runs, then the rules check the calls of the spec with the new layer and the new name of the service.
+  - id: AC2
+    text: Given a moved service whose name does not end with the suffix of the new layer, when sv check runs, then an error tells the name to put in rename.
+  - id: AC3
+    text: Given a moved service with a registered call to or from it that breaks the layers after the move, when sv check runs, then a warning tells to remove the call.
+  - id: AC4
+    text: Given a move of a service that is not registered, a second move of a service, a layer that does not exist, or a new name that is not free, when sv check runs, then an error tells the problem.
+  - id: AC5
+    text: Given a changed service that keeps a call that breaks the layers, when sv check runs, then the fix of SV202 tells that services.relayered can move the called service.
+services:
+  changed: [BaselineAccessor]
+calls:
+  - { from: PolicyEngine, to: BaselineAccessor, op: Data, covers: [AC1] }
+  - { from: PolicyEngine, to: BaselineAccessor, op: Modules, covers: [AC1, AC2, AC3, AC4, AC5] }
+out_of_scope:
+  - A warning for a move to the layer that the service has today.
+  - A rule that the name of a client or a utility does not end with the suffix of another layer.
+  - A change to the registry rules (SR001 to SR008). They check the registry as it is today.

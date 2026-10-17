@@ -3,7 +3,15 @@ package specval.spec.dpl
 import data.specval.lib
 import rego.v1
 
-registry := object.get(data.project, "services", {})
+# current is the registry today. The registry rules (SR001 to SR008) check it.
+current := object.get(data.project, "services", {})
+
+# registry is the registry after the moves in services.relayered: each moved
+# service has its new layer and its new name. The spec rules use it, because
+# the rest of the spec uses the new names. See relayer.rego.
+registry := moved_registry if is_object(current)
+
+else := current
 
 layers := data.dpl.layers
 
@@ -72,12 +80,13 @@ layer_of(name) := new_services[name].layer if not registry[name]
 
 # suggestions returns the registered services in the layer that the suffix of
 # name gives. If there are none, it returns all of the registered services.
+# It is undefined if the registry is not an object.
 suggestions(name) := names if {
 	some l, sfx in suffix
 	endswith(name, sfx)
 	names := sort([n | some n, s in registry; s.layer == l])
 	count(names) > 0
-} else := sort(object.keys(registry))
+} else := sort(object.keys(registry)) if is_object(registry)
 
 base_name(name) := trim_suffix(name, sfx) if {
 	some sfx in suffix
@@ -411,9 +420,12 @@ kept_call_finding(meta, i, name, to) := lib.finding(
 	meta,
 	$"services.changed[{i}]",
 	$"{name} calls {to} in the registry, but {call_problem(name, to)}",
-	concat(" ", [
-		$"This spec changes {name}, so fix the call.",
-		$"Add \{ from: {name}, to: {to} } to removed_calls (a top-level list of the spec).",
-		move_work(name),
-	]),
+	concat(" ", array.concat(
+		[
+			$"This spec changes {name}, so fix the call.",
+			$"Add \{ from: {name}, to: {to} } to removed_calls (a top-level list of the spec).",
+			move_work(name),
+		],
+		relayer_hint(name, to),
+	)),
 )
