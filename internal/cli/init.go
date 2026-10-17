@@ -1,8 +1,12 @@
 package cli
 
-import "github.com/tarrball/specval/internal/scaffold"
+import (
+	"context"
 
-func cmdInit(env *Env, args []string) error {
+	"github.com/tarrball/specval/internal/scaffold"
+)
+
+func cmdInit(_ context.Context, env *Env, args []string) error {
 	if err := parseNoArgs(newFlagSet("init", env), args); err != nil {
 		return err
 	}

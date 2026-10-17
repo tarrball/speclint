@@ -103,7 +103,8 @@ rules do not permit.
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
 - [x] Keep `settings.json` as it is when init adds the hook (specs/settings-json.yaml).
 - [ ] Report a spec file with more than one YAML document.
-- [ ] Use one table for the commands. Get the kinds and the ID text from the schema.
+- [x] Use one table for the commands. Get the kinds from the schema, and use one
+      ID rule text (specs/command-table.yaml).
 - [ ] Add a `version` command, signal handling, and a time limit for evaluation.
 - [ ] Use path segments inside the code. The JSON output keeps the path strings.
 - [ ] Add depguard rules that agree with the registry.

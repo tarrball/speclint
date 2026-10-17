@@ -1,0 +1,27 @@
+specval: 1
+id: command-table
+kind: chore
+status: done
+title: Use one table for the commands
+summary: >
+  The name of each command is in three places: the usage text, the switch
+  that runs the command, and the synopses for --help. The kinds of sv new are
+  in the usage text, and the rule for a spec ID is in two error messages.
+  Thus a new command or kind can make them disagree. This change puts each
+  command in one table. The usage, the dispatch, and --help come from it. The
+  kinds come from the schema, and the ID rule has one text.
+acceptance:
+  - id: AC1
+    text: Given the usage script, when sv runs with no command or with help, then the usage text does not change.
+  - id: AC2
+    text: Given a test that reads the command table, when each command runs with --help, then its synopsis is the synopsis in the usage text.
+  - id: AC3
+    text: Given sv new with an ID that is not valid, when it runs, then the error tells the ID rule from ScaffoldManager.
+services:
+  changed: [NewCommand]
+calls:
+  - { from: NewCommand, to: Baseline, op: Kinds, covers: [AC1, AC2] }
+  - { from: NewCommand, to: ScaffoldManager, op: Spec, covers: [AC3] }
+out_of_scope:
+  - A change to what a command does.
+  - The version command. It comes in the next change and adds one row.
