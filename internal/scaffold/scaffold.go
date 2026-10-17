@@ -48,10 +48,19 @@ var (
 //   - the hook in the Claude Code settings
 //
 // Init does not change a file that exists. The one exception is the settings
-// file, to which it adds the hook. Init writes one line to w for each file.
-// If no CLAUDE.md tells about specval, Init then writes a line for the user
-// to add to it.
-func Init(dir string, w io.Writer) error {
+// file, to which it adds the hook. If the policy paths have a Rego file, Init
+// does not add the example rule file. Init writes one line to w for each
+// file. If no CLAUDE.md tells about specval, Init then writes a line for the
+// user to add to it.
+func Init(dir string, w io.Writer) error { return setUp(dir, w, false) }
+
+// DryRun writes the lines of Init to w, with "create" and "hook" for the
+// changes that Init makes. It gives the same errors as Init, and it writes
+// no file and no directory.
+func DryRun(dir string, w io.Writer) error { return setUp(dir, w, true) }
+
+// setUp does the work of Init, or of DryRun if dry is true.
+func setUp(dir string, w io.Writer, dry bool) error {
 	// Read the settings file first, so that a file that is not valid stops
 	// Init before it writes anything.
 	settings := filepath.Join(dir, claude.SettingsPath)
@@ -65,6 +74,14 @@ func Init(dir string, w io.Writer) error {
 		if cfg, err = config.Find(dir); err != nil {
 			return err
 		}
+	}
+	// Check the specs path before Init writes anything, so that Init and
+	// DryRun fail in the same way.
+	specsDir := cfg.Abs(cfg.SpecsDir)
+	if info, err := os.Stat(specsDir); err == nil && !info.IsDir() {
+		return fmt.Errorf("%s is not a directory; the specs directory must be a directory", relPath(dir, specsDir))
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
 	}
 	// A data file can already define the registry. Then Init must not write a
 	// second one, because two files cannot define the same key.
@@ -84,10 +101,19 @@ func Init(dir string, w io.Writer) error {
 	if services == "" {
 		registryPath = "the data files that " + config.FileName + " lists"
 	}
+	// A project with its own rules does not need the example rule file.
+	rules, err := cfg.PolicyFiles()
+	if err != nil {
+		return err
+	}
+	policy := firstFile(cfg, cfg.Policy, "project.rego", ".rego")
+	if len(rules) > 0 {
+		policy = rules[0]
+	}
 	files := []struct{ path, content string }{
 		{config.FileName, configTemplate},
 		{services, servicesContent},
-		{firstFile(cfg, cfg.Policy, "project.rego", ".rego"), projectTemplate},
+		{policy, projectTemplate},
 		{claude.SkillPath, claude.Skill(cfg.SpecsDir)},
 		{copilot.InstructionsPath, copilot.Instructions(cfg.SpecsDir, registryPath)},
 	}
@@ -101,24 +127,24 @@ func Init(dir string, w io.Writer) error {
 			}
 			continue
 		}
-		if err := writeIfMissing(dir, f.path, f.content, w); err != nil {
+		if len(rules) > 0 && f.path == rules[0] {
+			if _, err := fmt.Fprintln(w, "exists  ", relPath(dir, f.path), "(rules)"); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := writeIfMissing(dir, f.path, f.content, w, dry); err != nil {
 			return err
 		}
 	}
-	specsDir := cfg.Abs(cfg.SpecsDir)
-	if err := os.MkdirAll(specsDir, 0o755); err != nil {
+	if err := addHook(settings, w, dry); err != nil {
 		return err
 	}
-	added, err := claude.AddHook(settings)
-	if err != nil {
-		return err
-	}
-	if added {
-		_, err = fmt.Fprintln(w, "hooked  ", claude.SettingsPath)
-	} else {
-		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(sv hook)")
-	}
-	if err != nil {
+	if dry {
+		if _, err := fmt.Fprintln(w, "\nThis is a dry run. sv init wrote nothing."); err != nil {
+			return err
+		}
+	} else if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
 	}
 	hint, err := claude.MemoryHint(dir)
@@ -187,20 +213,55 @@ func relPath(dir, p string) string {
 }
 
 // writeIfMissing writes content to path, relative to dir, if the file does
-// not exist. It writes one line about the file to w.
-func writeIfMissing(dir, path, content string, w io.Writer) error {
+// not exist. It writes one line about the file to w. If dry is true, it
+// writes no file.
+func writeIfMissing(dir, path, content string, w io.Writer, dry bool) error {
 	full := path
 	if !filepath.IsAbs(path) {
 		full = filepath.Join(dir, path)
 	}
-	created, err := createFile(full, content)
-	if err != nil {
-		return err
-	}
-	if created {
-		_, err = fmt.Fprintln(w, "created ", path)
+	var created bool
+	var err error
+	if dry {
+		_, err = os.Lstat(full)
+		if created = errors.Is(err, fs.ErrNotExist); created {
+			err = nil
+		}
 	} else {
+		created, err = createFile(full, content)
+	}
+	switch {
+	case err != nil:
+		return err
+	case created && dry:
+		_, err = fmt.Fprintln(w, "create  ", path)
+	case created:
+		_, err = fmt.Fprintln(w, "created ", path)
+	default:
 		_, err = fmt.Fprintln(w, "exists  ", path)
+	}
+	return err
+}
+
+// addHook adds the hook to the settings file, and writes one line about it
+// to w. If dry is true, it does not change the file.
+func addHook(settings string, w io.Writer, dry bool) error {
+	var added bool
+	var err error
+	if dry {
+		added, err = claude.NeedsHook(settings)
+	} else {
+		added, err = claude.AddHook(settings)
+	}
+	switch {
+	case err != nil:
+		return err
+	case added && dry:
+		_, err = fmt.Fprintln(w, "hook    ", claude.SettingsPath)
+	case added:
+		_, err = fmt.Fprintln(w, "hooked  ", claude.SettingsPath)
+	default:
+		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(sv hook)")
 	}
 	return err
 }

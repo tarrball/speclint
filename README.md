@@ -109,7 +109,7 @@ breaks the schema.
 | `sv new <id>` | Makes `<specs dir>/<id>.yaml` from the template. Use `--kind` and `--title` to set those fields. |
 | `sv context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
 | `sv schema` | Prints the JSON Schema of a spec. |
-| `sv init` | Sets up specval, the skill, the hook, and the Copilot review instructions. You can run it again to restore a missing part. |
+| `sv init [--dry-run]` | Sets up specval, the skill, the hook, and the Copilot review instructions. You can run it again to restore a missing part. With `--dry-run`, it prints the changes and writes nothing. |
 | `sv doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
 | `sv version` | Prints the version of sv and of the spec format. |
 | `sv hook` | Claude Code runs this command after each file write. Do not run it yourself. |

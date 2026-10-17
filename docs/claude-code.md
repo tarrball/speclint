@@ -28,6 +28,11 @@ If `.claude/settings.json` exists, `init` adds the hook to it and keeps the
 other settings. It changes only the `PostToolUse` list. The other keys keep
 their order and their text, and the file keeps its indent.
 
+`init` does not change a file that exists. If the policy paths already have a
+Rego file, it does not add the example rule file. To see the changes before
+`init` makes them, run `sv init --dry-run`. It prints each file that `init`
+creates and the hook that it adds, and it writes nothing.
+
 ## What the hook does
 
 Claude Code sends the hook a JSON event on stdin. The event gives the path of

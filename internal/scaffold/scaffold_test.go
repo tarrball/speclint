@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -476,5 +477,134 @@ func TestSpecDoesNotFollowADanglingLink(t *testing.T) {
 	}
 	if _, err := os.Stat(target); !os.IsNotExist(err) {
 		t.Errorf("Spec created the target of the link: %v", err)
+	}
+}
+
+// files returns the paths of the files and directories in dir.
+func files(t *testing.T, dir string) []string {
+	t.Helper()
+	var out []string
+	err := filepath.WalkDir(dir, func(p string, _ fs.DirEntry, err error) error {
+		if p != dir {
+			out = append(out, relPath(dir, p))
+		}
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func TestDryRunWritesNothing(t *testing.T) {
+	dir := t.TempDir()
+	var out bytes.Buffer
+	if err := DryRun(dir, &out); err != nil {
+		t.Fatal(err)
+	}
+	want := `create   .specval.yaml
+create   .specval/data/services.yaml
+create   .specval/policy/project.rego
+create   .claude/skills/spec/SKILL.md
+create   .github/instructions/specval.instructions.md
+hook     .claude/settings.json
+
+This is a dry run. sv init wrote nothing.
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  ` + claude.MemoryLine + `
+`
+	if out.String() != want {
+		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
+	}
+	if got := files(t, dir); len(got) != 0 {
+		t.Errorf("DryRun wrote %v", got)
+	}
+}
+
+func TestDryRunAfterInit(t *testing.T) {
+	dir := t.TempDir()
+	if err := Init(dir, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	before := files(t, dir)
+	var out bytes.Buffer
+	if err := DryRun(dir, &out); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), "create ") || !strings.Contains(out.String(), "exists   .claude/settings.json (sv hook)\n") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if after := files(t, dir); !slices.Equal(before, after) {
+		t.Errorf("DryRun changed the files: %v, then %v", before, after)
+	}
+}
+
+func TestDryRunGivesTheErrorsOfInit(t *testing.T) {
+	for name, file := range map[string]struct{ path, content string }{
+		"settings not JSON":     {claude.SettingsPath, "{not json"},
+		"settings wrong shape":  {claude.SettingsPath, `{"hooks": {"PostToolUse": {}}}`},
+		"specs path is a file":  {"specs", "not a directory\n"},
+		"configured specs file": {config.FileName, "specs_dir: plan.md\n"},
+	} {
+		dir := t.TempDir()
+		path := filepath.Join(dir, file.path)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(file.content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if name == "configured specs file" {
+			if err := os.WriteFile(filepath.Join(dir, "plan.md"), nil, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+		before := files(t, dir)
+		dryErr := DryRun(dir, &bytes.Buffer{})
+		initErr := Init(dir, &bytes.Buffer{})
+		if dryErr == nil || initErr == nil || dryErr.Error() != initErr.Error() {
+			t.Errorf("%s: DryRun error %v, Init error %v", name, dryErr, initErr)
+		}
+		// Init fails before it writes anything.
+		if after := files(t, dir); !slices.Equal(before, after) {
+			t.Errorf("%s: the files changed: %v, then %v", name, before, after)
+		}
+	}
+}
+
+func TestInitKeepsTheRulesOfAProject(t *testing.T) {
+	dir := t.TempDir()
+	rules := filepath.Join(dir, ".specval", "policy")
+	if err := os.MkdirAll(rules, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rules, "naming.rego"), []byte("package specval.spec.naming\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "exists   .specval/policy/naming.rego (rules)\n") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if _, err := os.Stat(filepath.Join(rules, "project.rego")); !os.IsNotExist(err) {
+		t.Errorf("Init made project.rego: %v", err)
+	}
+	// A Rego test file is not a rule, so Init adds the example rule file.
+	dir = t.TempDir()
+	rules = filepath.Join(dir, ".specval", "policy")
+	if err := os.MkdirAll(rules, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rules, "naming_test.rego"), []byte("package specval.spec.naming_test\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(dir, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(rules, "project.rego")); err != nil {
+		t.Errorf("Init did not make project.rego: %v", err)
 	}
 }
