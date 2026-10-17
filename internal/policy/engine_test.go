@@ -752,3 +752,28 @@ func TestACanceledCheckStops(t *testing.T) {
 		t.Errorf("err = %v, want the cancel, not the time limit", err)
 	}
 }
+
+func TestASecondYAMLDocument(t *testing.T) {
+	spec := "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n"
+	cfg := project(t, map[string]string{
+		"specs/two.yaml":  spec + "---\nid: B\n",
+		"specs/dash.yaml": "---\n" + spec,
+	})
+	eng := newEngine(t, cfg)
+	res, err := eng.CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "two.yaml")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Findings) != 1 || res.Findings[0].Rule != "SV000" || res.Findings[0].Line != 8 || !res.Stopped {
+		t.Errorf("two documents: got %+v, want one SV000 at line 8", res)
+	}
+	// One document that starts with three dashes is correct.
+	if got := rules(check(t, cfg, "dash.yaml")); slices.Contains(got, "SV000") || slices.Contains(got, "SV001") {
+		t.Errorf("one document after ---: got %v, want no format errors", got)
+	}
+
+	bad := project(t, map[string]string{".specval/data/services.yaml": registry + "---\nother: 1\n"})
+	if _, err := load(bad); err == nil || !strings.Contains(err.Error(), "services.yaml: line ") || !strings.Contains(err.Error(), "a data file must have one YAML document") {
+		t.Errorf("data file: err = %v, want the second document", err)
+	}
+}

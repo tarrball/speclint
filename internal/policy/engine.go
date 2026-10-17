@@ -256,8 +256,16 @@ func (e *Engine) CheckSpec(ctx context.Context, b []byte) (SpecResult, error) {
 	var doc any
 	// specval cannot read the status of a spec that is not valid YAML, so it
 	// does not know if the spec is done.
-	if err := yaml.Unmarshal(b, &node); err != nil {
+	second, err := parseOne(b, &node)
+	if err != nil {
 		return stopped(false, yamlError(err)), nil
+	}
+	if second > 0 {
+		return stopped(false, Finding{
+			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError, Line: second,
+			Msg: "The spec has more than one YAML document. specval reads only the first.",
+			Fix: "Remove the line with three dashes and the document after it. Put each spec in its own file.",
+		}), nil
 	}
 	if len(node.Content) > 0 {
 		if err := node.Decode(&doc); err != nil {
@@ -268,7 +276,7 @@ func (e *Engine) CheckSpec(ctx context.Context, b []byte) (SpecResult, error) {
 		doc = map[string]any{}
 	}
 	done := isDone(doc)
-	doc, err := stringKeys(doc, "")
+	doc, err = stringKeys(doc, "")
 	if keyErr, ok := errors.AsType[keyError](err); ok {
 		return stopped(done, Finding{
 			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError,

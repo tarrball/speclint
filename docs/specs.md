@@ -193,7 +193,7 @@ Thus when you fix the format errors, the next check can find new problems.
 
 | ID | Severity | Rule |
 |---|---|---|
-| SV000 | error | The spec is valid YAML. |
+| SV000 | error | The spec is valid YAML, with one document. |
 | SV001 | error | The spec matches the schema. |
 | SV101 | error | Each call uses a registered service or a service in `services.new`. |
 | SV102 | error | Each call follows the layer rules. |
