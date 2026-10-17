@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/open-policy-agent/opa/v1/ast"
 	"github.com/open-policy-agent/opa/v1/rego"
@@ -285,7 +286,7 @@ func (e *Engine) CheckSpec(ctx context.Context, b []byte) (SpecResult, error) {
 		// stop the check of a done spec.
 		query = e.schemaQ
 	}
-	rs, err := query.Eval(ctx, rego.EvalInput(input))
+	rs, err := eval(ctx, query, rego.EvalInput(input))
 	if err != nil {
 		return SpecResult{}, err
 	}
@@ -338,10 +339,27 @@ func isDone(spec any) bool {
 	return m["status"] == statusDone
 }
 
+// evalTimeout is the time limit for one evaluation of the rules: the rules
+// for one spec, or the registry rules. A rule with a very large loop must not
+// run until Claude Code stops the hook.
+var evalTimeout = 10 * time.Second
+
+// eval evaluates q with the time limit. If the limit stops the evaluation,
+// the error tells that a rule did not finish.
+func eval(ctx context.Context, q rego.PreparedEvalQuery, opts ...rego.EvalOption) (rego.ResultSet, error) {
+	ctx, cancel := context.WithTimeout(ctx, evalTimeout)
+	defer cancel()
+	rs, err := q.Eval(ctx, opts...)
+	if err != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return nil, fmt.Errorf("the rules did not finish in %s; a rule can have a loop that is too large", evalTimeout)
+	}
+	return rs, err
+}
+
 // CheckRegistry runs the registry rules. It returns the findings for each
 // data file.
 func (e *Engine) CheckRegistry(ctx context.Context) (map[string][]Finding, error) {
-	rs, err := e.regQ.Eval(ctx)
+	rs, err := eval(ctx, e.regQ)
 	if err != nil {
 		return nil, err
 	}

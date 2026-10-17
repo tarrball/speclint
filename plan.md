@@ -105,7 +105,8 @@ rules do not permit.
 - [ ] Report a spec file with more than one YAML document.
 - [x] Use one table for the commands. Get the kinds from the schema, and use one
       ID rule text (specs/command-table.yaml).
-- [ ] Add a `version` command, signal handling, and a time limit for evaluation.
+- [x] Add a `version` command, signal handling, and a time limit for evaluation
+      (specs/version-signals-timeout.yaml).
 - [ ] Use path segments inside the code. The JSON output keeps the path strings.
 - [ ] Add depguard rules that agree with the registry.
 - [ ] Add a test that compares the registry with `go list -deps`. It starts with a

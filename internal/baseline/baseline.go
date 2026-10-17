@@ -36,13 +36,17 @@ func Schema() string { return schema }
 // specFields holds the parts of the schema that Go code also uses. Thus the
 // schema is the one source of these values.
 type specFields struct {
-	kinds []string
-	id    *regexp.Regexp
+	kinds  []string
+	id     *regexp.Regexp
+	format int
 }
 
 var schemaFields = sync.OnceValue(func() specFields {
 	var s struct {
 		Properties struct {
+			Specval struct {
+				Const int `json:"const"`
+			} `json:"specval"`
 			Kind struct {
 				Enum []string `json:"enum"`
 			} `json:"kind"`
@@ -56,11 +60,19 @@ var schemaFields = sync.OnceValue(func() specFields {
 	if err := json.Unmarshal([]byte(schema), &s); err != nil {
 		panic("baseline: schema.json: " + err.Error())
 	}
-	return specFields{kinds: s.Properties.Kind.Enum, id: regexp.MustCompile(s.Properties.ID.Pattern)}
+	return specFields{
+		kinds:  s.Properties.Kind.Enum,
+		id:     regexp.MustCompile(s.Properties.ID.Pattern),
+		format: s.Properties.Specval.Const,
+	}
 })
 
 // Kinds returns the values that the kind of a spec can have.
 func Kinds() []string { return slices.Clone(schemaFields().kinds) }
+
+// FormatVersion returns the version of the spec format: the value of the
+// specval field of a spec.
+func FormatVersion() int { return schemaFields().format }
 
 // IDPattern returns the pattern that the ID of a spec must match.
 func IDPattern() *regexp.Regexp { return schemaFields().id }

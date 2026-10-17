@@ -23,6 +23,9 @@ func TestKindsAndIDPatternComeFromTheSchema(t *testing.T) {
 	if got, want := Kinds(), []string{"feature", "bugfix", "chore"}; !slices.Equal(got, want) {
 		t.Errorf("Kinds = %v, want %v", got, want)
 	}
+	if got := FormatVersion(); got != 1 {
+		t.Errorf("FormatVersion = %d, want 1", got)
+	}
 	if got, want := IDPattern().String(), "^[A-Za-z0-9][A-Za-z0-9._-]*$"; got != want {
 		t.Errorf("IDPattern = %s, want %s", got, want)
 	}
