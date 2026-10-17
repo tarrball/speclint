@@ -22,6 +22,8 @@ UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/sv   # rewrite expected CLI outp
 - `internal/cli/`: the commands. One file for each command.
 - `internal/check/`: CheckManager. It finds the specs, runs the `Engine`, and
   makes the report for `check` and `hook`.
+- `internal/describe/`: ContextManager. It gives the layers, the registry, and
+  the rules for `context`.
 - `internal/config/`: finds and reads `.specval.yaml`, and lists the spec, data,
   and policy files.
 - `internal/policy/`: the `Engine`. It loads data and Rego rules, evaluates specs

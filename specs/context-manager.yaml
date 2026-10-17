@@ -1,0 +1,34 @@
+specval: 1
+id: context-manager
+kind: chore
+status: done
+title: Move the work of sv context into ContextManager
+summary: >
+  ContextCommand finds the configuration and loads the policy engine. Thus a
+  client calls an accessor and an engine, which the layers do not permit. This
+  change adds ContextManager in internal/describe. It finds the configuration,
+  loads the engine, and gives the layers, the registered services, and the
+  rules. ContextCommand calls it and writes the output. The output does not
+  change.
+acceptance:
+  - id: AC1
+    text: Given the context script, when it runs sv context, then it passes with no change to its expected output.
+  - id: AC2
+    text: Given a directory that is not in a project, when sv context runs, then it exits 2 with the same error as before.
+  - id: AC3
+    text: Given a project, when a test calls ContextManager, then it gives the specs directory, the layers, the registered services, and the rules.
+services:
+  new:
+    - { name: ContextManager, layer: manager, purpose: "Gives the layers, the registered services, and the rules of a project" }
+  changed: [ContextCommand]
+calls:
+  - { from: ContextCommand, to: ContextManager, op: Find, covers: [AC1, AC2] }
+  - { from: ContextManager, to: ConfigAccessor, op: Find, covers: [AC1, AC2, AC3] }
+  - { from: ContextManager, to: PolicyEngine, op: Architecture, covers: [AC1, AC3] }
+  - { from: ContextManager, to: PolicyEngine, op: Services, covers: [AC1, AC3] }
+  - { from: ContextManager, to: PolicyEngine, op: RuleDocs, covers: [AC1, AC3] }
+removed_calls:
+  - { from: ContextCommand, to: ConfigAccessor }
+  - { from: ContextCommand, to: PolicyEngine }
+out_of_scope:
+  - A change to the output of sv context.

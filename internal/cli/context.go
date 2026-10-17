@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/config"
-	"github.com/tarrball/specval/internal/policy"
+	"github.com/tarrball/specval/internal/describe"
 )
 
 func cmdContext(ctx context.Context, env *Env, args []string) error {
@@ -22,25 +21,14 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	cfg, err := config.Find(dir)
+	p, err := describe.Find(ctx, dir)
 	if err != nil {
 		return err
 	}
-	eng, err := policy.New(ctx, cfg)
-	if err != nil {
-		return err
-	}
-	arch, err := eng.Architecture()
-	if err != nil {
-		return err
-	}
-	registry, err := eng.Services()
-	if err != nil {
-		return err
-	}
+	arch, registry := p.Architecture, p.Services
 	w := env.Stdout
 
-	fmt.Fprintf(w, "# Spec rules (specval)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `sv new <id>`. To check a spec, run `sv check <file>`. Each finding has a fix.\n\n", cfg.SpecsDir)
+	fmt.Fprintf(w, "# Spec rules (specval)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `sv new <id>`. To check a spec, run `sv check <file>`. Each finding has a fix.\n\n", p.SpecsDir)
 	fmt.Fprintf(w, "## Format\n```yaml\n%s```\n\n", baseline.Format())
 
 	fmt.Fprint(w, "## Layers\nEach layer can call only the layers after its arrow.\n")
@@ -91,7 +79,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 	printLimits(w, registry)
 
 	fmt.Fprint(w, "\n## Rules\n")
-	for _, d := range eng.RuleDocs() {
+	for _, d := range p.Rules {
 		desc := ""
 		if d.Description != "" {
 			desc = ": " + d.Description
@@ -103,7 +91,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 
 // printLimits writes the limits of the registry. A value in a limit is a
 // layer or a service.
-func printLimits(w io.Writer, registry map[string]policy.Service) {
+func printLimits(w io.Writer, registry map[string]describe.Service) {
 	var lines []string
 	for _, name := range slices.Sorted(maps.Keys(registry)) {
 		s := registry[name]

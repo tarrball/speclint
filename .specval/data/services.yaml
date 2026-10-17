@@ -9,7 +9,7 @@
 services:
   # The commands. Each command is an entry point.
   CheckCommand: { layer: client, package: internal/cli, calls: [CheckManager] }
-  ContextCommand: { layer: client, package: internal/cli, calls: [Baseline, ConfigAccessor, PolicyEngine] }
+  ContextCommand: { layer: client, package: internal/cli, calls: [Baseline, ContextManager] }
   DoctorCommand: { layer: client, package: internal/cli, calls: [DoctorManager] }
   HookCommand: { layer: client, package: internal/cli, calls: [CheckManager, ClaudeHook] }
   InitCommand: { layer: client, package: internal/cli, calls: [ScaffoldManager] }
@@ -17,6 +17,7 @@ services:
   SchemaCommand: { layer: client, package: internal/cli, calls: [Baseline] }
 
   CheckManager: { layer: manager, package: internal/check, calls: [ConfigAccessor, PolicyEngine] }
+  ContextManager: { layer: manager, package: internal/describe, calls: [ConfigAccessor, PolicyEngine] }
   DoctorManager: { layer: manager, package: internal/doctor, calls: [ClaudeAccessor, ConfigAccessor, PolicyEngine] }
   ScaffoldManager: { layer: manager, package: internal/scaffold, calls: [Baseline, ClaudeAccessor, ConfigAccessor] }
 

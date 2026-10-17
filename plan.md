@@ -93,7 +93,8 @@ rules do not permit.
       CheckManager, and the hook gets the protocol from ClaudeHook.
 - [x] Move the baseline to the utility layer as `Baseline`, with
       `services.relayered` (specs/baseline-utility.yaml). It is data in the binary.
-- [ ] ContextCommand calls a new ContextManager, not ConfigAccessor and PolicyEngine.
+- [x] ContextCommand calls a new ContextManager (internal/describe), not ConfigAccessor
+      and PolicyEngine.
 - [ ] NewCommand calls only ScaffoldManager.
 - [ ] Move the file reads from `policy` to `ProjectDataAccessor`.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
@@ -255,5 +256,8 @@ When specval works well for its own code, we move the experiments:
   `input.id` also controls the file names, so specval needs no other feature
   for a naming convention. The convention is the choice of each project, for
   example a ticket key (`PROJ-123-short-name`) or a date.
+- A fix for a comma in a flow mapping: `{ purpose: A, B, and C }` makes YAML
+  read `B` and `and C` as keys, and SV001 says "Remove `and`". If a key has
+  a space, the fix can tell to quote the value.
 - For the specs of specval: a number prefix (`0003-extract-check-manager`),
   because the specs build on each other, and the number gives their order.

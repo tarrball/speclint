@@ -10,6 +10,7 @@ code. For the rules of the code, see [style.md](style.md).
 | `cmd/sv` | The `main` package. It reads the process state into a `cli.Env` and calls `cli.Run`. It also holds the end-to-end tests. |
 | `internal/cli` | The commands. Each command has its own file. The commands get their input and output only from `cli.Env`. |
 | `internal/check` | `CheckManager`. Finds the configuration and the specs, checks the registry and the specs with the `Engine`, and makes the report. It does not read or write stdio. |
+| `internal/describe` | `ContextManager`. Finds the configuration, loads the `Engine`, and gives the layers, the registered services, and the rules for `sv context`. |
 | `internal/config` | Finds `.specval.yaml` and lists the spec, data, and policy files. |
 | `internal/policy` | The `Engine`. It loads the data and the rules, evaluates them, and returns findings. |
 | `internal/baseline` | The built-in schema, layer data, format example, and Rego rules. The binary contains them. |
@@ -21,11 +22,13 @@ code. For the rules of the code, see [style.md](style.md).
 The packages depend on each other in this direction:
 
 ```
-cmd/sv ─> cli ─┬─> check ──> policy, config
-               ├─> policy ──> baseline, config, yamlpath
-               ├─> doctor ──> policy, claude, config
+cmd/sv ─> cli ─┬─> check ────> policy, config
+               ├─> describe ─> policy, config
+               ├─> doctor ───> policy, claude, config
                ├─> scaffold ─> baseline, claude, config
-               └─> claude, config, baseline
+               └─> baseline, claude, config
+
+policy ─> baseline, config, yamlpath
 ```
 
 ## How `sv check` works
