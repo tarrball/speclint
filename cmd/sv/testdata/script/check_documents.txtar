@@ -1,0 +1,25 @@
+# A spec with a second YAML document gets SV000 at the line of that document.
+# specval reads only the first document, so it must not pass the spec.
+exits 1 sv check specs/two.yaml
+cmp stdout two.txt
+
+-- .specval.yaml --
+-- .specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+-- specs/two.yaml --
+specval: 1
+id: A-1
+kind: chore
+title: T
+summary: S
+acceptance: [{ id: AC1, text: "Given an order, when it is read, then it is returned." }]
+calls: [{ from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1] }]
+---
+calls: [{ from: OrderAccessor, to: OrderManager, op: Get, covers: [AC1] }]
+-- two.txt --
+specs/two.yaml:8 error SV000 The spec has more than one YAML document. specval reads only the first.
+    fix: Remove the line with three dashes and the document after it. Put each spec in its own file.
+specs/two.yaml note: The other rules run after you fix the format errors (SV000, SV001).
+specval checked 1 spec(s) and found 1 error(s) and 0 warning(s).

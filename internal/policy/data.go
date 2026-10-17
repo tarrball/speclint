@@ -1,9 +1,11 @@
 package policy
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/open-policy-agent/opa/v1/util"
 	"go.yaml.in/yaml/v3"
@@ -90,8 +92,12 @@ func (e *Engine) DataFile(key string) string {
 
 func (e *Engine) loadDataFile(path string, b []byte, project map[string]any) error {
 	var node yaml.Node
-	if err := yaml.Unmarshal(b, &node); err != nil {
+	second, err := parseOne(b, &node)
+	if err != nil {
 		return fmt.Errorf("%s: %w", path, err)
+	}
+	if second > 0 {
+		return fmt.Errorf("%s: line %d: a data file must have one YAML document", path, second)
 	}
 	var doc map[string]any
 	if err := node.Decode(&doc); err != nil {
@@ -179,4 +185,23 @@ func roundTrip(in, out any) error {
 		return err
 	}
 	return util.UnmarshalJSON(b, out)
+}
+
+// parseOne parses the first YAML document of b into node. If b has a second
+// document, parseOne returns the line where it starts. Otherwise it returns
+// 0. An empty b gives an empty node.
+func parseOne(b []byte, node *yaml.Node) (int, error) {
+	dec := yaml.NewDecoder(bytes.NewReader(b))
+	if err := dec.Decode(node); errors.Is(err, io.EOF) {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+	var next yaml.Node
+	if err := dec.Decode(&next); errors.Is(err, io.EOF) {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+	return next.Line, nil
 }

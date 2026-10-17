@@ -1,0 +1,24 @@
+specval: 1
+id: multi-document
+kind: bugfix
+status: done
+title: Report a spec or data file with more than one YAML document
+summary: >
+  A YAML file can hold more than one document, separated by a line with
+  three dashes. specval reads only the first document of a spec or a data
+  file, and ignores the others without a message. Thus a spec can pass while
+  part of it is not checked. This change reports a second document in a spec
+  as an SV000 error at its line. A data file with a second document is an
+  error.
+acceptance:
+  - id: AC1
+    text: Given a spec with two YAML documents, when sv check runs, then it reports SV000 at the line of the second document.
+  - id: AC2
+    text: Given a data file with two YAML documents, when sv check runs, then it exits 2 with an error that names the file.
+  - id: AC3
+    text: Given a spec that starts with three dashes and has one document, when sv check runs, then it reports no SV000.
+services:
+  changed: [PolicyEngine]
+calls:
+  - { from: CheckManager, to: PolicyEngine, op: CheckSpec, covers: [AC1, AC3] }
+  - { from: CheckManager, to: PolicyEngine, op: New, covers: [AC2] }

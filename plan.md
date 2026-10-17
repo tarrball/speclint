@@ -102,7 +102,8 @@ rules do not permit.
 - [x] Divide the Claude Code parts: ClaudeAccessor (the settings and the skill) and
       ClaudeHook (a utility for the hook protocol). Only the registry changed.
 - [x] Keep `settings.json` as it is when init adds the hook (specs/settings-json.yaml).
-- [ ] Report a spec file with more than one YAML document.
+- [x] Report a spec or data file with more than one YAML document
+      (specs/multi-document.yaml).
 - [x] Use one table for the commands. Get the kinds from the schema, and use one
       ID rule text (specs/command-table.yaml).
 - [x] Add a `version` command, signal handling, and a time limit for evaluation
