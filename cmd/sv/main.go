@@ -19,8 +19,14 @@ var version string
 
 func main() {
 	// On an interrupt or a terminate signal, ctx stops the evaluation of the
-	// rules, and sv exits.
+	// rules and the read of the hook event, and sv exits. After the first
+	// signal, stop restores the default handling, so that a second signal
+	// ends the process if the work does not stop.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ctx.Done()
+		stop()
+	}()
 	dir, _ := os.Getwd()        // If the directory is not known, Dir is "", and only the commands that need it fail.
 	home, _ := os.UserHomeDir() // If there is no home directory, Home is "".
 	exe, _ := os.Executable()   // If the path is not known, Executable is "".

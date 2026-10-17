@@ -17,11 +17,36 @@ const (
 	hookBlock exitCode = 2 // Claude Code sends stderr to Claude.
 )
 
+// readEvent reads the hook event from stdin. It returns when ctx is done,
+// also if stdin stays open and the event is not complete. Then the read
+// continues in the background until the process exits.
+func readEvent(ctx context.Context, env *Env) (claude.Event, error) {
+	type result struct {
+		in  claude.Event
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		in, err := claude.ReadEvent(env.Stdin)
+		ch <- result{in, err}
+	}()
+	select {
+	case r := <-ch:
+		return r.in, r.err
+	case <-ctx.Done():
+		return claude.Event{}, ctx.Err()
+	}
+}
+
 // cmdHook handles a Claude Code PostToolUse event. If the event is not about
 // a spec, it exits 0 and writes nothing, so that the hook does not stop other
 // work.
 func cmdHook(ctx context.Context, env *Env) exitCode {
-	in, err := claude.ReadEvent(env.Stdin)
+	in, err := readEvent(ctx, env)
+	if ctx.Err() != nil {
+		fmt.Fprintln(env.Stderr, "sv: stopped before the hook event was read:", ctx.Err())
+		return hookError
+	}
 	if err != nil {
 		return hookPass
 	}
