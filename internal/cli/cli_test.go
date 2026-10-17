@@ -369,6 +369,13 @@ func splitLine(line string) []string {
 }
 
 func TestExamplesHaveNoFlagOrArgumentErrors(t *testing.T) {
+	// The doctor examples run the sv on PATH. A fake sv makes the test
+	// independent of the software on the machine.
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "sv"), []byte("#!/bin/sh\necho '  sv hook'\n"), 0o755); err != nil { // The fake binary must be executable.
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
 	dir := t.TempDir()
 	if code, _, errOut := runCLI(t, dir, "", "init"); code != exitOK {
 		t.Fatalf("init: code %d, stderr %q", code, errOut)
