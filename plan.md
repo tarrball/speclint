@@ -115,7 +115,7 @@ rules do not permit.
       because the registry and the imports agree.
 - Not done: depguard rules. They would be a second copy of the registry, which
   can disagree with it. The test reads the registry, so it cannot.
-- [ ] Make release binaries.
+- [x] Make release binaries: `mise run dist -- <tag>` and a workflow on each `v*` tag.
 
 ### 5. Brownfield features
 

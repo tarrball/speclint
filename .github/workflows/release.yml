@@ -1,0 +1,36 @@
+name: Release
+
+# A tag such as v0.1.0 makes a GitHub release with the binaries of sv.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      # To create the release and upload the binaries.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # mise installs the tool versions in mise.toml.
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      # The release has the same checks as a pull request.
+      - name: Lint and test
+        run: mise run check
+        env:
+          GOFLAGS: -count=1
+      - name: Build the binaries
+        run: mise run dist -- "$TAG"
+        env:
+          TAG: ${{ github.ref_name }}
+      - name: Create the release
+        run: gh release create "$TAG" dist/* --title "$TAG" --generate-notes --verify-tag
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}

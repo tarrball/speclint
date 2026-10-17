@@ -30,14 +30,19 @@ Claude saves it, and sends the findings back to Claude.
 
 ## Install
 
-specval needs Go 1.26 or later.
+Download the binary for your system from the
+[releases](https://github.com/tarrball/specval/releases), and put it on your
+`PATH` with the name `sv` (`sv.exe` on Windows). `checksums.txt` has the
+SHA-256 checksum of each binary.
+
+Or, with Go 1.26 or later:
 
 ```
 go install github.com/tarrball/specval/cmd/sv@latest
 ```
 
 Make sure that the Go bin directory is on your `PATH`. The Claude Code hook
-runs the `sv` that is on `PATH`.
+runs the `sv` that is on `PATH`. `sv version` tells which version you have.
 
 ## Quick start
 

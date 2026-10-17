@@ -8,6 +8,10 @@ regal = "0.43.0"
 description = "Build bin/sv"
 run = "go build -trimpath -ldflags '-s -w' -o bin/sv ./cmd/sv"
 
+[tasks.dist]
+description = "Build the release binaries into dist/ (mise run dist -- v0.1.0)"
+run = "scripts/dist.sh"
+
 [tasks.test]
 description = "Run all tests"
 run = [
