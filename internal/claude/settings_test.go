@@ -3,8 +3,11 @@ package claude
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -275,7 +278,7 @@ func TestAddHookKeepsTheFileAsItIs(t *testing.T) {
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "sv hook"
+                        "command": ` + strconv.Quote(templateCommand(t)) + `
                     }
                 ]
             }
@@ -365,5 +368,59 @@ func TestNeedsHookDoesNotWrite(t *testing.T) {
 	_, addErr := AddHook(wrong)
 	if _, err := NeedsHook(wrong); err == nil || addErr == nil || err.Error() != addErr.Error() {
 		t.Errorf("NeedsHook error %v, AddHook error %v", err, addErr)
+	}
+}
+
+// templateCommand returns the command of the hook in the settings template.
+func templateCommand(t *testing.T) string {
+	t.Helper()
+	var s settingsFile
+	if err := json.Unmarshal(settingsTemplate, &s); err != nil {
+		t.Fatal(err)
+	}
+	post := s.Hooks["PostToolUse"]
+	if len(post) != 1 || len(post[0].Hooks) != 1 {
+		t.Fatalf("the template has %d PostToolUse entries; want one with one hook", len(post))
+	}
+	return post[0].Hooks[0].Command
+}
+
+func TestTemplateHookWithoutSvOnPath(t *testing.T) {
+	// Claude Code runs the command with a shell, and the PATH that it gives to
+	// hooks can be different from the PATH of the terminal.
+	cmd := exec.Command("/bin/sh", "-c", templateCommand(t)) //nolint:gosec // The test runs the hook command of the embedded template.
+	cmd.Env = []string{"PATH=" + t.TempDir()}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); !ok || exitErr.ExitCode() != 2 {
+		t.Fatalf("the hook gave %v; want exit status 2, so that Claude Code sends stderr to Claude", err)
+	}
+	if !strings.Contains(stderr.String(), "sv is not on the PATH of Claude Code hooks") {
+		t.Errorf("stderr: %q", stderr.String())
+	}
+}
+
+func TestTemplateHookRunsSvHook(t *testing.T) {
+	bin := t.TempDir()
+	// The fake sv prints its arguments and the event that it reads on stdin.
+	fake := "#!/bin/sh\nread -r event\necho \"$* $event\"\n"
+	if err := os.WriteFile(filepath.Join(bin, "sv"), []byte(fake), 0o755); err != nil { // The fake binary must be executable.
+		t.Fatal(err)
+	}
+	cmd := exec.Command("/bin/sh", "-c", templateCommand(t)) //nolint:gosec // The test runs the hook command of the embedded template.
+	cmd.Env = []string{"PATH=" + bin}
+	cmd.Stdin = strings.NewReader(`{"tool_name":"Write"}` + "\n")
+	out, err := cmd.Output()
+	if err != nil || string(out) != "hook {\"tool_name\":\"Write\"}\n" {
+		t.Errorf("the hook gave %q, %v; want sv hook with the event on stdin", out, err)
+	}
+}
+
+func TestInspectSettingsFindsTheTemplateHook(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	writeFile(t, path, string(settingsTemplate))
+	if st, err := InspectSettings(path); err != nil || !st.Found || st.Matcher != "Write|Edit|MultiEdit" {
+		t.Errorf("InspectSettings = %+v, %v; want the hook", st, err)
 	}
 }

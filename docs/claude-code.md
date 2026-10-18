@@ -10,7 +10,8 @@ each spec that Claude saves. `sv init` sets up these parts:
   `sv check <file>` then. It also tells Claude to run `sv check` after it
   updates the registry.
 - **A hook** in `.claude/settings.json`. It makes Claude Code run
-  `sv hook` after each `Write`, `Edit`, or `MultiEdit`.
+  `sv hook` after each `Write`, `Edit`, or `MultiEdit`. See
+  [If the hook cannot find sv](#if-the-hook-cannot-find-sv).
 - **Copilot review instructions**,
   `.github/instructions/specval.instructions.md`. See
   [Review a pull request with Copilot](#review-a-pull-request-with-copilot).
@@ -54,6 +55,26 @@ the file that the tool wrote. `sv hook` then does these steps:
 | The spec has only warnings | 0 | It gives the warnings to Claude as more context. It does not stop Claude. |
 | The spec passes | 0 | Nothing. |
 | specval cannot check the spec, for example because a rule does not compile or `.specval.yaml` is not valid | 1 | It shows the error to the user. Claude continues. |
+
+## If the hook cannot find sv
+
+The hook runs the `sv` on the PATH that Claude Code gives to hooks. That PATH
+can be different from the PATH of your terminal. For example, Claude Code reads
+the shell profile when it starts, so it does not see a change to PATH until
+you start it again.
+
+The hook that `sv init` writes finds `sv` before it runs `sv hook`. If `sv` is
+not on PATH, the hook exits 2 with a message, and Claude Code sends the message
+to Claude. Without this step, the shell exits 127. Claude Code shows that error
+only to the user, and in a headless run (`claude -p`), nobody sees it.
+
+To repair the problem, add the directory of `sv` to PATH in your shell profile,
+and start Claude Code again. Then run `sv doctor` in Claude Code, so that it
+checks the PATH that Claude Code has.
+
+`sv init` does not change a hook that exists. A hook from an older `sv init`
+runs only `sv hook`. To get the new hook, remove the old one and run
+`sv init` again.
 
 ## Feedback, not a gate
 
