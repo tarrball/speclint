@@ -81,6 +81,19 @@ test_sv102_fix_names_the_layers_that_can_make_the_call if {
 	f.fix == "Accessors can call only resources and utilities. Send the call to PricingEngine through a manager."
 }
 
+test_sv102_fix_uses_an_before_a_vowel if {
+	s := spec({
+		"services": {"new": [{"name": "OrderStoreResource", "layer": "resource", "purpose": "P"}]},
+		"calls": [call("OrderManager", "OrderStoreResource")],
+	})
+	some f in dpl.deny with input as s with data.project as project
+	f.rule == "SV102"
+	f.fix == concat(" ", [
+		"Managers can call only engines, accessors and utilities.",
+		"Send the call to OrderStoreResource through an accessor.",
+	])
+}
+
 test_sv102_fix_for_a_call_up_to_a_manager if {
 	s := spec({"calls": [call("PricingEngine", "OrderManager")]})
 	some f in dpl.deny with input as s with data.project as project

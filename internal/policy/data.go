@@ -107,6 +107,11 @@ func (e *Engine) loadDataFile(path string, b []byte, project map[string]any) err
 	}
 	var doc map[string]any
 	if err := node.Decode(&doc); err != nil {
+		// A key that is two times in a mapping also stops Decode. Then the
+		// file is a mapping, and the YAML error tells which key it is.
+		if root := &node; root.Kind == yaml.DocumentNode && len(root.Content) == 1 && root.Content[0].Kind == yaml.MappingNode {
+			return fmt.Errorf("%s: %w", path, err)
+		}
 		return fmt.Errorf("%s: a data file must be a mapping: %w", path, err)
 	}
 	for k, v := range doc {

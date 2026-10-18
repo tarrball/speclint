@@ -31,6 +31,7 @@ created  .specval/data/services.yaml
 created  .specval/policy/project.rego
 created  .claude/skills/spec/SKILL.md
 created  .github/instructions/specval.instructions.md
+created  specs/.gitkeep
 hooked   .claude/settings.json
 
 Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
@@ -507,6 +508,7 @@ create   .specval/data/services.yaml
 create   .specval/policy/project.rego
 create   .claude/skills/spec/SKILL.md
 create   .github/instructions/specval.instructions.md
+create   specs/.gitkeep
 hook     .claude/settings.json
 
 This is a dry run. sv init wrote nothing.

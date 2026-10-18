@@ -117,6 +117,11 @@ func setUp(dir string, w io.Writer, dry bool) error {
 		{claude.SkillPath, claude.Skill(cfg.SpecsDir)},
 		{copilot.InstructionsPath, copilot.Instructions(cfg.SpecsDir, registryPath)},
 	}
+	// Git does not keep an empty directory. Without a file in it, the specs
+	// directory is not in a clone, and sv doctor warns about it.
+	if _, err := os.Stat(specsDir); errors.Is(err, fs.ErrNotExist) {
+		files = append(files, struct{ path, content string }{relPath(dir, filepath.Join(specsDir, ".gitkeep")), ""})
+	}
 	for _, f := range files {
 		switch f.path {
 		case "":
