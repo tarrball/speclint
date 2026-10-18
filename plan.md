@@ -286,3 +286,20 @@ When specval works well for its own code, we move the experiments:
   a space, the fix can tell to quote the value.
 - For the specs of specval: a number prefix (`0003-extract-check-manager`),
   because the specs build on each other, and the number gives their order.
+- Authorization in a spec. The brownfield trial (2026-10-18) showed that a
+  spec gives the calls of a change, but not who can do the change. An
+  acceptance criterion such as "an admin can do this" or "the manager of the
+  team can do this" is only text. Nothing connects it to a call, a layer, or
+  a check in the code. Questions to answer before a design:
+  - The shape. One option: each acceptance criterion or call names an actor
+    and a scope, for example `{ actor: team-manager, scope: team }`. The
+    actors come from project data (`data.project.roles`), so a spec can use
+    only known actors.
+  - The layer that does the check. In DPL, the manager can check access, or a
+    security utility can do it. In a Supabase project, row level security
+    does the check in the resource. A rule can then make sure that each
+    change that has an actor goes through the service that checks access.
+  - Baseline or project. Each project has different roles. Maybe this is a
+    schema extension (phase 5), not a built-in field.
+  - Review. The Copilot instructions can compare the access checks in the
+    code with the actors of the spec.
