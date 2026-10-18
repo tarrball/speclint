@@ -240,6 +240,11 @@ func runCommand(ctx context.Context, args []string, env *Env) exitCode {
 		// sv help <command> is the same as sv <command> --help.
 		c = find(args[1])
 		code, err = c.run(ctx, env, []string{"--help"})
+	case args[0] == "--version":
+		// Many CLIs print their version with --version, so people and agents
+		// try it first. It is the same as sv version.
+		c = find("version")
+		code, err = c.run(ctx, env, args[1:])
 	case args[0] == "-h", args[0] == "--help", args[0] == "help" && len(args) == 1:
 		fmt.Fprint(env.Stdout, usage())
 	case args[0] == "help":

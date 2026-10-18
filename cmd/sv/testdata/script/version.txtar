@@ -5,3 +5,11 @@ stdout '^sv \S+ \(spec format 1\)$'
 
 exits 2 sv version extra
 stderr '^sv: version takes no arguments; got "extra"$'
+
+# --version is the same as the version command, because many CLIs use it.
+exits 0 sv --version
+stdout '^sv \S+ \(spec format 1\)$'
+! stderr .
+
+exits 2 sv --version extra
+stderr '^sv: version takes no arguments; got "extra"$'
