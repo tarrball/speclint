@@ -1,0 +1,29 @@
+specval: 1
+id: setup-findings
+kind: bugfix
+status: done
+title: Fix four problems from the first brownfield setup
+summary: >
+  The first setup of specval in a brownfield project found four small
+  problems. A fix text said "through a accessor". A data file with a key two
+  times gave the error "a data file must be a mapping", which hides the key.
+  sv init made an empty specs directory, which git does not keep, so sv
+  doctor warned on each clone. specval accepted a package that is not text.
+  This change corrects the article, reports the YAML error for a duplicate
+  key, writes specs/.gitkeep, and adds the rule SR009.
+acceptance:
+  - id: AC1
+    text: Given a call that only an accessor or an engine can make, when sv check gives SV102, then the fix uses "an" before the layer.
+  - id: AC2
+    text: Given a data file that is a mapping with a key two times, when specval loads it, then the error names the key and the lines, and does not say that the file must be a mapping.
+  - id: AC3
+    text: Given a directory with no specs directory, when sv init runs, then it writes specs/.gitkeep, so that the directory is in a clone.
+  - id: AC4
+    text: Given a registry entry with a package that is not text, when sv check runs, then SR009 gives an error.
+services:
+  changed: [Baseline, PolicyEngine, ScaffoldManager]
+calls: []
+out_of_scope:
+  - specval does not check that the path in package exists.
+  - specval does not report a key that it does not know in a registry entry, because project rules can read their own keys.
+  - sv init does not write specs/.gitkeep in a specs directory that exists.

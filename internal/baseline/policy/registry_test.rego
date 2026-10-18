@@ -140,6 +140,18 @@ test_sr008_calls_that_are_not_a_list_or_not_registered if {
 	}
 }
 
+test_sr009_package_that_is_not_a_string if {
+	project := {"services": {
+		"OrderManager": {"layer": "manager", "package": "src/orders"},
+		"OrderAccessor": {"layer": "accessor", "package": 42},
+		"PricingEngine": {"layer": "engine", "package": ["src/a", "src/b"]},
+	}}
+	{[f.rule, f.path, f.msg] | some f in dpl.deny with data.project as project} == {
+		["SR009", "services.OrderAccessor.package", "package of OrderAccessor is not text (got 42)"],
+		["SR009", "services.PricingEngine.package", "package of PricingEngine is not text (got [\"src/a\",\"src/b\"])"],
+	}
+}
+
 test_sr008_a_call_that_breaks_the_layers_is_not_a_registry_error if {
 	# The registry records the calls of today, also the calls that break the
 	# layers. SV202 reports such a call when a spec changes the service.
