@@ -148,6 +148,14 @@ database functions) and its old code will show what these features must do.
   - specval warns about a new call between two legacy services.
 - [ ] Schema extensions. Then a rule that finds a change to a contract.
 
+Decision (2026-10-18): a database trigger that stays in one database is
+internal behavior of that resource, not a call between two resources. A spec
+that adds or changes such a trigger puts the resource in `services.changed`,
+with `calls: []`. Thus the resource -> resource rule does not need an override
+for triggers. A trigger that goes out of the database, for example to an edge
+function or a webhook, is different. The spec format cannot show it yet. That
+is an input for the design of the features above.
+
 ## Experiments
 
 We test specval with agents. We record each result, also a bad result, and we
