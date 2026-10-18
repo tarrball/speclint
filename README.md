@@ -129,7 +129,7 @@ breaks the schema.
 | `sv schema` | Prints the JSON Schema of a spec. |
 | `sv init [--dry-run]` | Sets up specval, the skill, the hook, and the Copilot review instructions. You can run it again to restore a missing part. With `--dry-run`, it prints the changes and writes nothing. |
 | `sv doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
-| `sv version` | Prints the version of sv and of the spec format. |
+| `sv version` | Prints the version of sv and of the spec format. `sv --version` does the same. |
 | `sv hook` | Claude Code runs this command after each file write. Do not run it yourself. |
 
 Each evaluation of the rules has a time limit of 10 seconds. If a rule does

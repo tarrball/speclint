@@ -1,0 +1,21 @@
+specval: 1
+id: version-flag
+kind: feature
+status: done
+title: Let sv --version print the version
+summary: >
+  Many CLIs print their version with --version. People and agents try
+  sv --version first, but sv says that the command is unknown and prints the
+  full usage. This change makes sv --version do the same as sv version. The
+  usage continues to show only sv version.
+acceptance:
+  - id: AC1
+    text: Given any directory, when sv --version runs, then it prints the same text as sv version and exits 0.
+  - id: AC2
+    text: Given an argument after --version, when sv --version runs, then it exits 2 with the same error as sv version with that argument.
+services:
+  changed: [VersionCommand]
+calls: []
+out_of_scope:
+  - sv does not accept -v for the version, because many CLIs use -v for verbose output.
+  - The usage text does not change.
