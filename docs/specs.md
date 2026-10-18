@@ -193,7 +193,8 @@ removed_calls:
 
 The service registry, `.specval/data/services.yaml`, gives the layer of each
 service that exists. A spec gives the layer of each new service in
-`services.new`.
+`services.new`. The `package` of a registry entry tells where the code of the
+service is (see [Project data](rules.md#project-data)).
 
 ## Built-in rules
 
