@@ -35,10 +35,17 @@ func newFixture(t *testing.T) *fixture {
 		t.Fatal(err)
 	}
 	f.write(".specval/data/services.yaml", "services:\n  OrderManager: { layer: manager }\n")
-	// doctor runs `sv help` and looks for `sv hook` in the usage.
-	f.writeExecutable(f.env.Executable, "#!/bin/sh\necho '  sv hook'\n")
+	// doctor runs `sv help` and looks for `sv hook` in the usage. It runs
+	// `sv version` to show the version.
+	f.writeExecutable(f.env.Executable, fakeSv("v9.9.9"))
 	t.Setenv("PATH", bin)
 	return f
+}
+
+// fakeSv returns a script that answers `sv version` with version and each
+// other command with the usage line that doctor looks for.
+func fakeSv(version string) string {
+	return "#!/bin/sh\nif [ \"$1\" = version ]; then echo 'sv " + version + " (spec format 1)'; else echo '  sv hook'; fi\n"
 }
 
 // write writes a file at a path relative to the project directory.
@@ -242,10 +249,21 @@ func TestPathChecks(t *testing.T) {
 		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho 'usage: sv [-v] [-w sec] command service ...'\n")
 		f.want("path", StatusFail, "is not specval; another program has the name sv")
 	})
+	t.Run("the same binary", func(t *testing.T) {
+		f := newFixture(t)
+		f.want("path", StatusOK, f.env.Executable+" (v9.9.9)")
+	})
 	t.Run("a different binary", func(t *testing.T) {
 		f := newFixture(t)
+		ran := f.env.Executable
 		f.env.Executable = filepath.Join(t.TempDir(), "sv")
-		f.want("path", StatusWarn, "the hook will run")
+		f.writeExecutable(f.env.Executable, fakeSv("v1.0.0"))
+		f.want("path", StatusWarn, "the hook will run "+ran+" (v9.9.9), but you ran "+f.env.Executable+" (v1.0.0)")
+	})
+	t.Run("no version command", func(t *testing.T) {
+		f := newFixture(t)
+		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho '  sv hook'\n")
+		f.want("path", StatusOK, f.env.Executable+" (unknown version)")
 	})
 }
 

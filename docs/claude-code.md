@@ -103,7 +103,7 @@ the checks as JSON.
 | skill | The skill is missing, or it no longer tells Claude to run `sv context` (warning). |
 | copilot | The Copilot review instructions are missing (warning). A project that does not use Copilot can ignore this warning. |
 | hook | No `PostToolUse` hook runs `sv hook` in the project, local, or user settings; a settings file sets `disableAllHooks`; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |
-| path | `sv` is not on `PATH`, it does not run, or it is another program with the name `sv`. If the `sv` on `PATH` is not the binary that runs `doctor`, the check warns. |
+| path | `sv` is not on `PATH`, it does not run, or it is another program with the name `sv`. If the `sv` on `PATH` is not the binary that runs `doctor`, the check warns and shows the version of each. If they are the same, the check shows the path and the version of the `sv` that the hook runs. |
 
 To repair the setup, run `sv init` in the project root. It adds each
 missing part and does not change the other files.

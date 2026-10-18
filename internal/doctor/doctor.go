@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -331,11 +332,29 @@ func (c *checker) checkPath(ctx context.Context) {
 		c.add(StatusFail, "path", onPath+" is not specval; another program has the name sv",
 			"Put the directory of the specval sv binary before the directory of the other sv on PATH.")
 	case !sameFile(c.env.Executable, onPath):
-		c.add(StatusWarn, "path", fmt.Sprintf("the hook will run %s, but you ran %s", onPath, c.env.Executable), "Make sure that they are the same version, or change PATH.")
+		c.add(StatusWarn, "path", fmt.Sprintf("the hook will run %s (%s), but you ran %s (%s)",
+			onPath, versionOf(ctx, onPath), c.env.Executable, versionOf(ctx, c.env.Executable)),
+			"Make sure that they are the same version, or change PATH.")
 	default:
-		c.add(StatusOK, "path", onPath, "")
+		c.add(StatusOK, "path", fmt.Sprintf("%s (%s)", onPath, versionOf(ctx, onPath)), "")
 	}
 }
+
+// versionOf runs `sv version` and returns the version, for example v0.1.0.
+// An sv from before the version command gives no version. Then versionOf
+// returns "unknown version".
+func versionOf(ctx context.Context, sv string) string {
+	out, err := exec.CommandContext(ctx, sv, "version").Output()
+	m := versionLine.FindStringSubmatch(string(out))
+	if err != nil || m == nil {
+		return "unknown version"
+	}
+	return m[1]
+}
+
+// versionLine is the output of `sv version`, for example
+// "sv v0.1.0 (spec format 1)".
+var versionLine = regexp.MustCompile(`^sv (\S+) \(spec format \d+\)\n$`)
 
 // sameFile reports whether a and b are the same file.
 func sameFile(a, b string) bool {
