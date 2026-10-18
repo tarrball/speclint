@@ -5,7 +5,8 @@
 #
 # SV_VERSION is the release to install, for example v0.1.0. The default is
 # the latest release. SV_INSTALL_DIR is the directory for sv. The default is
-# $HOME/.local/bin. The script does not use sudo.
+# $HOME/.local/bin. The script does not use sudo. To update sv, run the
+# script again.
 set -eu
 
 repo=tarrball/specval
@@ -64,10 +65,21 @@ else
 	(cd "$tmp" && shasum -a 256 -c sum.txt >/dev/null) || fail "the checksum of $name is not correct"
 fi
 
+# Copy the binary next to the old one, then rename it. A rename in one
+# directory replaces the old binary in one step, so a hook that runs sv
+# during an update gets the old or the new binary, never a part of one.
 mkdir -p "$dir"
-chmod 755 "$tmp/$name"
-mv "$tmp/$name" "$dir/sv"
-echo "Installed $("$dir/sv" version) in $dir/sv"
+old=$("$dir/sv" version 2>/dev/null || true)
+trap 'rm -rf "$tmp" "$dir/.sv.new"' EXIT
+cp "$tmp/$name" "$dir/.sv.new"
+chmod 755 "$dir/.sv.new"
+mv -f "$dir/.sv.new" "$dir/sv"
+new=$("$dir/sv" version)
+if [ -n "$old" ] && [ "$old" != "$new" ]; then
+	echo "Updated $dir/sv from $old to $new"
+else
+	echo "Installed $new in $dir/sv"
+fi
 
 # The Claude Code hook runs the sv on PATH, so tell the user if that is not
 # this one.
