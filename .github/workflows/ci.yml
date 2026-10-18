@@ -45,3 +45,23 @@ jobs:
           GOFLAGS: -count=1
       - name: Find known vulnerabilities
         run: mise run vuln
+
+  # Run the install script of this commit against the latest release, as a
+  # user does with curl.
+  install:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the latest release
+        run: |
+          SV_INSTALL_DIR="$RUNNER_TEMP/bin" sh scripts/install.sh
+          "$RUNNER_TEMP/bin/sv" version | grep '^sv v'
+      - name: Install a given release
+        run: |
+          SV_VERSION=v0.1.0 SV_INSTALL_DIR="$RUNNER_TEMP/pinned" sh scripts/install.sh
+          "$RUNNER_TEMP/pinned/sv" version | grep '^sv v0.1.0 '
