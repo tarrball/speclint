@@ -1,0 +1,24 @@
+specval: 1
+id: context-package
+kind: feature
+status: done
+title: Show the package of each service in sv context
+summary: >
+  The spec skill tells Claude to read sv context before it writes a spec. sv
+  context gives only the names of the registered services by layer. In the
+  brownfield setup, the registry had 223 services with logical names, and
+  Claude could not find the code of a service from sv context. This change
+  adds a list of the services that have a package, with the package of each.
+acceptance:
+  - id: AC1
+    text: Given a registry entry with a package, when sv context runs, then it shows the name of the service and its package.
+  - id: AC2
+    text: Given a registry with no package in any entry, when sv context runs, then its output does not change.
+  - id: AC3
+    text: Given a registry entry with a package that is not text, when sv context runs, then it does not show that package and does not fail.
+services:
+  changed: [ContextCommand, PolicyEngine]
+calls: []
+out_of_scope:
+  - sv context does not show the calls of each service today.
+  - sv context does not check that a package exists.

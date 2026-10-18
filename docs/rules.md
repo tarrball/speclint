@@ -37,10 +37,10 @@ services:
 Each entry must have `layer`. It can also have these fields:
 
 - `package` tells where the code of the service is, for example a directory
-  or a file. A person or an agent who writes a spec uses it to find the code,
-  and the Copilot review instructions use it to compare the code with the
-  spec. specval checks only that it is text (SR009), not that the path
-  exists. Several services can have the same `package`.
+  or a file. A person or an agent who writes a spec uses it to find the code.
+  `sv context` shows it, and the Copilot review instructions use it to compare
+  the code with the spec. specval checks only that it is text (SR009), not
+  that the path exists. Several services can have the same `package`.
 - `calls` lists the services that the service calls today. See
   [Calls today](specs.md#calls-today).
 - `may_call` and `called_by` make the layer rules stricter for the service.
