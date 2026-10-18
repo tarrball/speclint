@@ -147,6 +147,26 @@ database functions) and its old code will show what these features must do.
   - A spec cannot add a legacy service.
   - specval warns about a new call between two legacy services.
 - [ ] Schema extensions. Then a rule that finds a change to a contract.
+- [ ] An `app` field in a registry entry, for a monorepo with more than one
+  app, for example `SomeAccessor: { layer: accessor, app: cli }`. In the
+  brownfield trial, the repository had the apps `mcp`, `web`, and `cli`, and
+  Claude added the app name as a prefix to each service name
+  (`CLISomeAccessor`). That works, but each agent must find its own
+  convention, and nothing checks it. With the field:
+  - A service without `app` is shared, for example the database.
+  - Names stay unique in one registry, so a spec can show a call from one app
+    to a shared service.
+  - A rule can refuse a call from one app to a service of another app.
+  - `sv context` can show the services of each app.
+  - Two services of different apps that do the same work are easier to see.
+
+Decision (2026-10-18): a database trigger that stays in one database is
+internal behavior of that resource, not a call between two resources. A spec
+that adds or changes such a trigger puts the resource in `services.changed`,
+with `calls: []`. Thus the resource -> resource rule does not need an override
+for triggers. A trigger that goes out of the database, for example to an edge
+function or a webhook, is different. The spec format cannot show it yet. That
+is an input for the design of the features above.
 
 ## Experiments
 
