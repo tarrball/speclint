@@ -19,12 +19,18 @@ layer_fix(from, to, target) := msg if {
 	rule := can_call(from)
 	callers := lib.ordered([l | some l, targets in layers; to in targets])
 	count(callers) > 0
-	msg := $"{rule}. Send the call to {target} through a {lib.join(callers, "or")}."
+	list := lib.join(callers, "or")
+	msg := $"{rule}. Send the call to {target} through {article(list)} {list}."
 } else := msg if {
 	rule := can_call(from)
 	callee := lib.plural(to)
 	msg := $"{rule}. No service can call {callee}."
 }
+
+# article is the indefinite article for word: "an" before a vowel, else "a".
+article(word) := "an" if regex.match(`^[aeiou]`, word)
+
+else := "a"
 
 # unknown_fix tells how to fix a reference to a service that is not registered.
 # It is undefined if the registry is not an object. SR003 reports that case.

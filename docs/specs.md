@@ -247,6 +247,7 @@ specval also runs these rules on the service registry, one time for each
 | SR006 | warning | A limit does not permit a call that the layer rules do not permit. |
 | SR007 | error | The name of a registered service is not the name of a layer. |
 | SR008 | error | `calls` in a registry entry is a list of registered services. |
+| SR009 | error | `package` in a registry entry is text. |
 
 `sv context` prints the spec rules with their full descriptions. To add
 rules for your project, see [rules.md](rules.md).

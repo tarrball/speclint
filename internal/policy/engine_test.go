@@ -375,6 +375,11 @@ func TestNewErrors(t *testing.T) {
 			"a data file must be a mapping",
 		},
 		{
+			"a key two times in a data file",
+			map[string]string{".specval/data/a.yaml": "services:\n  OrderManager: { layer: manager }\n  OrderManager: { layer: engine }\n"},
+			"a.yaml: yaml: unmarshal errors:\n  line 3: mapping key \"OrderManager\" already defined at line 2",
+		},
+		{
 			"a data file that is not valid YAML",
 			map[string]string{".specval/data/a.yaml": "a: [unclosed\n"},
 			"a.yaml: yaml:",

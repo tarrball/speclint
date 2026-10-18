@@ -195,6 +195,27 @@ deny contains f if {
 }
 
 # METADATA
+# title: The package of a service is text
+# description: >-
+#   `package` in a registry entry tells where the code of the service is, for
+#   example a directory or a file. It is text. specval does not check that the
+#   path exists.
+# custom:
+#   id: SR009
+deny contains f if {
+	some name, s in entries
+	is_object(s)
+	p := s["package"]
+	not is_string(p)
+	f := lib.finding(
+		rego.metadata.rule(),
+		$"{lib.path_key("services", name)}.package",
+		$"package of {name} is not text (got {lib.quote(p)})",
+		"Write package as the path of the code of the service, for example src/orders.",
+	)
+}
+
+# METADATA
 # title: A limit does not permit more than the layer rules
 # description: >-
 #   A value in `may_call` or `called_by` names a layer or a service that the
