@@ -30,7 +30,25 @@ Claude saves it, and sends the findings back to Claude.
 
 ## Install
 
-Download the binary for your system from the
+On Linux or macOS, run:
+
+```
+curl -fsSL https://raw.githubusercontent.com/tarrball/specval/main/scripts/install.sh | sh
+```
+
+The script downloads the latest release for your system, compares it with
+`checksums.txt`, and puts `sv` in `~/.local/bin`. It does not use sudo. If
+that directory is not on `PATH`, the script tells you the line to add to your
+shell profile. To update `sv`, run the command again.
+
+To install a given version, or to use another directory, set the variables
+for `sh`:
+
+```
+curl -fsSL https://raw.githubusercontent.com/tarrball/specval/main/scripts/install.sh | SV_VERSION=v0.1.0 SV_INSTALL_DIR="$HOME/bin" sh
+```
+
+Or download the binary for your system from the
 [releases](https://github.com/tarrball/specval/releases), and put it on your
 `PATH` with the name `sv` (`sv.exe` on Windows). `checksums.txt` has the
 SHA-256 checksum of each binary. On Linux and macOS, a download does not keep
