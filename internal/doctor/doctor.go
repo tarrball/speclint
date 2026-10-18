@@ -189,14 +189,14 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 			}
 		}
 	}
-	// A registry warning does not fail check, so it does not fail doctor.
-	if len(problems) > 0 {
-		c.add(status, "registry", strings.Join(problems, "; "), "Run `sv check` to see the fix for each problem.")
-		return
-	}
 	breaks, err := eng.LayerBreaks()
 	if err != nil {
 		c.add(StatusFail, "registry", c.relText(err.Error()), "Run `sv check` to see the problem in the registry.")
+		return
+	}
+	// A registry warning does not fail check, so it does not fail doctor.
+	if len(problems) > 0 {
+		c.add(status, "registry", strings.Join(problems, "; ")+layerBreaks(breaks), "Run `sv check` to see the fix for each problem.")
 		return
 	}
 	c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s%s", len(services), c.rel(eng.DataFile("services")), layerBreaks(breaks)), "")

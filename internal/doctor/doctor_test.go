@@ -244,6 +244,15 @@ func TestRegistryCountsTheLayerBreaks(t *testing.T) {
 	f.want("registry", StatusOK, "4 service(s), .specval/data/services.yaml; 3 registered call(s) break the layer rules (accessor -> accessor 2, client -> accessor 1)")
 }
 
+func TestRegistryCountsTheLayerBreaksWithARegistryProblem(t *testing.T) {
+	f := newFixture(t)
+	f.write(".specval/data/services.yaml", `services:
+  OrderApi: { layer: client, calls: [OrderAccessor, Nobody] }
+  OrderAccessor: { layer: accessor }
+`)
+	f.want("registry", StatusFail, `"Nobody" in calls of OrderApi is not a registered service; 1 registered call(s) break the layer rules (client -> accessor 1)`)
+}
+
 func TestPathChecks(t *testing.T) {
 	t.Run("not on PATH", func(t *testing.T) {
 		f := newFixture(t)
