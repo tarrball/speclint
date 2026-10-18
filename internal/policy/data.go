@@ -33,6 +33,9 @@ type Service struct {
 	// or a service. A nil list is no limit. An empty list that is not nil
 	// permits no service.
 	MayCall, CalledBy []string
+	// Package tells where the code of the service is. It is "" if the entry
+	// has no package, or a package that is not a string (SR009).
+	Package string
 }
 
 // Architecture returns the baseline layer data.
@@ -63,6 +66,7 @@ func (e *Engine) Services() (map[string]Service, error) {
 			s.Layer, _ = entry["layer"].(string) // A layer that is not a string stays "".
 			s.MayCall = limit(entry["may_call"])
 			s.CalledBy = limit(entry["called_by"])
+			s.Package, _ = entry["package"].(string) // A package that is not a string stays "".
 		}
 		services[name] = s
 	}

@@ -24,6 +24,13 @@ stdout '^- ConfigUtility can call only: nothing$'
 stdout '^- PricingEngine can be called only by: OrderManager, manager$'
 ! stdout 'OrderManager can'
 
+# context tells where the code of each service is, if the registry gives a
+# package. It leaves out a package that is not text, which SR009 reports.
+cd $WORK/packages
+exits 0 sv context
+stdout '^The code of each service is in its package:\n- OrderManager: src/orders\n- PricingEngine: src/pricing\n$'
+! stdout 'OrderAccessor:|BillingAccessor:'
+
 # Without a .specval.yaml, context exits 2.
 cd $WORK
 exits 2 sv context
@@ -42,6 +49,13 @@ services:
   OrderManager: { layer: manager }
   NumberEngine: { layer: 7 }
   StringAccessor: accessor
+-- packages/.specval.yaml --
+-- packages/.specval/data/services.yaml --
+services:
+  OrderManager: { layer: manager, package: src/orders }
+  PricingEngine: { layer: engine, package: src/pricing }
+  OrderAccessor: { layer: accessor, package: 42 }
+  BillingAccessor: { layer: accessor }
 -- refund.txt --
 # Spec rules (specval)
 

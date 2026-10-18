@@ -77,6 +77,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 		fmt.Fprint(w, "(none)\n")
 	}
 	printLimits(w, registry)
+	printPackages(w, registry)
 
 	fmt.Fprint(w, "\n## Rules\n")
 	for _, d := range p.Rules {
@@ -104,6 +105,20 @@ func printLimits(w io.Writer, registry map[string]describe.Service) {
 	}
 	if len(lines) > 0 {
 		fmt.Fprintf(w, "\nThese limits make the layer rules stricter:\n%s\n", strings.Join(lines, "\n"))
+	}
+}
+
+// printPackages writes the package of each service that has one, so that
+// an agent can find the code of a service.
+func printPackages(w io.Writer, registry map[string]describe.Service) {
+	var lines []string
+	for _, name := range slices.Sorted(maps.Keys(registry)) {
+		if p := registry[name].Package; p != "" {
+			lines = append(lines, fmt.Sprintf("- %s: %s", name, p))
+		}
+	}
+	if len(lines) > 0 {
+		fmt.Fprintf(w, "\nThe code of each service is in its package:\n%s\n", strings.Join(lines, "\n"))
 	}
 }
 
