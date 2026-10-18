@@ -9,7 +9,7 @@ stdout '^! registry  no services are registered \(data.project.services is empty
 stdout '^    fix: Add each service and its layer to .specval/data/services.yaml. Until you do, each call fails SV101.$'
 stdout '^✓ skill     .claude/skills/spec/SKILL.md$'
 stdout '^✓ hook      .claude/settings.json$'
-stdout '^✓ path      .*/sv$'
+stdout '^✓ path      .*/sv \(\S+\)$'
 stdout '^0 failure\(s\), 1 warning\(s\).$'
 
 # The JSON format has the same checks.

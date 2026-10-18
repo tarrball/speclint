@@ -1,0 +1,25 @@
+specval: 1
+id: doctor-path-versions
+kind: feature
+status: done
+title: Show the version of each sv in the path check of sv doctor
+summary: >
+  The hook runs the sv on PATH. sv doctor warns if that sv is not the binary
+  that runs doctor, but it does not tell their versions. In a trial, a
+  development build on PATH hid the release, and the warning did not show the
+  difference. An experiment must also record which sv the hook runs. Now the
+  path check shows the version of the sv on PATH. The warning also shows the
+  version of the binary that runs doctor.
+acceptance:
+  - id: AC1
+    text: Given the sv on PATH is the binary that runs doctor, when sv doctor runs, then the path check shows its path and its version.
+  - id: AC2
+    text: Given the sv on PATH is a different binary, when sv doctor runs, then the warning shows the path and the version of each binary.
+  - id: AC3
+    text: Given an sv on PATH that has no version command, when sv doctor runs, then the path check shows "unknown version" and does not fail because of it.
+services:
+  changed: [DoctorManager]
+calls: []
+out_of_scope:
+  - sv doctor does not compare the two versions. It shows them, and the user decides.
+  - The status of the path check does not change.

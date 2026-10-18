@@ -41,16 +41,19 @@ The script downloads the latest release for your system, compares it with
 that directory is not on `PATH`, the script tells you the line to add to your
 shell profile. To update `sv`, run the command again.
 
-To install a given version, or to use another directory, set the variables
-for `sh`:
+To install a given version, set `SV_VERSION` for `sh`:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/tarrball/specval/main/scripts/install.sh | SV_VERSION=v0.1.0 SV_INSTALL_DIR="$HOME/bin" sh
+curl -fsSL https://raw.githubusercontent.com/tarrball/specval/main/scripts/install.sh | SV_VERSION=v0.1.0 sh
 ```
+
+To use another directory, also set `SV_INSTALL_DIR`. Use a directory that is
+on your `PATH`.
 
 Or download the binary for your system from the
-[releases](https://github.com/tarrball/specval/releases), and put it on your
-`PATH` with the name `sv` (`sv.exe` on Windows). `checksums.txt` has the
+[releases](https://github.com/tarrball/specval/releases), and put it in a
+directory on your `PATH`, for example `~/.local/bin`, with the name `sv`
+(`sv.exe` on Windows). `checksums.txt` has the
 SHA-256 checksum of each binary. On Linux and macOS, a download does not keep
 the permission to run the file. Give the permission before you use `sv`:
 
@@ -68,8 +71,12 @@ Or, with Go 1.26 or later:
 go install github.com/tarrball/specval/cmd/sv@latest
 ```
 
-Make sure that the Go bin directory is on your `PATH`. The Claude Code hook
-runs the `sv` that is on `PATH`. `sv version` tells which version you have.
+Make sure that the Go bin directory is on your `PATH`.
+
+The Claude Code hook runs the `sv` that is on the `PATH` of Claude Code.
+Claude Code reads your shell profile when it starts. After you change `PATH`,
+start Claude Code again. Then ask Claude to run `sv doctor`. The path check
+shows the `sv` that the hook runs and its version.
 
 ## Quick start
 
