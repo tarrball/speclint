@@ -283,6 +283,17 @@ func quote(s string) (string, error) {
 	return strings.TrimSuffix(string(b), "\n"), nil
 }
 
+// text returns s as a YAML string. It adds quotes only if YAML reads s as
+// another type without them, for example 234 as a number. Thus ORD-142 stays
+// as it is.
+func text(s string) (string, error) {
+	b, err := yaml.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(string(b), "\n"), nil
+}
+
 // IDRule tells which IDs are valid, in the words of the errors.
 // baseline.IDPattern, from the schema, is the rule.
 const IDRule = "the id starts with a letter or a digit, and contains only letters, digits, '.', '_', and '-'"
@@ -325,7 +336,12 @@ func writeSpec(cfg *config.Config, id, kind, title string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("title: %w", err)
 	}
-	out := strings.NewReplacer("{{ID}}", id, "{{KIND}}", kind, "{{TITLE}}", quoted).Replace(specTemplate)
+	// An ID such as 234 is a number in YAML without quotes, and fails SV001.
+	idText, err := text(id)
+	if err != nil {
+		return "", fmt.Errorf("id: %w", err)
+	}
+	out := strings.NewReplacer("{{ID}}", idText, "{{KIND}}", kind, "{{TITLE}}", quoted).Replace(specTemplate)
 	path := filepath.Join(cfg.Abs(cfg.SpecsDir), id+".yaml")
 	created, err := createFile(path, out)
 	if err != nil {

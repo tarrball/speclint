@@ -9,6 +9,14 @@ cmp specs/ORD-1.yaml $WORK/want/ORD-1.yaml
 exits 0 sv new BUG-2 --title 'Fix the "total" field' --kind bugfix
 cmp specs/BUG-2.yaml $WORK/want/BUG-2.yaml
 
+# A ticket number is a usual id. new writes it as text, so the schema
+# accepts it. The new spec has only the errors of its empty fields.
+exits 0 sv new 234 --title 'Fix it'
+grep '^id: "234"$' specs/234.yaml
+exits 1 sv check specs/234.yaml
+! stdout '\(id\)'
+stdout '\(summary\)'
+
 # new does not overwrite a spec.
 exits 2 sv new ORD-1
 stderr '^sv: specs/ORD-1.yaml already exists; edit it, or use another id$'

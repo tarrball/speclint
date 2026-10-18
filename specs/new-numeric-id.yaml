@@ -1,0 +1,22 @@
+specval: 1
+id: new-numeric-id
+kind: bugfix
+status: done
+title: Write the id of a new spec as text
+summary: >
+  sv new wrote the id without quotes. YAML reads an id such as 234, 1.5,
+  true, or 0x1F as a number or a boolean. Thus the new spec failed SV001, and
+  the user had to add the quotes. A ticket number is a usual id, so this
+  occurred frequently. Now sv new writes the id as YAML text. It adds quotes
+  only when YAML must have them, so an id such as ORD-142 does not change.
+acceptance:
+  - id: AC1
+    text: Given an id that YAML reads as a number or a boolean, for example 234, when sv new runs, then the id in the spec is text, and sv check gives no SV001 error for it.
+  - id: AC2
+    text: Given an id such as ORD-142, when sv new runs, then the spec has the id without quotes, as before.
+services:
+  changed: [ScaffoldManager]
+calls: []
+out_of_scope:
+  - sv new does not change specs that exist.
+  - The SV001 fix text for a value that is not text does not change.
