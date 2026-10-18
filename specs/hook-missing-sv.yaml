@@ -1,0 +1,26 @@
+specval: 1
+id: hook-missing-sv
+kind: bugfix
+status: done
+title: Tell Claude when the hook cannot find sv
+summary: >
+  The hook runs the sv on the PATH that Claude Code gives to hooks. That PATH
+  can be different from the PATH of the terminal. If sv is not on it, the
+  shell exits 127. Claude Code shows that error only to the user, and in a
+  headless run, nobody sees it. Thus specval checks no spec, and Claude does
+  not know. This change makes the hook that sv init writes find sv first. If
+  sv is not on PATH, the hook exits 2 with a message, and Claude Code sends
+  the message to Claude.
+acceptance:
+  - id: AC1
+    text: Given the hook that sv init writes and a PATH that has no sv, when the hook runs, then it exits 2 and its stderr tells that sv is not on the PATH of Claude Code hooks.
+  - id: AC2
+    text: Given the hook that sv init writes and a PATH that has sv, when the hook runs, then it runs sv hook with the same stdin.
+  - id: AC3
+    text: Given a settings file that has the hook from an older sv init, when sv init or sv doctor runs, then they find the hook as before.
+services:
+  changed: [ClaudeAccessor]
+calls: []
+out_of_scope:
+  - sv init does not change a hook that a settings file already has.
+  - The exit status of sv hook itself does not change.

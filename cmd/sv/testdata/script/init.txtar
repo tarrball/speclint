@@ -96,7 +96,12 @@ data: [.specval/data]
     "PostToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit",
-        "hooks": [{ "type": "command", "command": "sv hook" }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v sv >/dev/null 2>&1 || { echo 'specval cannot check specs, because sv is not on the PATH of Claude Code hooks. Tell the user to add the directory of sv to PATH in the shell profile, start Claude Code again, and run sv doctor.' >&2; exit 2; }; sv hook"
+          }
+        ]
       }
     ]
   }
@@ -120,7 +125,7 @@ data: [.specval/data]
         "hooks": [
           {
             "type": "command",
-            "command": "sv hook"
+            "command": "command -v sv >/dev/null 2>&1 || { echo 'specval cannot check specs, because sv is not on the PATH of Claude Code hooks. Tell the user to add the directory of sv to PATH in the shell profile, start Claude Code again, and run sv doctor.' >&2; exit 2; }; sv hook"
           }
         ]
       }
