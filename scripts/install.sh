@@ -73,8 +73,11 @@ old=$("$dir/sv" version 2>/dev/null || true)
 trap 'rm -rf "$tmp" "$dir/.sv.new"' EXIT
 cp "$tmp/$name" "$dir/.sv.new"
 chmod 755 "$dir/.sv.new"
+# Run the new binary before it replaces the old one. It cannot run if, for
+# example, the file system of the directory does not let programs run.
+new=$("$dir/.sv.new" version) ||
+	fail "the new binary does not run in $dir; set SV_INSTALL_DIR to another directory"
 mv -f "$dir/.sv.new" "$dir/sv"
-new=$("$dir/sv" version)
 if [ -n "$old" ] && [ "$old" != "$new" ]; then
 	echo "Updated $dir/sv from $old to $new"
 else
