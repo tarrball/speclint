@@ -13,7 +13,8 @@ cmp stdout created.txt
 exists specs
 cmp .specval.yaml want/config.yaml
 cmp .claude/settings.json want/settings.json
-exists .specval/data/services.yaml .specval/policy/project.rego .claude/skills/spec/SKILL.md .github/instructions/specval.instructions.md
+cmp .specval/data/services.yaml want/services.yaml
+exists .specval/policy/project.rego .claude/skills/spec/SKILL.md .github/instructions/specval.instructions.md
 ! exists CLAUDE.md
 
 # The new project passes check.
@@ -81,6 +82,16 @@ exists   .claude/settings.json (sv hook)
 
 Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
   This project uses specval. Before you write code for a change, use the spec skill to write a spec that passes `sv check`.
+-- want/services.yaml --
+# The service registry: each service in the system, and its layer (client,
+# manager, engine, accessor, resource, or utility). `package` tells where the
+# code of the service is. `calls` lists the services that it calls today,
+# also a call that breaks the layer rules. We recommend that you protect this
+# file with CODEOWNERS.
+services: {}
+#  OrderManager: { layer: manager, package: src/orders, calls: [PricingEngine, OrderAccessor] }
+#  PricingEngine: { layer: engine, package: src/pricing }
+#  OrderAccessor: { layer: accessor, package: src/orders/db }
 -- want/config.yaml --
 # The specval configuration. A path is relative to this file.
 specs_dir: specs

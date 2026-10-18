@@ -1,0 +1,23 @@
+specval: 1
+id: registry-package
+kind: chore
+status: done
+title: Tell about package and calls in the registry template and the docs
+summary: >
+  A registry entry can have `package`, which tells where the code of the
+  service is. The Copilot review instructions use it, but the docs do not
+  tell about it. The registry that sv init writes shows only `layer`. Thus an
+  agent that sets up specval in a project does not know about `package` or
+  `calls`. This change adds both fields to the example in the registry
+  template, and tells about `package` in docs/rules.md and docs/specs.md.
+acceptance:
+  - id: AC1
+    text: Given a new project, when sv init writes the registry, then its comments tell about package and calls, and its example entries use them.
+  - id: AC2
+    text: Given docs/rules.md, when a user reads about the registry, then it tells that package gives the place of the code of the service.
+services:
+  changed: [ScaffoldManager]
+calls: []
+out_of_scope:
+  - sv context does not show package or calls.
+  - specval does not check that the package of a service exists.

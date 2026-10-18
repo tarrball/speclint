@@ -1,7 +1,9 @@
 # The service registry: each service in the system, and its layer (client,
-# manager, engine, accessor, resource, or utility). We recommend that you
-# protect this file with CODEOWNERS.
+# manager, engine, accessor, resource, or utility). `package` tells where the
+# code of the service is. `calls` lists the services that it calls today,
+# also a call that breaks the layer rules. We recommend that you protect this
+# file with CODEOWNERS.
 services: {}
-#  OrderManager: { layer: manager }
-#  PricingEngine: { layer: engine }
-#  OrderAccessor: { layer: accessor }
+#  OrderManager: { layer: manager, package: src/orders, calls: [PricingEngine, OrderAccessor] }
+#  PricingEngine: { layer: engine, package: src/pricing }
+#  OrderAccessor: { layer: accessor, package: src/orders/db }
