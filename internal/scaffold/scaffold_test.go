@@ -278,6 +278,40 @@ func TestSpecTitleRoundTrips(t *testing.T) {
 	}
 }
 
+func TestSpecIDIsText(t *testing.T) {
+	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
+	// Without quotes, YAML reads each of these IDs as a number, a boolean, or
+	// null. ORD-142 needs no quotes, and it keeps none.
+	for id, line := range map[string]string{
+		"234":     `id: "234"`,
+		"1.5":     `id: "1.5"`,
+		"0x1F":    `id: "0x1F"`,
+		"1e3":     `id: "1e3"`,
+		"true":    `id: "true"`,
+		"null":    `id: "null"`,
+		"ORD-142": `id: ORD-142`,
+	} {
+		path, err := writeSpec(cfg, id, "chore", "T")
+		if err != nil {
+			t.Errorf("%s: %v", id, err)
+			continue
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var spec struct {
+			ID any `yaml:"id"`
+		}
+		if err := yaml.Unmarshal(b, &spec); err != nil || spec.ID != id {
+			t.Errorf("%s: the id was read back as %#v, %v", id, spec.ID, err)
+		}
+		if !strings.Contains(string(b), "\n"+line+"\n") {
+			t.Errorf("%s: the spec has no line %q:\n%s", id, line, b)
+		}
+	}
+}
+
 func TestSpecRejectsATitleThatIsNotUTF8(t *testing.T) {
 	cfg := &config.Config{Root: t.TempDir(), SpecsDir: "specs"}
 	if _, err := writeSpec(cfg, "T-1", "chore", "bad \xff byte"); err == nil {
