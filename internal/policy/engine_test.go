@@ -523,6 +523,26 @@ func TestServicesReadsTheLimits(t *testing.T) {
 	}
 }
 
+func TestLayerBreaks(t *testing.T) {
+	cfg := project(t, map[string]string{".specval/data/services.yaml": `services:
+  OrderApi: { layer: client, calls: [OrderManager, OrderAccessor] }
+  OrderManager: { layer: manager, calls: [OrderAccessor, Nobody] }
+  OrderAccessor: { layer: accessor, calls: [BillingAccessor] }
+  BillingAccessor: { layer: accessor, calls: [OrderAccessor] }
+  OddEngine: { layer: 7, calls: [OrderAccessor] }
+`})
+	got, err := newEngine(t, cfg).LayerBreaks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A call to a service that is not registered (SR008), and a call from a
+	// service with no valid layer (SR001), are not in the count.
+	want := []LayerBreak{{From: "accessor", To: "accessor", Count: 2}, {From: "client", To: "accessor", Count: 1}}
+	if !slices.Equal(got, want) {
+		t.Errorf("LayerBreaks = %+v, want %+v", got, want)
+	}
+}
+
 func TestServicesThatIsNotAMapping(t *testing.T) {
 	cfg := project(t, map[string]string{".specval/data/services.yaml": "services: [OrderManager]\n"})
 	_, err := newEngine(t, cfg).Services()

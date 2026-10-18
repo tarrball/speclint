@@ -192,9 +192,32 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	// A registry warning does not fail check, so it does not fail doctor.
 	if len(problems) > 0 {
 		c.add(status, "registry", strings.Join(problems, "; "), "Run `sv check` to see the fix for each problem.")
-	} else {
-		c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s", len(services), c.rel(eng.DataFile("services"))), "")
+		return
 	}
+	breaks, err := eng.LayerBreaks()
+	if err != nil {
+		c.add(StatusFail, "registry", c.relText(err.Error()), "Run `sv check` to see the problem in the registry.")
+		return
+	}
+	c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s%s", len(services), c.rel(eng.DataFile("services")), layerBreaks(breaks)), "")
+}
+
+// layerBreaks tells how many registered calls break the layer rules, for
+// example "; 3 registered call(s) break the layer rules (accessor -> accessor 2,
+// client -> accessor 1)". It returns "" if no call breaks them. Such calls are
+// normal in an old project, and SV202 reports them when a spec changes the
+// service, so they do not change the status of the check.
+func layerBreaks(breaks []policy.LayerBreak) string {
+	if len(breaks) == 0 {
+		return ""
+	}
+	total := 0
+	pairs := make([]string, len(breaks))
+	for i, b := range breaks {
+		total += b.Count
+		pairs[i] = fmt.Sprintf("%s -> %s %d", b.From, b.To, b.Count)
+	}
+	return fmt.Sprintf("; %d registered call(s) break the layer rules (%s)", total, strings.Join(pairs, ", "))
 }
 
 // registryFile returns the data file that holds the registry: the file that

@@ -1,0 +1,26 @@
+specval: 1
+id: doctor-layer-breaks
+kind: feature
+status: done
+title: Count the registered calls that break the layer rules in sv doctor
+summary: >
+  The registry records the calls of each service today, also the calls that
+  break the layer rules. specval reports such a call only when a spec changes
+  the service (SV202). In the brownfield setup, the registry had 110 such
+  calls, and no command showed them. Now the registry check of sv doctor
+  gives their number, with the number for each pair of layers. The status of
+  the check does not change, because these calls are known.
+acceptance:
+  - id: AC1
+    text: Given a registry with calls that break the layer rules, when sv doctor runs, then the registry check gives their number and the number for each pair of layers, from the largest number.
+  - id: AC2
+    text: Given a registry with no call that breaks the layer rules, when sv doctor runs, then the registry check does not change.
+  - id: AC3
+    text: Given a registered call to a service that is not registered, when sv doctor runs, then the count does not include it.
+services:
+  changed: [DoctorManager, PolicyEngine]
+calls: []
+out_of_scope:
+  - The count does not include a call that breaks only a limit (may_call or called_by).
+  - sv check does not give the count.
+  - The JSON output gets no new field. The count is in the detail of the registry check.

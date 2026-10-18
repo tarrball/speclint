@@ -233,6 +233,17 @@ func TestUnknownHomeDirectory(t *testing.T) {
 	f.want("skill", StatusWarn, "is missing")
 }
 
+func TestRegistryCountsTheLayerBreaks(t *testing.T) {
+	f := newFixture(t)
+	f.write(".specval/data/services.yaml", `services:
+  OrderApi: { layer: client, calls: [OrderAccessor] }
+  OrderManager: { layer: manager, calls: [OrderAccessor] }
+  OrderAccessor: { layer: accessor, calls: [BillingAccessor] }
+  BillingAccessor: { layer: accessor, calls: [OrderAccessor] }
+`)
+	f.want("registry", StatusOK, "4 service(s), .specval/data/services.yaml; 3 registered call(s) break the layer rules (accessor -> accessor 2, client -> accessor 1)")
+}
+
 func TestPathChecks(t *testing.T) {
 	t.Run("not on PATH", func(t *testing.T) {
 		f := newFixture(t)

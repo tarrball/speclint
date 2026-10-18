@@ -120,7 +120,7 @@ the checks as JSON.
 | specs | The specs directory does not exist (warning). |
 | data, policy | A data or policy path in `.specval.yaml` does not exist (warning). |
 | rules | A data file or a Rego file does not load, or a rule has no `custom.id`. |
-| registry | No services are registered (warning), the registry is not a mapping, or a registry rule fails. |
+| registry | No services are registered (warning), the registry is not a mapping, or a registry rule fails. If the registry records calls that break the layer rules, the check gives their number for each pair of layers, and it still passes. SV202 reports such a call when a spec changes the service. |
 | skill | The skill is missing, or it no longer tells Claude to run `sv context` (warning). |
 | copilot | The Copilot review instructions are missing (warning). A project that does not use Copilot can ignore this warning. |
 | hook | No `PostToolUse` hook runs `sv hook` in the project, local, or user settings; a settings file sets `disableAllHooks`; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |

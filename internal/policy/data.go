@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
+	"strings"
 
 	"github.com/open-policy-agent/opa/v1/util"
 	"go.yaml.in/yaml/v3"
@@ -36,6 +38,55 @@ type Service struct {
 	// Package tells where the code of the service is. It is "" if the entry
 	// has no package, or a package that is not a string (SR009).
 	Package string
+	// Calls lists the services that the service calls today. SR008 reports
+	// a value that is not a string.
+	Calls []string
+}
+
+// LayerBreak is the number of registered calls from one layer to another
+// layer that the layer rules do not permit.
+type LayerBreak struct {
+	From, To string
+	Count    int
+}
+
+// LayerBreaks counts the registered calls that break the layer rules, for
+// each pair of layers. The largest number is first. It does not count a call
+// from or to a service with no valid layer, or to a service that is not
+// registered, because the registry rules report them.
+func (e *Engine) LayerBreaks() ([]LayerBreak, error) {
+	arch, err := e.Architecture()
+	if err != nil {
+		return nil, err
+	}
+	services, err := e.Services()
+	if err != nil {
+		return nil, err
+	}
+	counts := map[[2]string]int{}
+	for _, s := range services {
+		targets, ok := arch.Layers[s.Layer]
+		if !ok {
+			continue
+		}
+		for _, name := range s.Calls {
+			to, ok := services[name]
+			if _, valid := arch.Layers[to.Layer]; ok && valid && !slices.Contains(targets, to.Layer) {
+				counts[[2]string{s.Layer, to.Layer}]++
+			}
+		}
+	}
+	breaks := make([]LayerBreak, 0, len(counts))
+	for pair, n := range counts {
+		breaks = append(breaks, LayerBreak{From: pair[0], To: pair[1], Count: n})
+	}
+	slices.SortFunc(breaks, func(a, b LayerBreak) int {
+		if a.Count != b.Count {
+			return b.Count - a.Count
+		}
+		return strings.Compare(a.From+" "+a.To, b.From+" "+b.To)
+	})
+	return breaks, nil
 }
 
 // Architecture returns the baseline layer data.
@@ -67,6 +118,7 @@ func (e *Engine) Services() (map[string]Service, error) {
 			s.MayCall = limit(entry["may_call"])
 			s.CalledBy = limit(entry["called_by"])
 			s.Package, _ = entry["package"].(string) // A package that is not a string stays "".
+			s.Calls = limit(entry["calls"])
 		}
 		services[name] = s
 	}
