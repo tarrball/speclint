@@ -11,7 +11,7 @@ each spec that Claude saves. `slint init` sets up these parts:
   updates the registry.
 - **A hook** in `.claude/settings.json`. It makes Claude Code run
   `slint hook` after each `Write`, `Edit`, or `MultiEdit`. See
-  [If the hook cannot find slint](#if-the-hook-cannot-find-sv).
+  [If the hook cannot find slint](#if-the-hook-cannot-find-slint).
 - **Copilot review instructions**,
   `.github/instructions/speclint.instructions.md`. See
   [Review a pull request with Copilot](#review-a-pull-request-with-copilot).
