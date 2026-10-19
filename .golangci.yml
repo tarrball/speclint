@@ -29,11 +29,11 @@ linters:
       enabled-tags: [diagnostic, style, performance]
     gosec:
       excludes:
-        - G301 # specval creates project directories that other tools must read (0o755).
-        - G304 # specval reads files at paths that the user gives it.
+        - G301 # speclint creates project directories that other tools must read (0o755).
+        - G304 # speclint reads files at paths that the user gives it.
         - G703 # Same as G304, found by taint analysis.
-        - G306 # specval writes project files that other tools must read (0o644).
-        - G302 # Same as G306, for a file that specval creates with os.OpenFile.
+        - G306 # speclint writes project files that other tools must read (0o644).
+        - G302 # Same as G306, for a file that speclint creates with os.OpenFile.
     nolintlint:
       require-explanation: true
       require-specific: true
@@ -58,4 +58,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/tarrball/specval
+        - github.com/tarrball/speclint

@@ -1,9 +1,9 @@
-package specval.spec.schema
+package speclint.spec.schema
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
-# specval makes keys and hints from schema.json when it loads the rules. keys
+# speclint makes keys and hints from schema.json when it loads the rules. keys
 # gives the permitted keys at each path, and hints gives the description of
 # each path. In a path, "*" is an array index, for example "calls.*.op".
 keys := data.dpl.schema_keys
@@ -20,7 +20,7 @@ required := data.dpl.schema_required
 # title: The spec matches the schema
 # description: >-
 #   The spec has the fields, the field names, and the value types that the schema
-#   (`sv schema`) gives. The other rules run only after this rule passes.
+#   (`slint schema`) gives. The other rules run only after this rule passes.
 # custom:
 #   id: SV001
 deny contains f if {
@@ -65,7 +65,7 @@ fix(e) := msg if {
 } else := msg if {
 	hint := hints[norm(e.field)]
 	msg := $"Correct the value of `{display(e.field)}`. {hint}"
-} else := "Run `sv schema` to see the correct format."
+} else := "Run `slint schema` to see the correct format."
 
 # name writes a path for a fix: the spec itself, or the path in backticks.
 name(field) := "the spec" if is_root(field)

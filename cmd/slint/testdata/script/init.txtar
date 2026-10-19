@@ -1,0 +1,147 @@
+# init --dry-run prints the changes and writes nothing.
+mkdir $WORK/dry
+cd $WORK/dry
+exits 0 slint init --dry-run
+cmp stdout $WORK/dry-run.txt
+! exists .speclint.yaml .claude specs .github
+cd $WORK
+
+# init creates the config, the data and policy files, the skill, the specs
+# directory, and the hook.
+exits 0 slint init
+cmp stdout created.txt
+exists specs/.gitkeep
+cmp .speclint.yaml want/config.yaml
+cmp .claude/settings.json want/settings.json
+cmp .speclint/data/services.yaml want/services.yaml
+exists .speclint/policy/project.rego .claude/skills/spec/SKILL.md .github/instructions/speclint.instructions.md
+! exists CLAUDE.md
+
+# The new project passes check.
+exits 0 slint check
+stdout '^speclint checked 0 spec\(s\) and found 0 error\(s\) and 0 warning\(s\).$'
+
+# A second init changes nothing.
+exits 0 slint init
+cmp stdout exists.txt
+
+# init adds the hook to a settings file and keeps the other settings.
+cd $WORK/merge
+exits 0 slint init
+stdout '^hooked   .claude/settings.json$'
+cmp .claude/settings.json $WORK/want/merged.json
+
+# init uses the specs_dir of an existing config in the same directory.
+cd $WORK/custom
+exits 0 slint init
+exists changes
+! exists specs
+
+# init stops, and writes nothing, if the settings file is not valid JSON.
+cd $WORK/badjson
+exits 2 slint init
+! stdout .
+stderr '^slint: .*/badjson/.claude/settings.json is not valid JSON: '
+! exists .speclint.yaml
+
+-- merge/.claude/settings.json --
+{"model": "opus", "hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}]}}
+-- custom/.speclint.yaml --
+specs_dir: changes
+-- badjson/.claude/settings.json --
+{not json
+-- dry-run.txt --
+create   .speclint.yaml
+create   .speclint/data/services.yaml
+create   .speclint/policy/project.rego
+create   .claude/skills/spec/SKILL.md
+create   .github/instructions/speclint.instructions.md
+create   specs/.gitkeep
+hook     .claude/settings.json
+
+This is a dry run. slint init wrote nothing.
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  This project uses speclint. Before you write code for a change, use the spec skill to write a spec that passes `slint check`.
+-- created.txt --
+created  .speclint.yaml
+created  .speclint/data/services.yaml
+created  .speclint/policy/project.rego
+created  .claude/skills/spec/SKILL.md
+created  .github/instructions/speclint.instructions.md
+created  specs/.gitkeep
+hooked   .claude/settings.json
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  This project uses speclint. Before you write code for a change, use the spec skill to write a spec that passes `slint check`.
+-- exists.txt --
+exists   .speclint.yaml
+exists   .speclint/data/services.yaml (services)
+exists   .speclint/policy/project.rego (rules)
+exists   .claude/skills/spec/SKILL.md
+exists   .github/instructions/speclint.instructions.md
+exists   .claude/settings.json (slint hook)
+
+Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
+  This project uses speclint. Before you write code for a change, use the spec skill to write a spec that passes `slint check`.
+-- want/services.yaml --
+# The service registry: each service in the system, and its layer (client,
+# manager, engine, accessor, resource, or utility). `package` tells where the
+# code of the service is. `calls` lists the services that it calls today,
+# also a call that breaks the layer rules. We recommend that you protect this
+# file with CODEOWNERS.
+services: {}
+#  OrderManager: { layer: manager, package: src/orders, calls: [PricingEngine, OrderAccessor] }
+#  PricingEngine: { layer: engine, package: src/pricing }
+#  OrderAccessor: { layer: accessor, package: src/orders/db }
+-- want/config.yaml --
+# The speclint configuration. A path is relative to this file.
+specs_dir: specs
+# The project rules: Rego files with the package speclint.spec.<name> (speclint
+# runs it for each spec) or speclint.registry.<name> (speclint runs it one time,
+# with the data only).
+policy: [.speclint/policy]
+# The project data: YAML or JSON files. Each top-level key is data.project.<key>.
+data: [.speclint/data]
+-- want/settings.json --
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v slint >/dev/null 2>&1 || { echo 'speclint cannot check specs, because slint is not on the PATH of Claude Code hooks. Tell the user to add the directory of slint to PATH in the shell profile, start Claude Code again, and run slint doctor.' >&2; exit 2; }; slint hook"
+          }
+        ]
+      }
+    ]
+  }
+}
+-- want/merged.json --
+{
+  "model": "opus",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo hi"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v slint >/dev/null 2>&1 || { echo 'speclint cannot check specs, because slint is not on the PATH of Claude Code hooks. Tell the user to add the directory of slint to PATH in the shell profile, start Claude Code again, and run slint doctor.' >&2; exit 2; }; slint hook"
+          }
+        ]
+      }
+    ]
+  }
+}

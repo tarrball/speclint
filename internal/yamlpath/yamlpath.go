@@ -89,7 +89,7 @@ func segments(path string) []segment {
 }
 
 // text returns the segment as the text of a mapping key. An index i is the
-// key "i", as when specval converts YAML to JSON.
+// key "i", as when speclint converts YAML to JSON.
 func (s segment) text() string {
 	if s.isKey {
 		return s.key
@@ -139,7 +139,7 @@ func Line(doc *yaml.Node, path string) int {
 	return line
 }
 
-// keyText returns the text of a mapping key, as specval writes it when it
+// keyText returns the text of a mapping key, as speclint writes it when it
 // converts YAML to JSON: the key 0x1 is "1". A key that is a string is its
 // value.
 func keyText(key *yaml.Node) string {

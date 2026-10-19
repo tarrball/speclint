@@ -3,7 +3,7 @@ package cli
 import (
 	"context"
 
-	"github.com/tarrball/specval/internal/scaffold"
+	"github.com/tarrball/speclint/internal/scaffold"
 )
 
 func cmdInit(_ context.Context, env *Env, args []string) error {

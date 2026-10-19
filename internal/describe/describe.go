@@ -1,14 +1,14 @@
 // Package describe is ContextManager. It finds the configuration of a
 // project, loads the policy engine, and gives the layers, the registered
-// services, and the rules. sv context writes them for an agent. It does not
+// services, and the rules. slint context writes them for an agent. It does not
 // read or write stdio.
 package describe
 
 import (
 	"context"
 
-	"github.com/tarrball/specval/internal/config"
-	"github.com/tarrball/specval/internal/policy"
+	"github.com/tarrball/speclint/internal/config"
+	"github.com/tarrball/speclint/internal/policy"
 )
 
 // Service is a registered service. See policy.Service.

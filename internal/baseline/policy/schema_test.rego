@@ -1,10 +1,10 @@
-package specval.spec.schema_test
+package speclint.spec.schema_test
 
-import data.specval.spec.schema
+import data.speclint.spec.schema
 import rego.v1
 
 valid := {
-	"specval": 1,
+	"speclint": 1,
 	"id": "A-1",
 	"kind": "feature",
 	"title": "T",
@@ -77,7 +77,7 @@ test_wrong_value_fix_uses_the_hint if {
 
 test_wrong_type_fix_gives_the_shape if {
 	# The fix tells the correct form from the schema, so that an agent does
-	# not need `sv schema`.
+	# not need `slint schema`.
 	spec := object.union(valid, {
 		"services": ["CheckManager"],
 		"acceptance": ["The output does not change."],

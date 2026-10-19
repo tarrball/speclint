@@ -1,6 +1,6 @@
-package specval.spec.dpl
+package speclint.spec.dpl
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
 # current is the registry today. The registry rules (SR001 to SR008) check it.

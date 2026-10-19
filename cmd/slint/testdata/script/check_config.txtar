@@ -1,0 +1,37 @@
+# Without a .speclint.yaml here or in a parent, check exits 2.
+exits 2 slint check
+! stdout .
+stderr '^slint: no .speclint.yaml in .* or in a parent directory; run `slint init`$'
+
+# check finds .speclint.yaml in a parent directory, and uses its specs_dir.
+cd project/sub
+exits 0 slint check
+cmp stdout $WORK/check.txt
+
+# A .speclint.yaml that is not valid YAML is an error.
+cd $WORK/broken
+exits 2 slint check
+stderr '^slint: .*broken/.speclint.yaml: yaml: '
+
+-- project/.speclint.yaml --
+specs_dir: changes
+data: [registry.yaml]
+-- project/registry.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+-- project/sub/.keep --
+-- project/changes/A-1.yaml --
+speclint: 1
+id: A-1
+kind: bugfix
+title: A spec in a custom specs_dir
+summary: OrderManager reads an order.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- broken/.speclint.yaml --
+specs_dir: [unclosed
+-- check.txt --
+speclint checked 1 spec(s) and found 0 error(s) and 0 warning(s).

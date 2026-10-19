@@ -14,7 +14,7 @@
 # 		$"{c.from} cannot call PricingEngine",
 # 		"Make OrderManager call PricingEngine, and give the price to the services that need it.")
 # }
-package specval.spec.project
+package speclint.spec.project
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1

@@ -1,9 +1,9 @@
-package specval.spec.dpl
+package speclint.spec.dpl
 
 # This file holds services.relayered: the moves of registered services to
 # other layers, and the rules for them.
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
 relayered := object.get(input, ["services", "relayered"], [])

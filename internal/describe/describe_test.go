@@ -8,14 +8,14 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/tarrball/specval/internal/config"
+	"github.com/tarrball/speclint/internal/config"
 )
 
 func TestFind(t *testing.T) {
 	dir := t.TempDir()
 	for name, body := range map[string]string{
-		".specval.yaml":               "specs_dir: plans\n",
-		".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager, may_call: [accessor] }\n",
+		".speclint.yaml":               "specs_dir: plans\n",
+		".speclint/data/services.yaml": "services:\n  OrderManager: { layer: manager, may_call: [accessor] }\n",
 	} {
 		p := filepath.Join(dir, name)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {

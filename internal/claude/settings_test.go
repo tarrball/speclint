@@ -24,18 +24,18 @@ func writeFile(t *testing.T, path, content string) {
 	}
 }
 
-func TestSkillRunsSpecvalContext(t *testing.T) {
-	// doctor uses this text to tell that the skill is the specval skill.
-	if !strings.Contains(Skill("specs"), "sv context") {
-		t.Error("the skill does not tell Claude to run `sv context`")
+func TestSkillRunsSpeclintContext(t *testing.T) {
+	// doctor uses this text to tell that the skill is the speclint skill.
+	if !strings.Contains(Skill("specs"), "slint context") {
+		t.Error("the skill does not tell Claude to run `slint context`")
 	}
 }
 
 func TestSkillTellsWhenToRunCheck(t *testing.T) {
 	skill := Skill("specs")
 	for _, want := range []string{
-		"If you write the file in another way, for example with a shell command, run `sv check <file>`.",
-		"set `status: done` in the spec. Then run `sv check`.",
+		"If you write the file in another way, for example with a shell command, run `slint check <file>`.",
+		"set `status: done` in the spec. Then run `slint check`.",
 		"write `calls: []` and put each changed service in `services.changed`",
 	} {
 		if !strings.Contains(skill, want) {
@@ -60,31 +60,14 @@ func TestInspectSettings(t *testing.T) {
 		},
 		{
 			"pretooluse.json",
-			`{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [{"command": "sv hook"}]}]}}`,
+			`{"hooks": {"PreToolUse": [{"matcher": "Write", "hooks": [{"command": "slint hook"}]}]}}`,
 			HookStatus{Exists: true},
 		},
 		{
 			"found.json",
 			`{"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"command": "echo"}]},
-			  {"matcher": "Write|Edit", "hooks": [{"command": "/usr/local/bin/sv hook"}]}]}}`,
+			  {"matcher": "Write|Edit", "hooks": [{"command": "/usr/local/bin/slint hook"}]}]}}`,
 			HookStatus{Exists: true, Found: true, Matcher: "Write|Edit"},
-		},
-		{
-			"current-then-old.json",
-			`{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "sv hook"}]},
-			  {"matcher": "Edit", "hooks": [{"command": "specval hook"}]}]}}`,
-			HookStatus{Exists: true, Found: true, Matcher: "Write", Old: true},
-		},
-		{
-			"old-then-current.json",
-			`{"hooks": {"PostToolUse": [{"matcher": "Edit", "hooks": [{"command": "specval hook"}]},
-			  {"matcher": "Write", "hooks": [{"command": "sv hook"}]}]}}`,
-			HookStatus{Exists: true, Found: true, Matcher: "Write", Old: true},
-		},
-		{
-			"old.json",
-			`{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "specval hook"}]}]}}`,
-			HookStatus{Exists: true, Old: true},
 		},
 	} {
 		path := filepath.Join(dir, c.name)
@@ -396,16 +379,16 @@ func TestTemplateHookWithoutSvOnPath(t *testing.T) {
 	if exitErr, ok := errors.AsType[*exec.ExitError](err); !ok || exitErr.ExitCode() != 2 {
 		t.Fatalf("the hook gave %v; want exit status 2, so that Claude Code sends stderr to Claude", err)
 	}
-	if !strings.Contains(stderr.String(), "sv is not on the PATH of Claude Code hooks") {
+	if !strings.Contains(stderr.String(), "slint is not on the PATH of Claude Code hooks") {
 		t.Errorf("stderr: %q", stderr.String())
 	}
 }
 
 func TestTemplateHookRunsSvHook(t *testing.T) {
 	bin := t.TempDir()
-	// The fake sv prints its arguments and the event that it reads on stdin.
+	// The fake slint prints its arguments and the event that it reads on stdin.
 	fake := "#!/bin/sh\nread -r event\necho \"$* $event\"\n"
-	if err := os.WriteFile(filepath.Join(bin, "sv"), []byte(fake), 0o755); err != nil { // The fake binary must be executable.
+	if err := os.WriteFile(filepath.Join(bin, "slint"), []byte(fake), 0o755); err != nil { // The fake binary must be executable.
 		t.Fatal(err)
 	}
 	cmd := exec.Command("/bin/sh", "-c", templateCommand(t)) //nolint:gosec // The test runs the hook command of the embedded template.
@@ -413,7 +396,7 @@ func TestTemplateHookRunsSvHook(t *testing.T) {
 	cmd.Stdin = strings.NewReader(`{"tool_name":"Write"}` + "\n")
 	out, err := cmd.Output()
 	if err != nil || string(out) != "hook {\"tool_name\":\"Write\"}\n" {
-		t.Errorf("the hook gave %q, %v; want sv hook with the event on stdin", out, err)
+		t.Errorf("the hook gave %q, %v; want slint hook with the event on stdin", out, err)
 	}
 }
 

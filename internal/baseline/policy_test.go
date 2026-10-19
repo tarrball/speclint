@@ -14,7 +14,7 @@ import (
 )
 
 // TestRegoPolicies runs the Rego tests (policy/*_test.rego) with data.dpl
-// from Data, as specval gives it to the rules.
+// from Data, as speclint gives it to the rules.
 func TestRegoPolicies(t *testing.T) {
 	ctx := context.Background()
 	modules := map[string]*ast.Module{}

@@ -1,17 +1,17 @@
 rules:
   idiomatic:
     directory-package-mismatch:
-      # specval finds rules by package name (specval.spec.<name> and
-      # specval.registry.<name>), not by directory.
+      # speclint finds rules by package name (speclint.spec.<name> and
+      # speclint.registry.<name>), not by directory.
       level: ignore
     no-defined-entrypoint:
-      # specval queries the deny and warn rules of each package. It does not
+      # speclint queries the deny and warn rules of each package. It does not
       # use an entrypoint.
       level: ignore
   imports:
     unresolved-reference:
       level: error
-      # specval supplies this data at run time.
+      # speclint supplies this data at run time.
       except-paths:
         - data.dpl.*
         - data.project.*

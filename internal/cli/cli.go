@@ -1,4 +1,4 @@
-// Package cli implements the specval commands.
+// Package cli implements the speclint commands.
 package cli
 
 import (
@@ -10,20 +10,20 @@ import (
 	"io"
 	"strings"
 
-	"github.com/tarrball/specval/internal/baseline"
+	"github.com/tarrball/speclint/internal/baseline"
 )
 
 // exitCode is the exit status of a command.
 type exitCode int
 
-// Exit codes of specval.
+// Exit codes of speclint.
 const (
 	exitOK       exitCode = 0 // The command succeeded.
 	exitFindings exitCode = 1 // check found an error (or a warning with --strict), or doctor found a failure.
-	exitError    exitCode = 2 // The command was not correct, or specval could not do it.
+	exitError    exitCode = 2 // The command was not correct, or speclint could not do it.
 )
 
-// command is one command of sv. The usage, the dispatch, and --help come
+// command is one command of slint. The usage, the dispatch, and --help come
 // from the table of commands, so that they agree.
 type command struct {
 	name string
@@ -59,8 +59,8 @@ func commands() []command {
 				"The exit status is 1 if a spec has an error, or a warning with --strict.",
 			},
 			examples: []string{
-				"sv check",
-				"sv check specs/ORD-143.yaml --format json",
+				"slint check",
+				"slint check specs/ORD-143.yaml --format json",
 			},
 			run: cmdCheck,
 		},
@@ -70,7 +70,7 @@ func commands() []command {
 				"Print the spec format, the layers, the registry, and the rules.",
 				"An agent reads this text before it writes a spec.",
 			},
-			examples: []string{"sv context"},
+			examples: []string{"slint context"},
 			run:      noCode(cmdContext),
 		},
 		{
@@ -79,25 +79,25 @@ func commands() []command {
 				return `<id> [--kind ` + strings.Join(baseline.Kinds(), "|") + `] [--title "..."]`
 			},
 			help:     []string{"Make the spec <specs dir>/<id>.yaml from the template."},
-			examples: []string{`sv new ORD-143 --kind bugfix --title "Refund a partial order"`},
+			examples: []string{`slint new ORD-143 --kind bugfix --title "Refund a partial order"`},
 			run:      noCode(cmdNew),
 		},
 		{
 			name:     "schema",
 			help:     []string{"Print the JSON Schema of a spec."},
-			examples: []string{"sv schema"},
+			examples: []string{"slint schema"},
 			run:      noCode(cmdSchema),
 		},
 		{
 			name:     "init",
 			synopsis: text("[--dry-run]"),
 			help: []string{
-				"Set up specval, the Claude Code skill and hook, and the Copilot review",
+				"Set up speclint, the Claude Code skill and hook, and the Copilot review",
 				"instructions in this directory.",
 				"You can run it again. It adds only the parts that are missing.",
 				"With --dry-run, it prints the changes and writes nothing.",
 			},
-			examples: []string{"sv init --dry-run", "sv init"},
+			examples: []string{"slint init --dry-run", "slint init"},
 			run:      noCode(cmdInit),
 		},
 		{
@@ -106,22 +106,22 @@ func commands() []command {
 			help: []string{
 				"Check the setup: the configuration, the rules, the registry, the",
 				"Claude Code skill and hook, the Copilot review instructions, and the",
-				"sv binary on PATH.",
+				"slint binary on PATH.",
 			},
-			examples: []string{"sv doctor", "sv doctor --format json"},
+			examples: []string{"slint doctor", "slint doctor --format json"},
 			run:      cmdDoctor,
 		},
 		{
 			name:     "version",
-			help:     []string{"Print the version of sv and of the spec format."},
-			examples: []string{"sv version"},
+			help:     []string{"Print the version of slint and of the spec format."},
+			examples: []string{"slint version"},
 			run:      noCode(cmdVersion),
 		},
 		{
 			name: "hook",
 			help: []string{
 				"Claude Code runs this command after each file write. Do not run it yourself.",
-				"If the file is a spec, specval checks it and sends the errors to Claude.",
+				"If the file is a spec, speclint checks it and sends the errors to Claude.",
 			},
 			run: func(ctx context.Context, env *Env, args []string) (exitCode, error) {
 				if err := parseNoArgs(newFlagSet("hook", env), args); err != nil {
@@ -143,25 +143,25 @@ func find(name string) *command {
 	return nil
 }
 
-// line returns the command with its synopsis, for example "sv doctor [--format text|json]".
+// line returns the command with its synopsis, for example "slint doctor [--format text|json]".
 func (c *command) line() string {
 	if c.synopsis == nil {
-		return "sv " + c.name
+		return "slint " + c.name
 	}
-	return "sv " + c.name + " " + c.synopsis()
+	return "slint " + c.name + " " + c.synopsis()
 }
 
-// usage returns the usage text of sv.
+// usage returns the usage text of slint.
 func usage() string {
 	var b strings.Builder
-	b.WriteString("specval checks change specs against architecture rules before you write code.\n\nUsage:\n")
+	b.WriteString("speclint checks change specs against architecture rules before you write code.\n\nUsage:\n")
 	for _, c := range commands() {
 		fmt.Fprintf(&b, "  %s\n", c.line())
 		for _, h := range c.help {
 			fmt.Fprintf(&b, "        %s\n", h)
 		}
 	}
-	b.WriteString("\nRun `sv <command> --help` for the flags and examples of a command.\n")
+	b.WriteString("\nRun `slint <command> --help` for the flags and examples of a command.\n")
 	return b.String()
 }
 
@@ -211,7 +211,7 @@ type Env struct {
 	Dir string
 	// Home is the home directory of the user.
 	Home string
-	// Executable is the path of the specval binary that runs the command.
+	// Executable is the path of the speclint binary that runs the command.
 	// It is "" if the path is not known.
 	Executable string
 	// Version is the version of the binary, for example v0.1.0.
@@ -237,12 +237,12 @@ func runCommand(ctx context.Context, args []string, env *Env) exitCode {
 	case c != nil:
 		code, err = c.run(ctx, env, args[1:])
 	case args[0] == "help" && len(args) == 2 && find(args[1]) != nil:
-		// sv help <command> is the same as sv <command> --help.
+		// slint help <command> is the same as slint <command> --help.
 		c = find(args[1])
 		code, err = c.run(ctx, env, []string{"--help"})
 	case args[0] == "--version":
 		// Many CLIs print their version with --version, so people and agents
-		// try it first. It is the same as sv version.
+		// try it first. It is the same as slint version.
 		c = find("version")
 		code, err = c.run(ctx, env, args[1:])
 	case args[0] == "-h", args[0] == "--help", args[0] == "help" && len(args) == 1:
@@ -261,11 +261,11 @@ func runCommand(ctx context.Context, args []string, env *Env) exitCode {
 			fmt.Fprint(env.Stdout, c.helpText(fe.fs))
 			return exitOK
 		}
-		fmt.Fprintf(env.Stderr, "Usage: %s\nRun `sv %s --help` for the flags and examples.\n", c.line(), c.name)
+		fmt.Fprintf(env.Stderr, "Usage: %s\nRun `slint %s --help` for the flags and examples.\n", c.line(), c.name)
 		return exitError
 	}
 	if err != nil {
-		fmt.Fprintln(env.Stderr, "sv:", err)
+		fmt.Fprintln(env.Stderr, "slint:", err)
 		if code == exitOK {
 			code = exitError
 		}

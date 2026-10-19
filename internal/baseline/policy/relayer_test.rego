@@ -1,6 +1,6 @@
-package specval.spec.dpl_test
+package speclint.spec.dpl_test
 
-import data.specval.spec.dpl
+import data.speclint.spec.dpl
 import rego.v1
 
 # before is a registry where ClaudeAccessor holds a protocol, not stored data.

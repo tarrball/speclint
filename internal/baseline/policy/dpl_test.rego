@@ -1,6 +1,6 @@
-package specval.spec.dpl_test
+package speclint.spec.dpl_test
 
-import data.specval.spec.dpl
+import data.speclint.spec.dpl
 import rego.v1
 
 project := {"services": {
@@ -13,7 +13,7 @@ project := {"services": {
 # spec returns a valid spec with the fields in changes replaced.
 spec(changes) := object.union(
 	{
-		"specval": 1,
+		"speclint": 1,
 		"id": "A-1",
 		"kind": "feature",
 		"title": "T",

@@ -1,8 +1,8 @@
-# The specval configuration. A path is relative to this file.
+# The speclint configuration. A path is relative to this file.
 specs_dir: specs
-# The project rules: Rego files with the package specval.spec.<name> (specval
-# runs it for each spec) or specval.registry.<name> (specval runs it one time,
+# The project rules: Rego files with the package speclint.spec.<name> (speclint
+# runs it for each spec) or speclint.registry.<name> (speclint runs it one time,
 # with the data only).
-policy: [.specval/policy]
+policy: [.speclint/policy]
 # The project data: YAML or JSON files. Each top-level key is data.project.<key>.
-data: [.specval/data]
+data: [.speclint/data]

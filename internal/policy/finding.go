@@ -18,7 +18,7 @@ const (
 )
 
 // ruleSeverity maps the name of a Rego rule to the severity of its findings.
-// specval reads only the rules with these names.
+// speclint reads only the rules with these names.
 var ruleSeverity = map[string]Severity{"deny": SeverityError, "warn": SeverityWarning}
 
 // Finding is one problem that a rule found.
@@ -36,7 +36,7 @@ type Finding struct {
 type RuleDoc struct {
 	ID, Title, Description string
 	Severity               Severity
-	// Baseline is true for a rule that is built into specval.
+	// Baseline is true for a rule that is built into speclint.
 	Baseline bool
 }
 

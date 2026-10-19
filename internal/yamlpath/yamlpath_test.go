@@ -6,7 +6,7 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-const doc = `specval: 1
+const doc = `speclint: 1
 acceptance:
   - id: AC1
     text: First.
@@ -34,7 +34,7 @@ func TestLine(t *testing.T) {
 		want int
 	}{
 		{"", 1},
-		{"specval", 1},
+		{"speclint", 1},
 		{"acceptance", 2},
 		{"acceptance[0]", 3},
 		{"acceptance[0].text", 4},
@@ -47,7 +47,7 @@ func TestLine(t *testing.T) {
 		{"calls[5].to", 6},
 		{"nope", 1},
 		// A path that goes below a scalar stops at the scalar.
-		{"specval.x", 1},
+		{"speclint.x", 1},
 		{"acceptance[0].text.x", 4},
 		// An index on a mapping, or a key on a sequence, stops there.
 		{"services[0]", 9},
@@ -81,7 +81,7 @@ func TestLineEdgeCases(t *testing.T) {
 	}
 }
 
-// A key that is not a string has the text that specval gives it when it
+// A key that is not a string has the text that speclint gives it when it
 // converts the key: 0x1 is "1", and true is "true".
 func TestLineWithKeysThatAreNotStrings(t *testing.T) {
 	n := parse(t, "services:\n  0x1: manager\n  true: engine\n  name: x\n")

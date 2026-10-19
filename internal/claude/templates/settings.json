@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v sv >/dev/null 2>&1 || { echo 'specval cannot check specs, because sv is not on the PATH of Claude Code hooks. Tell the user to add the directory of sv to PATH in the shell profile, start Claude Code again, and run sv doctor.' >&2; exit 2; }; sv hook"
+            "command": "command -v slint >/dev/null 2>&1 || { echo 'speclint cannot check specs, because slint is not on the PATH of Claude Code hooks. Tell the user to add the directory of slint to PATH in the shell profile, start Claude Code again, and run slint doctor.' >&2; exit 2; }; slint hook"
           }
         ]
       }

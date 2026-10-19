@@ -1,6 +1,6 @@
 name: Release
 
-# A tag such as v0.1.0 makes a GitHub release with the binaries of sv.
+# A tag such as v0.1.0 makes a GitHub release with the binaries of slint.
 on:
   push:
     tags: ["v*"]

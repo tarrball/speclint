@@ -1,4 +1,4 @@
-specval: 1
+speclint: 1
 id: extract-check-manager
 kind: chore
 status: done

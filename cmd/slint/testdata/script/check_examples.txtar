@@ -1,0 +1,186 @@
+# check runs every spec in the specs directory and exits 1 if one has an error.
+cd $EXAMPLES/refund
+exits 1 slint check
+cmp stdout $WORK/all.txt
+! stderr .
+
+# The JSON format has the same findings.
+exits 1 slint check --format json
+cmp stdout $WORK/all.json
+
+# check takes spec files as arguments. A passing spec exits 0.
+exits 0 slint check specs/ORD-142.yaml
+cmp stdout $WORK/one.txt
+
+# Flags can come after the file arguments.
+exits 1 slint check specs/ORD-144.yaml --format json
+stdout '"rule": "SV001"'
+
+# An unknown format is a usage error.
+exits 2 slint check --format yaml
+! stdout .
+stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
+! stderr '^slint:'
+
+# A missing spec file is an error.
+exits 2 slint check specs/nope.yaml
+stderr 'specs/nope.yaml: open .*specs/nope.yaml: no such file or directory'
+
+-- one.txt --
+speclint checked 1 spec(s) and found 0 error(s) and 0 warning(s).
+-- all.txt --
+specs/ORD-143.yaml:8 error SV107 No call covers AC2 (acceptance[1])
+    fix: Add AC2 to `covers` on the call(s) that implement it, or add the missing call.
+specs/ORD-143.yaml:10 error SV109 ShippingManager is not a registered service (services.changed[1])
+    fix: If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager (manager).
+specs/ORD-143.yaml:14 error ORD001 OrderAccessor cannot call PricingEngine (calls[2])
+    fix: Make OrderManager call PricingEngine, and give the price to the services that need it.
+specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEngine (engine) (calls[2])
+    fix: Accessors can call only resources and utilities. Send the call to PricingEngine through a manager.
+specs/ORD-143.yaml:15 error SV101 RefundEngine is not a registered service (calls[3].to)
+    fix: If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine (engine).
+specs/ORD-143.yaml:15 error SV108 AC4 is not an acceptance criterion in this spec (calls[3].covers[1])
+    fix: Use one of: AC1, AC2, or add AC4 under acceptance.
+specs/ORD-144.yaml:1 error SV001 acceptance is required
+    fix: Add `acceptance`: The acceptance criteria. Give one or more, and make each one possible to test.
+specs/ORD-144.yaml:1 error SV001 calls is required
+    fix: Add `calls`: Each call from one service to another that this change adds or changes.
+specs/ORD-144.yaml:1 error SV001 kind is required
+    fix: Add `kind`: The kind of change: feature, bugfix, or chore.
+specs/ORD-144.yaml:1 error SV001 summary is required
+    fix: Add `summary`: A short paragraph that tells the problem and the new behavior.
+specs/ORD-144.yaml:1 error SV001 Additional property cals is not allowed
+    fix: Remove `cals`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, removed_calls, services, speclint, status, summary, title.
+specs/ORD-144.yaml:2 error SV001 Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$' (id)
+    fix: Correct the value of `id`. The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml.
+specs/ORD-144.yaml note: The other rules run after you fix the format errors (SV000, SV001).
+speclint checked 3 spec(s) and found 12 error(s) and 0 warning(s).
+-- all.json --
+{
+  "files": [
+    {
+      "file": "specs/ORD-142.yaml",
+      "findings": []
+    },
+    {
+      "file": "specs/ORD-143.yaml",
+      "findings": [
+        {
+          "rule": "SV107",
+          "title": "A call implements each acceptance criterion",
+          "severity": "error",
+          "path": "acceptance[1]",
+          "line": 8,
+          "msg": "No call covers AC2",
+          "fix": "Add AC2 to `covers` on the call(s) that implement it, or add the missing call."
+        },
+        {
+          "rule": "SV109",
+          "title": "Each changed service is in the registry",
+          "severity": "error",
+          "path": "services.changed[1]",
+          "line": 10,
+          "msg": "ShippingManager is not a registered service",
+          "fix": "If ShippingManager is new, move it to services.new with a layer and purpose. Otherwise use a registered service: OrderManager (manager)."
+        },
+        {
+          "rule": "ORD001",
+          "title": "Only OrderManager calls PricingEngine",
+          "severity": "error",
+          "path": "calls[2]",
+          "line": 14,
+          "msg": "OrderAccessor cannot call PricingEngine",
+          "fix": "Make OrderManager call PricingEngine, and give the price to the services that need it."
+        },
+        {
+          "rule": "SV102",
+          "title": "Calls follow the layer rules",
+          "severity": "error",
+          "path": "calls[2]",
+          "line": 14,
+          "msg": "OrderAccessor (accessor) cannot call PricingEngine (engine)",
+          "fix": "Accessors can call only resources and utilities. Send the call to PricingEngine through a manager."
+        },
+        {
+          "rule": "SV101",
+          "title": "Calls use known services",
+          "severity": "error",
+          "path": "calls[3].to",
+          "line": 15,
+          "msg": "RefundEngine is not a registered service",
+          "fix": "If RefundEngine is new, declare it under services.new with a layer and purpose. Otherwise use a registered service: PricingEngine (engine)."
+        },
+        {
+          "rule": "SV108",
+          "title": "Each call covers acceptance criteria of the spec",
+          "severity": "error",
+          "path": "calls[3].covers[1]",
+          "line": 15,
+          "msg": "AC4 is not an acceptance criterion in this spec",
+          "fix": "Use one of: AC1, AC2, or add AC4 under acceptance."
+        }
+      ]
+    },
+    {
+      "file": "specs/ORD-144.yaml",
+      "findings": [
+        {
+          "rule": "SV001",
+          "title": "The spec matches the schema",
+          "severity": "error",
+          "path": "",
+          "line": 1,
+          "msg": "acceptance is required",
+          "fix": "Add `acceptance`: The acceptance criteria. Give one or more, and make each one possible to test."
+        },
+        {
+          "rule": "SV001",
+          "title": "The spec matches the schema",
+          "severity": "error",
+          "path": "",
+          "line": 1,
+          "msg": "calls is required",
+          "fix": "Add `calls`: Each call from one service to another that this change adds or changes."
+        },
+        {
+          "rule": "SV001",
+          "title": "The spec matches the schema",
+          "severity": "error",
+          "path": "",
+          "line": 1,
+          "msg": "kind is required",
+          "fix": "Add `kind`: The kind of change: feature, bugfix, or chore."
+        },
+        {
+          "rule": "SV001",
+          "title": "The spec matches the schema",
+          "severity": "error",
+          "path": "",
+          "line": 1,
+          "msg": "summary is required",
+          "fix": "Add `summary`: A short paragraph that tells the problem and the new behavior."
+        },
+        {
+          "rule": "SV001",
+          "title": "The spec matches the schema",
+          "severity": "error",
+          "path": "",
+          "line": 1,
+          "msg": "Additional property cals is not allowed",
+          "fix": "Remove `cals`, or correct its name. The permitted fields here are: acceptance, calls, id, kind, out_of_scope, removed_calls, services, speclint, status, summary, title."
+        },
+        {
+          "rule": "SV001",
+          "title": "The spec matches the schema",
+          "severity": "error",
+          "path": "id",
+          "line": 2,
+          "msg": "Does not match pattern '^[A-Za-z0-9][A-Za-z0-9._-]*$'",
+          "fix": "Correct the value of `id`. The ID of the ticket, for example ORD-142. Use letters, digits, '.', '_', and '-'. Name the spec file <id>.yaml."
+        }
+      ]
+    }
+  ],
+  "errors": 12,
+  "warnings": 0
+}

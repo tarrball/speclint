@@ -1,4 +1,4 @@
-// Package config finds and reads the specval configuration file, .specval.yaml.
+// Package config finds and reads the speclint configuration file, .speclint.yaml.
 package config
 
 import (
@@ -15,9 +15,9 @@ import (
 )
 
 // FileName is the name of the configuration file.
-const FileName = ".specval.yaml"
+const FileName = ".speclint.yaml"
 
-// Config is the configuration of one specval project.
+// Config is the configuration of one speclint project.
 type Config struct {
 	// Root is the directory that contains the configuration file.
 	Root string `yaml:"-"`
@@ -60,7 +60,7 @@ func Find(start string) (*Config, error) {
 }
 
 // ErrNotFound tells that no configuration file is in the start directory or
-// in a parent directory. Thus the directory is not in a specval project.
+// in a parent directory. Thus the directory is not in a speclint project.
 var ErrNotFound = errors.New("no configuration file")
 
 // notFoundError is the error of Find when there is no configuration file.
@@ -68,7 +68,7 @@ var ErrNotFound = errors.New("no configuration file")
 type notFoundError struct{ start string }
 
 func (e notFoundError) Error() string {
-	return fmt.Sprintf("no %s in %s or in a parent directory; run `sv init`", FileName, e.start)
+	return fmt.Sprintf("no %s in %s or in a parent directory; run `slint init`", FileName, e.start)
 }
 
 func (notFoundError) Is(target error) bool { return target == ErrNotFound }
@@ -76,7 +76,7 @@ func (notFoundError) Is(target error) bool { return target == ErrNotFound }
 // Default returns the configuration that a project in root has if its
 // configuration file sets no values.
 func Default(root string) *Config {
-	return &Config{Root: root, SpecsDir: "specs", Policy: []string{".specval/policy"}, Data: []string{".specval/data"}}
+	return &Config{Root: root, SpecsDir: "specs", Policy: []string{".speclint/policy"}, Data: []string{".speclint/data"}}
 }
 
 // parse reads a configuration. A key that it does not know is an error, so

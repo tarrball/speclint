@@ -1,9 +1,9 @@
-package specval.registry.dpl
+package speclint.registry.dpl
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
-# specval runs the registry rules one time for each check, not one time for
+# speclint runs the registry rules one time for each check, not one time for
 # each spec. Their findings refer to the data file that defines `services`.
 
 registry := object.get(data.project, "services", {})
@@ -198,7 +198,7 @@ deny contains f if {
 # title: The package of a service is text
 # description: >-
 #   `package` in a registry entry tells where the code of the service is, for
-#   example a directory or a file. It is text. specval does not check that the
+#   example a directory or a file. It is text. speclint does not check that the
 #   path exists.
 # custom:
 #   id: SR009

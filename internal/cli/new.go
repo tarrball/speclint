@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/scaffold"
+	"github.com/tarrball/speclint/internal/baseline"
+	"github.com/tarrball/speclint/internal/scaffold"
 )
 
 func cmdNew(_ context.Context, env *Env, args []string) error {
@@ -20,7 +20,7 @@ func cmdNew(_ context.Context, env *Env, args []string) error {
 		return err
 	}
 	if len(pos) != 1 || !scaffold.ValidID(pos[0]) {
-		return errors.New("usage: sv new <id>; " + scaffold.IDRule)
+		return errors.New("usage: slint new <id>; " + scaffold.IDRule)
 	}
 	dir, err := env.workDir()
 	if err != nil {

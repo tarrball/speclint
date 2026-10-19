@@ -1,4 +1,4 @@
-// Package scaffold writes the files of a new specval project and new specs.
+// Package scaffold writes the files of a new speclint project and new specs.
 package scaffold
 
 import (
@@ -15,10 +15,10 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/claude"
-	"github.com/tarrball/specval/internal/config"
-	"github.com/tarrball/specval/internal/copilot"
+	"github.com/tarrball/speclint/internal/baseline"
+	"github.com/tarrball/speclint/internal/claude"
+	"github.com/tarrball/speclint/internal/config"
+	"github.com/tarrball/speclint/internal/copilot"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 	specTemplate string
 )
 
-// Init creates each part of a specval project in dir that does not exist:
+// Init creates each part of a speclint project in dir that does not exist:
 //
 //   - the configuration file
 //   - the data and policy files
@@ -50,7 +50,7 @@ var (
 // Init does not change a file that exists. The one exception is the settings
 // file, to which it adds the hook. If the policy paths have a Rego file, Init
 // does not add the example rule file. Init writes one line to w for each
-// file. If no CLAUDE.md tells about specval, Init then writes a line for the
+// file. If no CLAUDE.md tells about speclint, Init then writes a line for the
 // user to add to it.
 func Init(dir string, w io.Writer) error { return setUp(dir, w, false) }
 
@@ -118,7 +118,7 @@ func setUp(dir string, w io.Writer, dry bool) error {
 		{copilot.InstructionsPath, copilot.Instructions(cfg.SpecsDir, registryPath)},
 	}
 	// Git does not keep an empty directory. Without a file in it, the specs
-	// directory is not in a clone, and sv doctor warns about it.
+	// directory is not in a clone, and slint doctor warns about it.
 	if _, err := os.Stat(specsDir); errors.Is(err, fs.ErrNotExist) {
 		files = append(files, struct{ path, content string }{relPath(dir, filepath.Join(specsDir, ".gitkeep")), ""})
 	}
@@ -146,7 +146,7 @@ func setUp(dir string, w io.Writer, dry bool) error {
 		return err
 	}
 	if dry {
-		if _, err := fmt.Fprintln(w, "\nThis is a dry run. sv init wrote nothing."); err != nil {
+		if _, err := fmt.Fprintln(w, "\nThis is a dry run. slint init wrote nothing."); err != nil {
 			return err
 		}
 	} else if err := os.MkdirAll(specsDir, 0o755); err != nil {
@@ -266,7 +266,7 @@ func addHook(settings string, w io.Writer, dry bool) error {
 	case added:
 		_, err = fmt.Fprintln(w, "hooked  ", claude.SettingsPath)
 	default:
-		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(sv hook)")
+		_, err = fmt.Fprintln(w, "exists  ", claude.SettingsPath, "(slint hook)")
 	}
 	return err
 }

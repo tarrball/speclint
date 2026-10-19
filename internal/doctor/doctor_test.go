@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tarrball/specval/internal/claude"
-	"github.com/tarrball/specval/internal/copilot"
-	"github.com/tarrball/specval/internal/scaffold"
+	"github.com/tarrball/speclint/internal/claude"
+	"github.com/tarrball/speclint/internal/copilot"
+	"github.com/tarrball/speclint/internal/scaffold"
 )
 
 // fixture is a project that passes each check.
@@ -20,32 +20,32 @@ type fixture struct {
 }
 
 // newFixture makes a project with scaffold.Init and a registry, a home
-// directory, and a fake sv on PATH. The tests that use it cannot run in
+// directory, and a fake slint on PATH. The tests that use it cannot run in
 // parallel, because it sets PATH.
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	root := t.TempDir()
 	dir := filepath.Join(root, "project")
 	bin := filepath.Join(root, "bin")
-	f := &fixture{t: t, env: Env{Dir: dir, Home: filepath.Join(root, "home"), Executable: filepath.Join(bin, "sv")}}
+	f := &fixture{t: t, env: Env{Dir: dir, Home: filepath.Join(root, "home"), Executable: filepath.Join(bin, "slint")}}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := scaffold.Init(dir, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	f.write(".specval/data/services.yaml", "services:\n  OrderManager: { layer: manager }\n")
-	// doctor runs `sv help` and looks for `sv hook` in the usage. It runs
-	// `sv version` to show the version.
+	f.write(".speclint/data/services.yaml", "services:\n  OrderManager: { layer: manager }\n")
+	// doctor runs `slint help` and looks for `slint hook` in the usage. It runs
+	// `slint version` to show the version.
 	f.writeExecutable(f.env.Executable, fakeSv("v9.9.9"))
 	t.Setenv("PATH", bin)
 	return f
 }
 
-// fakeSv returns a script that answers `sv version` with version and each
+// fakeSv returns a script that answers `slint version` with version and each
 // other command with the usage line that doctor looks for.
 func fakeSv(version string) string {
-	return "#!/bin/sh\nif [ \"$1\" = version ]; then echo 'sv " + version + " (spec format 1)'; else echo '  sv hook'; fi\n"
+	return "#!/bin/sh\nif [ \"$1\" = version ]; then echo 'slint " + version + " (spec format 1)'; else echo '  slint hook'; fi\n"
 }
 
 // write writes a file at a path relative to the project directory.
@@ -122,29 +122,29 @@ func TestProjectChecks(t *testing.T) {
 	}{
 		{"specs directory missing", func(f *fixture) { f.remove("specs") }, "specs", StatusWarn, "specs does not exist"},
 		{"spec count", func(f *fixture) { f.write("specs/A-1.yaml", "") }, "specs", StatusOK, "specs (1 spec(s))"},
-		{"policy directory missing", func(f *fixture) { f.remove(".specval/policy") }, "policy", StatusWarn, ".specval/policy (listed in .specval.yaml) does not exist"},
+		{"policy directory missing", func(f *fixture) { f.remove(".speclint/policy") }, "policy", StatusWarn, ".speclint/policy (listed in .speclint.yaml) does not exist"},
 		{"rule does not compile", func(f *fixture) {
-			f.write(".specval/policy/x.rego", "package specval.spec.x\n\ndeny contains f if {\n")
-		}, "rules", StatusFail, ".specval/policy/x.rego:"},
+			f.write(".speclint/policy/x.rego", "package speclint.spec.x\n\ndeny contains f if {\n")
+		}, "rules", StatusFail, ".speclint/policy/x.rego:"},
 		{"registry not checked", func(f *fixture) {
-			f.write(".specval/policy/x.rego", "package specval.spec.x\n\ndeny contains f if {\n")
+			f.write(".speclint/policy/x.rego", "package speclint.spec.x\n\ndeny contains f if {\n")
 		}, "registry", StatusWarn, "cannot check the registry until the rules load"},
 		{"project rule count", func(f *fixture) {
-			f.write(".specval/policy/x.rego", "package specval.spec.x\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
+			f.write(".speclint/policy/x.rego", "package speclint.spec.x\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
 		}, "rules", StatusOK, "compile, 1 from this project"},
 		{"project rule in a baseline package", func(f *fixture) {
-			f.write(".specval/policy/x.rego", "package specval.spec.dpl\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
+			f.write(".speclint/policy/x.rego", "package speclint.spec.dpl\n\nimport rego.v1\n\n# METADATA\n# title: X\n# custom:\n#   id: X001\ndeny contains \"x\" if false\n")
 		}, "rules", StatusOK, "compile, 1 from this project"},
-		{"registry empty", func(f *fixture) { f.write(".specval/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services are registered"},
-		{"registry not a mapping", func(f *fixture) { f.write(".specval/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
+		{"registry empty", func(f *fixture) { f.write(".speclint/data/services.yaml", "services: {}\n") }, "registry", StatusWarn, "no services are registered"},
+		{"registry not a mapping", func(f *fixture) { f.write(".speclint/data/services.yaml", "services: [a]\n") }, "registry", StatusFail, "data.project.services must be a mapping"},
 		{"registry rule warns", func(f *fixture) {
-			f.write(".specval/policy/r.rego", "package specval.registry.r\n\nimport data.specval.lib\nimport rego.v1\n\n"+
+			f.write(".speclint/policy/r.rego", "package speclint.registry.r\n\nimport data.speclint.lib\nimport rego.v1\n\n"+
 				"# METADATA\n# title: T\n# custom:\n#   id: PRJ900\n"+
 				"warn contains lib.finding(rego.metadata.rule(), \"services.OrderManager\", \"OrderManager has no owner\", \"Add an owner.\") if true\n")
 		}, "registry", StatusWarn, "OrderManager has no owner"},
 		{"registry rule fails", func(f *fixture) {
-			f.write(".specval/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
-		}, "registry", StatusFail, ".specval/data/services.yaml:2 PricingThing is in the engine layer"},
+			f.write(".speclint/data/services.yaml", "services:\n  PricingThing: { layer: engine }\n")
+		}, "registry", StatusFail, ".speclint/data/services.yaml:2 PricingThing is in the engine layer"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			f := newFixture(t)
@@ -155,7 +155,7 @@ func TestProjectChecks(t *testing.T) {
 }
 
 func TestClaudeChecks(t *testing.T) {
-	narrow := `{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "sv hook"}]}]}}`
+	narrow := `{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"command": "slint hook"}]}]}}`
 	for _, c := range []struct {
 		name   string
 		change func(f *fixture)
@@ -164,7 +164,7 @@ func TestClaudeChecks(t *testing.T) {
 		detail string
 	}{
 		{"skill missing", func(f *fixture) { f.remove(claude.SkillPath) }, "skill", StatusWarn, "is missing"},
-		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `sv context`"},
+		{"skill changed", func(f *fixture) { f.write(claude.SkillPath, "Write the code.\n") }, "skill", StatusWarn, "no longer tells Claude to run `slint context`"},
 		{"skill cannot be read", func(f *fixture) {
 			f.remove(claude.SkillPath)
 			f.write(filepath.Join(claude.SkillPath, "x"), "") // The skill path is now a directory.
@@ -177,18 +177,8 @@ func TestClaudeChecks(t *testing.T) {
 		{"copilot instructions cannot be read", func(f *fixture) {
 			f.remove(copilot.InstructionsPath)
 			f.write(filepath.Join(copilot.InstructionsPath, "x"), "") // The instructions path is now a directory.
-		}, "copilot", StatusFail, "specval.instructions.md"},
-		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `sv hook`"},
-		{"hook with the old command", func(f *fixture) {
-			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "specval hook"}]}]}}`)
-		}, "hook", StatusFail, "runs `specval hook`, but the command is now `sv hook`"},
-		{"old hook in home and current hook in the project", func(f *fixture) {
-			f.write(filepath.Join("..", "home", claude.SettingsPath), `{"hooks": {"PostToolUse": [{"hooks": [{"command": "specval hook"}]}]}}`)
-		}, "hook", StatusWarn, "home/.claude/settings.json runs `specval hook`, which no longer exists"},
-		{"old hook after the current hook in one file", func(f *fixture) {
-			f.write(claude.SettingsPath, `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "sv hook"}]},
-			  {"hooks": [{"command": "specval hook"}]}]}}`)
-		}, "hook", StatusWarn, ".claude/settings.json runs `specval hook`, which no longer exists"},
+		}, "copilot", StatusFail, "speclint.instructions.md"},
+		{"hook missing", func(f *fixture) { f.remove(claude.SettingsPath) }, "hook", StatusFail, "no PostToolUse hook runs `slint hook`"},
 		{"hook in home", func(f *fixture) {
 			f.remove(claude.SettingsPath)
 			f.write(filepath.Join("..", "home", claude.SettingsPath), narrow)
@@ -217,7 +207,7 @@ func TestUnknownHomeDirectory(t *testing.T) {
 	f.env.Home = ""
 	cwd := t.TempDir()
 	for path, content := range map[string]string{
-		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "sv hook"}]}]}}`,
+		claude.SettingsPath: `{"hooks": {"PostToolUse": [{"matcher": "Write|Edit|MultiEdit", "hooks": [{"command": "slint hook"}]}]}}`,
 		claude.SkillPath:    claude.Skill("specs"),
 	} {
 		p := filepath.Join(cwd, path)
@@ -229,24 +219,24 @@ func TestUnknownHomeDirectory(t *testing.T) {
 		}
 	}
 	t.Chdir(cwd)
-	f.want("hook", StatusFail, "no PostToolUse hook runs `sv hook`")
+	f.want("hook", StatusFail, "no PostToolUse hook runs `slint hook`")
 	f.want("skill", StatusWarn, "is missing")
 }
 
 func TestRegistryCountsTheLayerBreaks(t *testing.T) {
 	f := newFixture(t)
-	f.write(".specval/data/services.yaml", `services:
+	f.write(".speclint/data/services.yaml", `services:
   OrderApi: { layer: client, calls: [OrderAccessor] }
   OrderManager: { layer: manager, calls: [OrderAccessor] }
   OrderAccessor: { layer: accessor, calls: [BillingAccessor] }
   BillingAccessor: { layer: accessor, calls: [OrderAccessor] }
 `)
-	f.want("registry", StatusOK, "4 service(s), .specval/data/services.yaml; 3 registered call(s) break the layer rules (accessor -> accessor 2, client -> accessor 1)")
+	f.want("registry", StatusOK, "4 service(s), .speclint/data/services.yaml; 3 registered call(s) break the layer rules (accessor -> accessor 2, client -> accessor 1)")
 }
 
 func TestRegistryCountsTheLayerBreaksWithARegistryProblem(t *testing.T) {
 	f := newFixture(t)
-	f.write(".specval/data/services.yaml", `services:
+	f.write(".speclint/data/services.yaml", `services:
   OrderApi: { layer: client, calls: [OrderAccessor, Nobody] }
   OrderAccessor: { layer: accessor }
 `)
@@ -257,17 +247,17 @@ func TestPathChecks(t *testing.T) {
 	t.Run("not on PATH", func(t *testing.T) {
 		f := newFixture(t)
 		t.Setenv("PATH", t.TempDir())
-		f.want("path", StatusFail, "sv is not on PATH")
+		f.want("path", StatusFail, "slint is not on PATH")
 	})
 	t.Run("does not run", func(t *testing.T) {
 		f := newFixture(t)
 		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho broken\nexit 3\n")
 		f.want("path", StatusFail, "does not run: exit status 3 broken")
 	})
-	t.Run("another program named sv", func(t *testing.T) {
+	t.Run("another program named slint", func(t *testing.T) {
 		f := newFixture(t)
-		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho 'usage: sv [-v] [-w sec] command service ...'\n")
-		f.want("path", StatusFail, "is not specval; another program has the name sv")
+		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho 'usage: slint [-v] [-w sec] command service ...'\n")
+		f.want("path", StatusFail, "is not speclint; another program has the name slint")
 	})
 	t.Run("the same binary", func(t *testing.T) {
 		f := newFixture(t)
@@ -276,13 +266,13 @@ func TestPathChecks(t *testing.T) {
 	t.Run("a different binary", func(t *testing.T) {
 		f := newFixture(t)
 		ran := f.env.Executable
-		f.env.Executable = filepath.Join(t.TempDir(), "sv")
+		f.env.Executable = filepath.Join(t.TempDir(), "slint")
 		f.writeExecutable(f.env.Executable, fakeSv("v1.0.0"))
 		f.want("path", StatusWarn, "the hook will run "+ran+" (v9.9.9), but you ran "+f.env.Executable+" (v1.0.0)")
 	})
 	t.Run("no version command", func(t *testing.T) {
 		f := newFixture(t)
-		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho '  sv hook'\n")
+		f.writeExecutable(f.env.Executable, "#!/bin/sh\necho '  slint hook'\n")
 		f.want("path", StatusOK, f.env.Executable+" (unknown version)")
 	})
 }
@@ -305,8 +295,8 @@ func TestOneHookCheckWhenASettingsFileIsNotValid(t *testing.T) {
 
 func TestRegistryFixNamesTheConfiguredDataFile(t *testing.T) {
 	f := newFixture(t)
-	f.remove(".specval/data")
-	f.write(".specval.yaml", "data: [registry.yaml]\n")
+	f.remove(".speclint/data")
+	f.write(".speclint.yaml", "data: [registry.yaml]\n")
 	f.write("registry.yaml", "services: {}\n")
 	for _, c := range Run(context.Background(), f.env) {
 		if c.Name == "registry" && !strings.Contains(c.Fix, "registry.yaml") {

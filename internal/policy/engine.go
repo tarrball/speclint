@@ -19,8 +19,8 @@ import (
 	"github.com/open-policy-agent/opa/v1/storage/inmem"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/yamlpath"
+	"github.com/tarrball/speclint/internal/baseline"
+	"github.com/tarrball/speclint/internal/yamlpath"
 )
 
 // The queries collect the deny and warn results of each rule package. The
@@ -29,12 +29,12 @@ import (
 // expect the correct shape. The schema query runs only the schema rule, for
 // a done spec.
 const (
-	schemaQuery = `schema := [f | some f in data.specval.spec.schema.deny]`
+	schemaQuery = `schema := [f | some f in data.speclint.spec.schema.deny]`
 	specQuery   = schemaQuery + `;
-deny := [f | some p; p != "schema"; some f in data.specval.spec[p].deny];
-warn := [f | some p; some f in data.specval.spec[p].warn]`
-	registryQuery = `deny := [f | some p; some f in data.specval.registry[p].deny];
-warn := [f | some p; some f in data.specval.registry[p].warn]`
+deny := [f | some p; p != "schema"; some f in data.speclint.spec[p].deny];
+warn := [f | some p; some f in data.speclint.spec[p].warn]`
+	registryQuery = `deny := [f | some p; some f in data.speclint.registry[p].deny];
+warn := [f | some p; some f in data.speclint.registry[p].warn]`
 )
 
 // Engine evaluates specs and the service registry for one project.
@@ -47,7 +47,7 @@ type Engine struct {
 	// line numbers.
 	nodes   map[string]*yaml.Node
 	modules []*ast.Module
-	// baseline holds the modules that are built into specval.
+	// baseline holds the modules that are built into speclint.
 	baseline map[*ast.Module]bool
 	schemaQ  rego.PreparedEvalQuery
 	specQ    rego.PreparedEvalQuery
@@ -141,10 +141,10 @@ func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 		return nil, err
 	}
 	if kind := ruleKind(m.Package.Path); kind != "" {
-		// The queries read only the packages one level under specval.spec and
-		// specval.registry, so a deeper package would load but never run.
+		// The queries read only the packages one level under speclint.spec and
+		// speclint.registry, so a deeper package would load but never run.
 		if len(m.Package.Path) > 4 {
-			return nil, fmt.Errorf("%s: package %s is too deep; use specval.%s.<name>",
+			return nil, fmt.Errorf("%s: package %s is too deep; use speclint.%s.<name>",
 				m.Package.Location, strings.TrimPrefix(m.Package.Path.String(), "data."), kind)
 		}
 		for _, r := range m.Rules {
@@ -161,12 +161,12 @@ func (e *Engine) addModule(name, src string) (*ast.Module, error) {
 	return m, nil
 }
 
-// ruleKind returns "spec" for a package under data.specval.spec, "registry"
-// for a package under data.specval.registry, and "" for any other package.
+// ruleKind returns "spec" for a package under data.speclint.spec, "registry"
+// for a package under data.speclint.registry, and "" for any other package.
 // It reads the parts of the path, so a part in bracket notation, such as
-// specval.spec["pricing-rules"], counts as one part.
+// speclint.spec["pricing-rules"], counts as one part.
 func ruleKind(path ast.Ref) string {
-	if len(path) < 4 || !path[1].Equal(ast.StringTerm("specval")) {
+	if len(path) < 4 || !path[1].Equal(ast.StringTerm("speclint")) {
 		return ""
 	}
 	for _, kind := range []string{"spec", "registry"} {
@@ -197,7 +197,7 @@ func ruleAnnotation(r *ast.Rule) *ast.Annotations {
 
 // capabilities gives the built-in functions that a rule can use. A rule must
 // give the same findings each time for the same spec and data, and it must not
-// use the network. Thus specval removes each built-in function that OPA marks
+// use the network. Thus speclint removes each built-in function that OPA marks
 // as nondeterministic, for example http.send and time.now_ns. The schema
 // functions are the exception, because SV001 uses json.match_schema.
 var capabilities = sync.OnceValue(func() *ast.Capabilities {
@@ -254,7 +254,7 @@ type SpecResult struct {
 func (e *Engine) CheckSpec(ctx context.Context, b []byte) (SpecResult, error) {
 	var node yaml.Node
 	var doc any
-	// specval cannot read the status of a spec that is not valid YAML, so it
+	// speclint cannot read the status of a spec that is not valid YAML, so it
 	// does not know if the spec is done.
 	second, err := parseOne(b, &node)
 	if err != nil {
@@ -263,7 +263,7 @@ func (e *Engine) CheckSpec(ctx context.Context, b []byte) (SpecResult, error) {
 	if second > 0 {
 		return stopped(false, Finding{
 			Rule: "SV000", Title: "Spec is valid YAML", Severity: SeverityError, Line: second,
-			Msg: "The spec has more than one YAML document. specval reads only the first.",
+			Msg: "The spec has more than one YAML document. speclint reads only the first.",
 			Fix: "Remove the line with three dashes and the document after it. Put each spec in its own file.",
 		}), nil
 	}
@@ -338,7 +338,7 @@ func stopped(done bool, found ...Finding) SpecResult {
 // statusDone is the status of a spec whose change is implemented.
 const statusDone = "done"
 
-// isDone reports whether the spec has the status done. specval runs only
+// isDone reports whether the spec has the status done. speclint runs only
 // the schema rule on such a spec. The other rules use the registry as it is now,
 // and the change of the spec is already in the registry. For example, SV104
 // would report each service in services.new.

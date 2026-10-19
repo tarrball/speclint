@@ -12,7 +12,7 @@ import (
 	"github.com/open-policy-agent/opa/v1/util"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tarrball/specval/internal/yamlpath"
+	"github.com/tarrball/speclint/internal/yamlpath"
 )
 
 // Architecture is the baseline layer data, data.dpl.

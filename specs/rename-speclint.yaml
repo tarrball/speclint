@@ -1,0 +1,46 @@
+speclint: 1
+id: rename-speclint
+kind: chore
+status: done
+title: Rename the product to speclint and the command to slint
+summary: >
+  The product is now speclint, and the command is now slint. The module is
+  github.com/tarrball/speclint, and the main package is cmd/slint. The
+  configuration file is .speclint.yaml, the project directory is .speclint,
+  the spec field is speclint, and the Rego packages are speclint.spec,
+  speclint.registry, and speclint.lib. The hook command is slint hook. The
+  rule IDs do not change. There is no migration: speclint does not read the
+  old names, and doctor no longer reports a hook that runs the old command.
+acceptance:
+  - id: AC1
+    text: Given a project with .speclint.yaml, when slint check runs, then it finds the configuration and checks the specs.
+  - id: AC2
+    text: Given a new directory, when slint init runs, then it writes .speclint.yaml, the files in .speclint, and a hook that runs slint hook.
+  - id: AC3
+    text: Given a project rule in the package speclint.spec.x that calls data.speclint.lib.finding, when slint check runs, then it reports the finding of the rule.
+  - id: AC4
+    text: Given a settings file with a hook that runs slint hook, when slint doctor runs, then the hook check passes.
+  - id: AC5
+    text: Given a binary named slint on PATH whose help does not tell about slint hook, when slint doctor runs, then the path check fails.
+services:
+  changed:
+    - CheckCommand
+    - ContextCommand
+    - DoctorCommand
+    - HookCommand
+    - InitCommand
+    - NewCommand
+    - VersionCommand
+    - CheckManager
+    - DoctorManager
+    - ScaffoldManager
+    - PolicyEngine
+    - ClaudeAccessor
+    - ConfigAccessor
+    - CopilotAccessor
+    - Baseline
+calls: []
+out_of_scope:
+  - speclint does not read .specval.yaml, the .specval directory, or the specval Rego packages.
+  - The rule IDs SV and SR do not change.
+  - The specs that have status done keep their text. Only their format field changes.

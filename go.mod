@@ -1,4 +1,4 @@
-module github.com/tarrball/specval
+module github.com/tarrball/speclint
 
 go 1.26.0
 

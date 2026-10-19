@@ -44,9 +44,9 @@ type specFields struct {
 var schemaFields = sync.OnceValue(func() specFields {
 	var s struct {
 		Properties struct {
-			Specval struct {
+			Speclint struct {
 				Const int `json:"const"`
-			} `json:"specval"`
+			} `json:"speclint"`
 			Kind struct {
 				Enum []string `json:"enum"`
 			} `json:"kind"`
@@ -63,7 +63,7 @@ var schemaFields = sync.OnceValue(func() specFields {
 	return specFields{
 		kinds:  s.Properties.Kind.Enum,
 		id:     regexp.MustCompile(s.Properties.ID.Pattern),
-		format: s.Properties.Specval.Const,
+		format: s.Properties.Speclint.Const,
 	}
 })
 
@@ -71,7 +71,7 @@ var schemaFields = sync.OnceValue(func() specFields {
 func Kinds() []string { return slices.Clone(schemaFields().kinds) }
 
 // FormatVersion returns the version of the spec format: the value of the
-// specval field of a spec.
+// speclint field of a spec.
 func FormatVersion() int { return schemaFields().format }
 
 // IDPattern returns the pattern that the ID of a spec must match.

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tarrball/specval/internal/doctor"
+	"github.com/tarrball/speclint/internal/doctor"
 )
 
 func cmdDoctor(ctx context.Context, env *Env, args []string) (exitCode, error) {
@@ -61,7 +61,7 @@ func printChecks(w io.Writer, checks []doctor.Check) {
 		}
 	}
 	if fails+warns == 0 {
-		fmt.Fprintln(w, "The specval setup has no problems.")
+		fmt.Fprintln(w, "The speclint setup has no problems.")
 	} else {
 		fmt.Fprintf(w, "%d failure(s), %d warning(s).\n", fails, warns)
 	}

@@ -1,0 +1,77 @@
+# new writes <specs dir>/<id>.yaml from the template and prints its path,
+# relative to the working directory.
+cd proj
+exits 0 slint new ORD-1
+stdout '^specs/ORD-1.yaml$'
+cmp specs/ORD-1.yaml $WORK/want/ORD-1.yaml
+
+# Flags can come after the id. new quotes the title.
+exits 0 slint new BUG-2 --title 'Fix the "total" field' --kind bugfix
+cmp specs/BUG-2.yaml $WORK/want/BUG-2.yaml
+
+# A ticket number is a usual id. new writes it as text, so the schema
+# accepts it. The new spec has only the errors of its empty fields.
+exits 0 slint new 234 --title 'Fix it'
+grep '^id: "234"$' specs/234.yaml
+exits 1 slint check specs/234.yaml
+! stdout '\(id\)'
+stdout '\(summary\)'
+
+# new does not overwrite a spec.
+exits 2 slint new ORD-1
+stderr '^slint: specs/ORD-1.yaml already exists; edit it, or use another id$'
+
+# The id must be one argument of letters, digits, '.', '_', and '-'.
+exits 2 slint new 'bad id'
+stderr '^slint: usage: slint new <id>; the id starts with a letter or a digit, and contains only letters, digits, ''.'', ''_'', and ''-''$'
+exits 2 slint new
+stderr '^slint: usage: slint new <id>'
+exits 2 slint new A B
+stderr '^slint: usage: slint new <id>'
+
+# The kind must be one of the kinds in the schema.
+exits 2 slint new X-1 --kind epic
+stderr '^slint: the kind "epic" is not valid; use one of: feature, bugfix, chore$'
+! exists specs/X-1.yaml
+
+# An unknown flag is a usage error.
+exits 2 slint new X --nope
+stderr 'flag provided but not defined: -nope'
+
+# Without a .speclint.yaml, new exits 2.
+cd $WORK/elsewhere
+exits 2 slint new ORD-3
+stderr '^slint: no .speclint.yaml in '
+
+-- proj/.speclint.yaml --
+-- elsewhere/.keep --
+-- want/ORD-1.yaml --
+speclint: 1
+id: ORD-1
+kind: feature
+status: draft
+title: ""
+summary: ""
+acceptance:
+  - id: AC1
+    text: ""
+services:
+  new: []
+  changed: []
+calls: []
+out_of_scope: []
+-- want/BUG-2.yaml --
+speclint: 1
+id: BUG-2
+kind: bugfix
+status: draft
+title: "Fix the \"total\" field"
+summary: ""
+acceptance:
+  - id: AC1
+    text: ""
+services:
+  new: []
+  changed: []
+calls: []
+out_of_scope: []

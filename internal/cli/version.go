@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tarrball/specval/internal/baseline"
+	"github.com/tarrball/speclint/internal/baseline"
 )
 
 func cmdVersion(_ context.Context, env *Env, args []string) error {
@@ -15,6 +15,6 @@ func cmdVersion(_ context.Context, env *Env, args []string) error {
 	if v == "" {
 		v = "devel"
 	}
-	_, err := fmt.Fprintf(env.Stdout, "sv %s (spec format %d)\n", v, baseline.FormatVersion())
+	_, err := fmt.Fprintf(env.Stdout, "slint %s (spec format %d)\n", v, baseline.FormatVersion())
 	return err
 }

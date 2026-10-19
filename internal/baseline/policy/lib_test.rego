@@ -1,6 +1,6 @@
-package specval.lib_test
+package speclint.lib_test
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
 test_finding_reads_the_rule_metadata if {

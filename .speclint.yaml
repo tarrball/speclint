@@ -1,0 +1,8 @@
+# The speclint configuration. A path is relative to this file.
+specs_dir: specs
+# The project rules: Rego files with the package speclint.spec.<name> (speclint
+# runs it for each spec) or speclint.registry.<name> (speclint runs it one time,
+# with the data only).
+policy: [.speclint/policy]
+# The project data: YAML or JSON files. Each top-level key is data.project.<key>.
+data: [.speclint/data]

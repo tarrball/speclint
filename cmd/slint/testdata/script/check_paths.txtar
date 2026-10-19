@@ -1,0 +1,14 @@
+# A registry key with a dot is in brackets and quotes in the path, and the
+# finding has the line of that key.
+exits 1 slint check
+cmp stdout want.txt
+
+-- .speclint.yaml --
+-- .speclint/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  Order.Accessor: { layer: storage }
+-- want.txt --
+.speclint/data/services.yaml:3 error SR001 Order.Accessor has no valid layer (got "storage") (services["Order.Accessor"])
+    fix: Set layer to one of: client, manager, engine, accessor, resource, utility.
+speclint checked 0 spec(s) and found 1 error(s) and 0 warning(s).
