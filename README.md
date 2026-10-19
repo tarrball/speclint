@@ -2,6 +2,11 @@
 
 speclint checks a change spec against architecture rules before you write code.
 
+speclint theorizes that a better specification produces a better outcome from
+an AI coding assistant, and that a linted specification is a better
+specification. These hypotheses are not verified yet. speclint is evolving
+quickly as I test them, so expect breaking changes.
+
 A spec is a short YAML file for one ticket. It gives the acceptance criteria,
 the services that the change adds or changes, and each call between services.
 speclint checks the spec against a layered architecture and against the rules
