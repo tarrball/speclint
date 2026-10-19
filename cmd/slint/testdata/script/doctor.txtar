@@ -1,6 +1,6 @@
 # After init, doctor warns only that the registry is empty.
 cd proj
-exits 0 slint init
+exits 0 slint init --claude
 exits 0 slint doctor
 stdout '^✓ config    .*/\.speclint\.yaml$'
 stdout '^✓ specs     specs \(0 spec\(s\)\)$'
@@ -80,14 +80,23 @@ exits 1 slint doctor
 stdout '^✗ hook      .claude/settings.local.json is not valid JSON: '
 rm .claude/settings.local.json
 
-# No hook is a failure.
+# With the skill, no hook is a failure, and the fix tells to use --claude.
+cp $WORK/skill.md .claude/skills/spec/SKILL.md
 rm .claude/settings.json
 exits 1 slint doctor
 stdout '^✗ hook      no PostToolUse hook runs `slint hook`, so '
+stdout '^    fix: Run `slint init --claude` in the project root. '
+
+# With no skill and no hook, Claude Code is not set up. One claude check
+# passes in place of the skill, hook, and path checks.
+rm .claude/skills/spec/SKILL.md
+exits 0 slint doctor
+stdout '^✓ claude    not set up; to use speclint with Claude Code, run `slint init --claude`$'
+! stdout '^\S (skill|hook|path) '
 
 # A missing specs, data, or policy directory is a warning.
 rm specs .speclint/policy
-exits 1 slint doctor
+exits 0 slint doctor
 stdout '^! specs     specs does not exist$'
 stdout '^! policy    .speclint/policy \(listed in .speclint.yaml\) does not exist$'
 
@@ -98,6 +107,8 @@ stdout '^✗ config    no .speclint.yaml in .* or in a parent directory; run `sl
 stdout '^    fix: Run `slint init` in the project root.$'
 stdout '^1 failure\(s\), 0 warning\(s\).$'
 
+-- skill.md --
+Before you plan a change, run slint context.
 -- proj/.keep --
 -- elsewhere/.keep --
 -- services.yaml --

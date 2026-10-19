@@ -90,14 +90,14 @@ func commands() []command {
 		},
 		{
 			name:     "init",
-			synopsis: text("[--dry-run]"),
+			synopsis: text("[--claude] [--dry-run]"),
 			help: []string{
-				"Set up speclint, the Claude Code skill and hook, and the Copilot review",
-				"instructions in this directory.",
+				"Set up speclint and the Copilot review instructions in this directory.",
+				"With --claude, also add the Claude Code skill and hook.",
 				"You can run it again. It adds only the parts that are missing.",
 				"With --dry-run, it prints the changes and writes nothing.",
 			},
-			examples: []string{"slint init --dry-run", "slint init"},
+			examples: []string{"slint init --claude --dry-run", "slint init --claude", "slint init"},
 			run:      noCode(cmdInit),
 		},
 		{

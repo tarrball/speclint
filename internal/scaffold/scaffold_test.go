@@ -23,7 +23,7 @@ import (
 func TestInitCreatesAProject(t *testing.T) {
 	dir := t.TempDir()
 	var out bytes.Buffer
-	if err := Init(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	want := `created  .speclint.yaml
@@ -68,7 +68,7 @@ func TestProjectTemplateCompiles(t *testing.T) {
 
 func TestInitDoesNotOverwrite(t *testing.T) {
 	dir := t.TempDir()
-	if err := Init(dir, &bytes.Buffer{}); err != nil {
+	if err := Init(dir, &bytes.Buffer{}, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	services := filepath.Join(dir, ".speclint", "data", "services.yaml")
@@ -80,7 +80,7 @@ func TestInitDoesNotOverwrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := Init(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(out.String(), "created") || strings.Contains(out.String(), "hooked") {
@@ -103,7 +103,7 @@ func TestInitWritesTheCopilotInstructions(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: changes\ndata: [arch/registry.yaml]\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Init(dir, &bytes.Buffer{}); err != nil {
+	if err := Init(dir, &bytes.Buffer{}, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, copilot.InstructionsPath))
@@ -114,6 +114,38 @@ func TestInitWritesTheCopilotInstructions(t *testing.T) {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("the instructions do not contain %q:\n%s", want, b)
 		}
+	}
+}
+
+func TestInitWithoutClaudeAddsNoClaudeParts(t *testing.T) {
+	dir := t.TempDir()
+	// Without Claude, Init does not read the settings file, so a file that
+	// is not valid does not stop it.
+	settings := filepath.Join(dir, claude.SettingsPath)
+	if err := os.MkdirAll(filepath.Dir(settings), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(settings, []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := Init(dir, &out, Options{}); err != nil {
+		t.Fatal(err)
+	}
+	want := `created  .speclint.yaml
+created  .speclint/data/services.yaml
+created  .speclint/policy/project.rego
+created  .github/instructions/speclint.instructions.md
+created  specs/.gitkeep
+`
+	if out.String() != want {
+		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
+	}
+	if _, err := os.Stat(filepath.Join(dir, claude.SkillPath)); !os.IsNotExist(err) {
+		t.Errorf("Init made the skill: %v", err)
+	}
+	if b, err := os.ReadFile(settings); err != nil || string(b) != "{not json" {
+		t.Errorf("settings = %q, %v; want the file unchanged", b, err)
 	}
 }
 
@@ -139,7 +171,7 @@ func TestInitPrintsTheMemoryLine(t *testing.T) {
 				}
 			}
 			var out bytes.Buffer
-			if err := Init(dir, &out); err != nil {
+			if err := Init(dir, &out, Options{Claude: true}); err != nil {
 				t.Fatal(err)
 			}
 			if got := strings.Contains(out.String(), claude.MemoryLine); got != c.hint {
@@ -159,7 +191,7 @@ func TestInitUsesTheConfiguredSpecsDir(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: docs/changes\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Init(dir, &bytes.Buffer{}); err != nil {
+	if err := Init(dir, &bytes.Buffer{}, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "docs", "changes")); err != nil {
@@ -180,7 +212,7 @@ func TestInitWritesNothingIfTheSettingsAreNotValid(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := Init(dir, &out); err == nil || !strings.Contains(err.Error(), "is not valid JSON") {
+	if err := Init(dir, &out, Options{Claude: true}); err == nil || !strings.Contains(err.Error(), "is not valid JSON") {
 		t.Fatalf("Init = %v, want an invalid JSON error", err)
 	}
 	if out.Len() != 0 {
@@ -328,7 +360,7 @@ func TestInitStopsOnAConfigurationThatIsNotValid(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := Init(dir, &out); err == nil {
+	if err := Init(dir, &out, Options{Claude: true}); err == nil {
 		t.Fatalf("Init = nil, want the configuration error; output:\n%s", out.String())
 	}
 	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
@@ -342,7 +374,7 @@ func TestInitUsesTheConfiguredDataAndPolicyPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := Init(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	for _, p := range []string{"registry.yaml", filepath.Join("rules", "project.rego")} {
@@ -379,7 +411,7 @@ func initIn(t *testing.T, files map[string]string) (dir, output string) {
 		}
 	}
 	var out bytes.Buffer
-	if err := Init(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true}); err != nil {
 		t.Fatalf("Init: %v\noutput:\n%s", err, out.String())
 	}
 	return dir, out.String()
@@ -434,7 +466,7 @@ func TestInitWritesTheSpecsDirIntoTheSkill(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte("specs_dir: changes\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Init(dir, &bytes.Buffer{}); err != nil {
+	if err := Init(dir, &bytes.Buffer{}, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, claude.SkillPath))
@@ -534,7 +566,7 @@ func files(t *testing.T, dir string) []string {
 func TestDryRunWritesNothing(t *testing.T) {
 	dir := t.TempDir()
 	var out bytes.Buffer
-	if err := DryRun(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true, DryRun: true}); err != nil {
 		t.Fatal(err)
 	}
 	want := `create   .speclint.yaml
@@ -560,12 +592,12 @@ Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
 
 func TestDryRunAfterInit(t *testing.T) {
 	dir := t.TempDir()
-	if err := Init(dir, &bytes.Buffer{}); err != nil {
+	if err := Init(dir, &bytes.Buffer{}, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := files(t, dir)
 	var out bytes.Buffer
-	if err := DryRun(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true, DryRun: true}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(out.String(), "create ") || !strings.Contains(out.String(), "exists   .claude/settings.json (slint hook)\n") {
@@ -597,8 +629,8 @@ func TestDryRunGivesTheErrorsOfInit(t *testing.T) {
 			}
 		}
 		before := files(t, dir)
-		dryErr := DryRun(dir, &bytes.Buffer{})
-		initErr := Init(dir, &bytes.Buffer{})
+		dryErr := Init(dir, &bytes.Buffer{}, Options{Claude: true, DryRun: true})
+		initErr := Init(dir, &bytes.Buffer{}, Options{Claude: true})
 		if dryErr == nil || initErr == nil || dryErr.Error() != initErr.Error() {
 			t.Errorf("%s: DryRun error %v, Init error %v", name, dryErr, initErr)
 		}
@@ -619,7 +651,7 @@ func TestInitKeepsTheRulesOfAProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := Init(dir, &out); err != nil {
+	if err := Init(dir, &out, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "exists   .speclint/policy/naming.rego (rules)\n") {
@@ -637,7 +669,7 @@ func TestInitKeepsTheRulesOfAProject(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(rules, "naming_test.rego"), []byte("package speclint.spec.naming_test\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := Init(dir, &bytes.Buffer{}); err != nil {
+	if err := Init(dir, &bytes.Buffer{}, Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(rules, "project.rego")); err != nil {

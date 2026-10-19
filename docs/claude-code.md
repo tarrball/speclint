@@ -1,7 +1,7 @@
 # Claude Code
 
 speclint tells Claude Code to write a spec before it writes code, and checks
-each spec that Claude saves. `slint init` sets up these parts:
+each spec that Claude saves. `slint init --claude` sets up these parts:
 
 - **A skill**, `.claude/skills/spec/SKILL.md`. It tells Claude to run
   `slint context` while it plans, to write the spec, and to fix each finding
@@ -15,6 +15,11 @@ each spec that Claude saves. `slint init` sets up these parts:
 - **Copilot review instructions**,
   `.github/instructions/speclint.instructions.md`. See
   [Review a pull request with Copilot](#review-a-pull-request-with-copilot).
+
+Without `--claude`, `slint init` writes only the speclint files and the
+Copilot review instructions. It does not read or change the Claude Code
+settings, and it does not print the line for `CLAUDE.md`. To add the Claude
+Code parts later, run `slint init --claude`.
 
 Claude loads the skill only when it thinks that the task needs it. If no
 `CLAUDE.md` tells about speclint, `init` prints a line to add to `CLAUDE.md`:
@@ -31,7 +36,7 @@ their order and their text, and the file keeps its indent.
 
 `init` does not change a file that exists. If the policy paths already have a
 Rego file, it does not add the example rule file. To see the changes before
-`init` makes them, run `slint init --dry-run`. It prints each file that `init`
+`init` makes them, run `slint init --claude --dry-run`. It prints each file that `init`
 creates and the hook that it adds, and it writes nothing.
 
 ## What the hook does
@@ -74,7 +79,7 @@ checks the PATH that Claude Code has.
 
 `slint init` does not change a hook that exists. A hook from an older `slint init`
 runs only `slint hook`. To get the new hook, remove the old one and run
-`slint init` again.
+`slint init --claude` again.
 
 ## Feedback, not a gate
 
@@ -121,10 +126,12 @@ the checks as JSON.
 | data, policy | A data or policy path in `.speclint.yaml` does not exist (warning). |
 | rules | A data file or a Rego file does not load, or a rule has no `custom.id`. |
 | registry | No services are registered (warning), the registry is not a mapping, or a registry rule fails. If the registry records calls that break the layer rules, the check gives their number for each pair of layers, and it still passes. SV202 reports such a call when a spec changes the service. |
+| claude | Passes, and shows that Claude Code is not set up, if no skill and no `slint hook` are in the project or the home directory. Then `doctor` does not do the skill, hook, and path checks. |
 | skill | The skill is missing, or it no longer tells Claude to run `slint context` (warning). |
 | copilot | The Copilot review instructions are missing (warning). A project that does not use Copilot can ignore this warning. |
 | hook | No `PostToolUse` hook runs `slint hook` in the project, local, or user settings; a settings file sets `disableAllHooks`; or a settings file is not valid JSON. If the matcher does not match `Write`, `Edit`, and `MultiEdit`, the check warns. |
 | path | `slint` is not on `PATH`, it does not run, or it is another program with the name `slint`. If the `slint` on `PATH` is not the binary that runs `doctor`, the check warns and shows the version of each. If they are the same, the check shows the path and the version of the `slint` that the hook runs. |
 
-To repair the setup, run `slint init` in the project root. It adds each
-missing part and does not change the other files.
+To repair the setup, run `slint init` in the project root, or
+`slint init --claude` if you use Claude Code. It adds each missing part and
+does not change the other files.

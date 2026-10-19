@@ -38,34 +38,41 @@ var (
 	specTemplate string
 )
 
+// Options selects what Init does. Each integration that a project can do
+// without has a field, and Init adds it only if the field is true.
+type Options struct {
+	// Claude adds the Claude Code skill and the hook, and tells the line to
+	// add to CLAUDE.md.
+	Claude bool
+	// DryRun writes the lines of Init to w, with "create" and "hook" for the
+	// changes that Init makes. Init then gives the same errors, and it writes
+	// no file and no directory.
+	DryRun bool
+}
+
 // Init creates each part of a speclint project in dir that does not exist:
 //
 //   - the configuration file
 //   - the data and policy files
 //   - the specs directory
-//   - the Claude Code skill
 //   - the Copilot review instructions
-//   - the hook in the Claude Code settings
+//   - with opts.Claude, the Claude Code skill and the hook in the Claude Code
+//     settings
 //
 // Init does not change a file that exists. The one exception is the settings
 // file, to which it adds the hook. If the policy paths have a Rego file, Init
 // does not add the example rule file. Init writes one line to w for each
-// file. If no CLAUDE.md tells about speclint, Init then writes a line for the
-// user to add to it.
-func Init(dir string, w io.Writer) error { return setUp(dir, w, false) }
-
-// DryRun writes the lines of Init to w, with "create" and "hook" for the
-// changes that Init makes. It gives the same errors as Init, and it writes
-// no file and no directory.
-func DryRun(dir string, w io.Writer) error { return setUp(dir, w, true) }
-
-// setUp does the work of Init, or of DryRun if dry is true.
-func setUp(dir string, w io.Writer, dry bool) error {
+// file. With opts.Claude, if no CLAUDE.md tells about speclint, Init then
+// writes a line for the user to add to it.
+func Init(dir string, w io.Writer, opts Options) error {
+	dry := opts.DryRun
 	// Read the settings file first, so that a file that is not valid stops
 	// Init before it writes anything.
 	settings := filepath.Join(dir, claude.SettingsPath)
-	if _, err := claude.InspectSettings(settings); err != nil {
-		return err
+	if opts.Claude {
+		if _, err := claude.InspectSettings(settings); err != nil {
+			return err
+		}
 	}
 	// A configuration in dir gives the paths for the other parts. Init does
 	// not use the configuration of a parent directory.
@@ -114,9 +121,11 @@ func setUp(dir string, w io.Writer, dry bool) error {
 		{config.FileName, configTemplate},
 		{services, servicesContent},
 		{policy, projectTemplate},
-		{claude.SkillPath, claude.Skill(cfg.SpecsDir)},
-		{copilot.InstructionsPath, copilot.Instructions(cfg.SpecsDir, registryPath)},
 	}
+	if opts.Claude {
+		files = append(files, struct{ path, content string }{claude.SkillPath, claude.Skill(cfg.SpecsDir)})
+	}
+	files = append(files, struct{ path, content string }{copilot.InstructionsPath, copilot.Instructions(cfg.SpecsDir, registryPath)})
 	// Git does not keep an empty directory. Without a file in it, the specs
 	// directory is not in a clone, and slint doctor warns about it.
 	if _, err := os.Stat(specsDir); errors.Is(err, fs.ErrNotExist) {
@@ -142,8 +151,10 @@ func setUp(dir string, w io.Writer, dry bool) error {
 			return err
 		}
 	}
-	if err := addHook(settings, w, dry); err != nil {
-		return err
+	if opts.Claude {
+		if err := addHook(settings, w, dry); err != nil {
+			return err
+		}
 	}
 	if dry {
 		if _, err := fmt.Fprintln(w, "\nThis is a dry run. slint init wrote nothing."); err != nil {
@@ -151,6 +162,9 @@ func setUp(dir string, w io.Writer, dry bool) error {
 		}
 	} else if err := os.MkdirAll(specsDir, 0o755); err != nil {
 		return err
+	}
+	if !opts.Claude {
+		return nil
 	}
 	hint, err := claude.MemoryHint(dir)
 	if err != nil || hint == "" {
