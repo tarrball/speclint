@@ -1,0 +1,34 @@
+speclint: 1
+id: init-claude-flag
+kind: feature
+status: done
+title: Let slint init add the Claude Code parts only with --claude
+summary: >
+  slint init always writes the Claude Code skill and adds the hook to the
+  Claude Code settings. A project that does not use Claude Code gets files
+  that it does not need. Now slint init writes the speclint files and the
+  Copilot review instructions. slint init --claude also writes the skill,
+  adds the hook, and tells the line to add to CLAUDE.md. Each integration
+  that is not part of every project gets its own flag in the same way.
+  slint doctor checks the Claude Code parts only if the project or the user
+  has the skill or the hook.
+acceptance:
+  - id: AC1
+    text: Given a new directory, when slint init runs, then it writes the configuration, the data and policy files, the specs directory, and the Copilot instructions. It does not read or write the settings file, and it does not write the skill or the CLAUDE.md line.
+  - id: AC2
+    text: Given a new directory, when slint init --claude runs, then it also writes the skill, adds the hook to the settings, and prints the line to add to CLAUDE.md.
+  - id: AC3
+    text: Given a new directory, when slint init --claude --dry-run runs, then it prints the same changes as slint init --claude, and it writes nothing.
+  - id: AC4
+    text: Given no skill and no slint hook in the project or the home directory, when slint doctor runs, then one ok check tells that Claude Code is not set up. Doctor does not check the skill, the hook, or the path.
+  - id: AC5
+    text: Given a project with the skill and no hook, when slint doctor runs, then the hook check fails, and its fix tells to run slint init --claude.
+calls:
+  - { from: InitCommand, to: ScaffoldManager, op: Init, covers: [AC1, AC2, AC3] }
+  - { from: ScaffoldManager, to: ClaudeAccessor, op: AddHook, covers: [AC2, AC3] }
+  - { from: DoctorCommand, to: DoctorManager, op: Run, covers: [AC4, AC5] }
+  - { from: DoctorManager, to: ClaudeAccessor, op: InspectSettings, covers: [AC4, AC5] }
+out_of_scope:
+  - slint init does not remove the skill or the hook from a project that has them.
+  - slint init without --claude does not tell that the Claude Code parts are missing.
+  - The Copilot instructions stay on by default. A --copilot flag is a later change.

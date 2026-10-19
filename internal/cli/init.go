@@ -8,7 +8,9 @@ import (
 
 func cmdInit(_ context.Context, env *Env, args []string) error {
 	fl := newFlagSet("init", env)
-	dry := fl.Bool("dry-run", false, "print the changes, and write nothing")
+	var opts scaffold.Options
+	fl.BoolVar(&opts.Claude, "claude", false, "also add the Claude Code skill and hook")
+	fl.BoolVar(&opts.DryRun, "dry-run", false, "print the changes, and write nothing")
 	if err := parseNoArgs(fl, args); err != nil {
 		return err
 	}
@@ -16,8 +18,5 @@ func cmdInit(_ context.Context, env *Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	if *dry {
-		return scaffold.DryRun(dir, env.Stdout)
-	}
-	return scaffold.Init(dir, env.Stdout)
+	return scaffold.Init(dir, env.Stdout, opts)
 }

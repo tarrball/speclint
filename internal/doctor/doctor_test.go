@@ -31,7 +31,7 @@ func newFixture(t *testing.T) *fixture {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := scaffold.Init(dir, &bytes.Buffer{}); err != nil {
+	if err := scaffold.Init(dir, &bytes.Buffer{}, scaffold.Options{Claude: true}); err != nil {
 		t.Fatal(err)
 	}
 	f.write(".speclint/data/services.yaml", "services:\n  OrderManager: { layer: manager }\n")
@@ -100,7 +100,7 @@ func TestHealthyProject(t *testing.T) {
 			t.Errorf("%s: %s %s", c.Name, c.Status, c.Detail)
 		}
 	}
-	if got := strings.Join(names, " "); got != "config specs rules registry skill copilot hook path" {
+	if got := strings.Join(names, " "); got != "config specs rules registry copilot skill hook path" {
 		t.Errorf("checks = %s", got)
 	}
 }
@@ -219,8 +219,42 @@ func TestUnknownHomeDirectory(t *testing.T) {
 		}
 	}
 	t.Chdir(cwd)
+	// The files in the working directory do not count, so Claude Code is not
+	// set up.
+	f.want("claude", StatusOK, "not set up")
+}
+
+func TestClaudeNotSetUp(t *testing.T) {
+	f := newFixture(t)
+	f.remove(claude.SettingsPath)
+	f.remove(claude.SkillPath)
+	checks := Run(context.Background(), f.env)
+	var names []string
+	for _, c := range checks {
+		names = append(names, c.Name)
+	}
+	if got := strings.Join(names, " "); got != "config specs rules registry copilot claude" {
+		t.Errorf("checks = %s", got)
+	}
+	f.want("claude", StatusOK, "not set up; to use speclint with Claude Code, run `slint init --claude`")
+}
+
+func TestSettingsThatAreNotValidDoNotSetUpClaude(t *testing.T) {
+	f := newFixture(t)
+	f.remove(claude.SkillPath)
+	f.write(claude.SettingsPath, "{not json")
+	f.want("claude", StatusOK, "not set up")
+}
+
+func TestClaudeRepairTellsToUseTheFlag(t *testing.T) {
+	f := newFixture(t)
+	f.remove(claude.SettingsPath)
+	for _, c := range Run(context.Background(), f.env) {
+		if c.Name == "hook" && !strings.Contains(c.Fix, "slint init --claude") {
+			t.Errorf("hook fix = %q, want slint init --claude", c.Fix)
+		}
+	}
 	f.want("hook", StatusFail, "no PostToolUse hook runs `slint hook`")
-	f.want("skill", StatusWarn, "is missing")
 }
 
 func TestRegistryCountsTheLayerBreaks(t *testing.T) {

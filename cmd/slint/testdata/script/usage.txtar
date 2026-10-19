@@ -46,9 +46,9 @@ Usage:
         Make the spec <specs dir>/<id>.yaml from the template.
   slint schema
         Print the JSON Schema of a spec.
-  slint init [--dry-run]
-        Set up speclint, the Claude Code skill and hook, and the Copilot review
-        instructions in this directory.
+  slint init [--claude] [--dry-run]
+        Set up speclint and the Copilot review instructions in this directory.
+        With --claude, also add the Claude Code skill and hook.
         You can run it again. It adds only the parts that are missing.
         With --dry-run, it prints the changes and writes nothing.
   slint doctor [--format text|json]
