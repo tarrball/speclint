@@ -44,7 +44,7 @@ shell profile. To update `slint`, run the command again.
 To install a given version, set `SLINT_VERSION` for `sh`:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/tarrball/speclint/main/scripts/install.sh | SLINT_VERSION=v0.1.0 sh
+curl -fsSL https://raw.githubusercontent.com/tarrball/speclint/main/scripts/install.sh | SLINT_VERSION=v0.4.0 sh
 ```
 
 To use another directory, also set `SLINT_INSTALL_DIR`. Use a directory that is
@@ -58,7 +58,7 @@ SHA-256 checksum of each binary. On Linux and macOS, a download does not keep
 the permission to run the file. Give the permission before you use `slint`:
 
 ```
-mv slint_v0.1.0_darwin_arm64 slint
+mv slint_v0.4.0_darwin_arm64 slint
 chmod +x slint
 ```
 

@@ -3,7 +3,7 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/tarrball/speclint/main/scripts/install.sh | sh
 #
-# SLINT_VERSION is the release to install, for example v0.1.0. The default is
+# SLINT_VERSION is the release to install, for example v0.4.0. The default is
 # the latest release. SLINT_INSTALL_DIR is the directory for slint. The default is
 # $HOME/.local/bin. The script does not use sudo. To update slint, run the
 # script again.
@@ -39,12 +39,12 @@ if [ -z "$version" ]; then
 	version="${url##*/}"
 	case "$version" in
 	v*) ;;
-	*) fail "cannot find the latest release; set SLINT_VERSION, for example SLINT_VERSION=v0.1.0" ;;
+	*) fail "cannot find the latest release; set SLINT_VERSION, for example SLINT_VERSION=v0.4.0" ;;
 	esac
 fi
 case "$version" in
 v*) ;;
-*) fail "SLINT_VERSION is \"$version\"; use the tag of a release, for example v0.1.0" ;;
+*) fail "SLINT_VERSION is \"$version\"; use the tag of a release, for example v0.4.0" ;;
 esac
 
 name="slint_${version}_${os}_${arch}"
