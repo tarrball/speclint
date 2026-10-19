@@ -1,5 +1,5 @@
-// Package copilot gives the GitHub Copilot review instructions that sv init
-// writes and sv doctor checks.
+// Package copilot gives the GitHub Copilot review instructions that slint init
+// writes and slint doctor checks.
 package copilot
 
 import (
@@ -11,9 +11,9 @@ import (
 // InstructionsPath is the path of the review instructions, relative to the
 // project directory. It is a file of its own, so that it does not change the
 // .github/copilot-instructions.md of the project.
-const InstructionsPath = ".github/instructions/specval.instructions.md"
+const InstructionsPath = ".github/instructions/speclint.instructions.md"
 
-//go:embed templates/specval.instructions.md
+//go:embed templates/speclint.instructions.md
 var instructions string
 
 // Instructions returns the text of the review instructions. specsDir is the

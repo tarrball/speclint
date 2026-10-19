@@ -15,9 +15,9 @@ import (
 	"github.com/open-policy-agent/opa/v1/ast"
 	"go.yaml.in/yaml/v3"
 
-	"github.com/tarrball/specval/internal/claude"
-	"github.com/tarrball/specval/internal/config"
-	"github.com/tarrball/specval/internal/copilot"
+	"github.com/tarrball/speclint/internal/claude"
+	"github.com/tarrball/speclint/internal/config"
+	"github.com/tarrball/speclint/internal/copilot"
 )
 
 func TestInitCreatesAProject(t *testing.T) {
@@ -26,11 +26,11 @@ func TestInitCreatesAProject(t *testing.T) {
 	if err := Init(dir, &out); err != nil {
 		t.Fatal(err)
 	}
-	want := `created  .specval.yaml
-created  .specval/data/services.yaml
-created  .specval/policy/project.rego
+	want := `created  .speclint.yaml
+created  .speclint/data/services.yaml
+created  .speclint/policy/project.rego
 created  .claude/skills/spec/SKILL.md
-created  .github/instructions/specval.instructions.md
+created  .github/instructions/speclint.instructions.md
 created  specs/.gitkeep
 hooked   .claude/settings.json
 
@@ -40,7 +40,7 @@ Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
 	if out.String() != want {
 		t.Errorf("output:\n%s\nwant:\n%s", out.String(), want)
 	}
-	for _, p := range []string{config.FileName, ".specval/data/services.yaml", ".specval/policy/project.rego", claude.SkillPath, copilot.InstructionsPath, claude.SettingsPath} {
+	for _, p := range []string{config.FileName, ".speclint/data/services.yaml", ".speclint/policy/project.rego", claude.SkillPath, copilot.InstructionsPath, claude.SettingsPath} {
 		if _, err := os.Stat(filepath.Join(dir, p)); err != nil {
 			t.Errorf("%s: %v", p, err)
 		}
@@ -71,7 +71,7 @@ func TestInitDoesNotOverwrite(t *testing.T) {
 	if err := Init(dir, &bytes.Buffer{}); err != nil {
 		t.Fatal(err)
 	}
-	services := filepath.Join(dir, ".specval", "data", "services.yaml")
+	services := filepath.Join(dir, ".speclint", "data", "services.yaml")
 	if err := os.WriteFile(services, []byte("services: {X: {layer: manager}}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -124,9 +124,9 @@ func TestInitPrintsTheMemoryLine(t *testing.T) {
 		hint  bool
 	}{
 		{"no CLAUDE.md", nil, true},
-		{"CLAUDE.md without specval", map[string]string{"CLAUDE.md": "# Notes\n"}, true},
-		{"CLAUDE.md with specval", map[string]string{"CLAUDE.md": "Use specval.\n"}, false},
-		{".claude/CLAUDE.md with specval", map[string]string{"CLAUDE.md": "# Notes\n", ".claude/CLAUDE.md": "Use specval.\n"}, false},
+		{"CLAUDE.md without speclint", map[string]string{"CLAUDE.md": "# Notes\n"}, true},
+		{"CLAUDE.md with speclint", map[string]string{"CLAUDE.md": "Use speclint.\n"}, false},
+		{".claude/CLAUDE.md with speclint", map[string]string{"CLAUDE.md": "# Notes\n", ".claude/CLAUDE.md": "Use speclint.\n"}, false},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -186,7 +186,7 @@ func TestInitWritesNothingIfTheSettingsAreNotValid(t *testing.T) {
 	if out.Len() != 0 {
 		t.Errorf("Init wrote output:\n%s", out.String())
 	}
-	for _, p := range []string{config.FileName, ".specval", "specs", claude.SkillPath} {
+	for _, p := range []string{config.FileName, ".speclint", "specs", claude.SkillPath} {
 		if _, err := os.Stat(filepath.Join(dir, p)); !os.IsNotExist(err) {
 			t.Errorf("Init made %s", p)
 		}
@@ -225,15 +225,15 @@ func TestSpec(t *testing.T) {
 		t.Fatal(err)
 	}
 	var spec struct {
-		Specval int    `yaml:"specval"`
-		ID      string `yaml:"id"`
-		Kind    string `yaml:"kind"`
-		Title   string `yaml:"title"`
+		Speclint int    `yaml:"speclint"`
+		ID       string `yaml:"id"`
+		Kind     string `yaml:"kind"`
+		Title    string `yaml:"title"`
 	}
 	if err := yaml.Unmarshal(b, &spec); err != nil {
 		t.Fatalf("the new spec is not valid YAML: %v\n%s", err, b)
 	}
-	if spec.Specval != 1 || spec.ID != "BUG-7" || spec.Kind != "bugfix" || spec.Title != `Fix the "total" field` {
+	if spec.Speclint != 1 || spec.ID != "BUG-7" || spec.Kind != "bugfix" || spec.Title != `Fix the "total" field` {
 		t.Errorf("spec = %+v", spec)
 	}
 
@@ -350,8 +350,8 @@ func TestInitUsesTheConfiguredDataAndPolicyPaths(t *testing.T) {
 			t.Errorf("%s: %v", p, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, ".specval")); !os.IsNotExist(err) {
-		t.Errorf("Init wrote .specval, which the configuration does not use")
+	if _, err := os.Stat(filepath.Join(dir, ".speclint")); !os.IsNotExist(err) {
+		t.Errorf("Init wrote .speclint, which the configuration does not use")
 	}
 	if !strings.Contains(out.String(), "created  registry.yaml\n") {
 		t.Errorf("output:\n%s", out.String())
@@ -537,15 +537,15 @@ func TestDryRunWritesNothing(t *testing.T) {
 	if err := DryRun(dir, &out); err != nil {
 		t.Fatal(err)
 	}
-	want := `create   .specval.yaml
-create   .specval/data/services.yaml
-create   .specval/policy/project.rego
+	want := `create   .speclint.yaml
+create   .speclint/data/services.yaml
+create   .speclint/policy/project.rego
 create   .claude/skills/spec/SKILL.md
-create   .github/instructions/specval.instructions.md
+create   .github/instructions/speclint.instructions.md
 create   specs/.gitkeep
 hook     .claude/settings.json
 
-This is a dry run. sv init wrote nothing.
+This is a dry run. slint init wrote nothing.
 
 Add this line to CLAUDE.md, so that Claude uses the spec skill for each change:
   ` + claude.MemoryLine + `
@@ -568,7 +568,7 @@ func TestDryRunAfterInit(t *testing.T) {
 	if err := DryRun(dir, &out); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(out.String(), "create ") || !strings.Contains(out.String(), "exists   .claude/settings.json (sv hook)\n") {
+	if strings.Contains(out.String(), "create ") || !strings.Contains(out.String(), "exists   .claude/settings.json (slint hook)\n") {
 		t.Errorf("output:\n%s", out.String())
 	}
 	if after := files(t, dir); !slices.Equal(before, after) {
@@ -611,18 +611,18 @@ func TestDryRunGivesTheErrorsOfInit(t *testing.T) {
 
 func TestInitKeepsTheRulesOfAProject(t *testing.T) {
 	dir := t.TempDir()
-	rules := filepath.Join(dir, ".specval", "policy")
+	rules := filepath.Join(dir, ".speclint", "policy")
 	if err := os.MkdirAll(rules, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(rules, "naming.rego"), []byte("package specval.spec.naming\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(rules, "naming.rego"), []byte("package speclint.spec.naming\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
 	if err := Init(dir, &out); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "exists   .specval/policy/naming.rego (rules)\n") {
+	if !strings.Contains(out.String(), "exists   .speclint/policy/naming.rego (rules)\n") {
 		t.Errorf("output:\n%s", out.String())
 	}
 	if _, err := os.Stat(filepath.Join(rules, "project.rego")); !os.IsNotExist(err) {
@@ -630,11 +630,11 @@ func TestInitKeepsTheRulesOfAProject(t *testing.T) {
 	}
 	// A Rego test file is not a rule, so Init adds the example rule file.
 	dir = t.TempDir()
-	rules = filepath.Join(dir, ".specval", "policy")
+	rules = filepath.Join(dir, ".speclint", "policy")
 	if err := os.MkdirAll(rules, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(rules, "naming_test.rego"), []byte("package specval.spec.naming_test\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(rules, "naming_test.rego"), []byte("package speclint.spec.naming_test\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := Init(dir, &bytes.Buffer{}); err != nil {

@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/tarrball/specval/internal/config"
-	"github.com/tarrball/specval/internal/policy"
+	"github.com/tarrball/speclint/internal/config"
+	"github.com/tarrball/speclint/internal/policy"
 )
 
 // FileReport holds the findings for one file.
@@ -160,7 +160,7 @@ func sameProject(cfg *config.Config, files []string, base string) error {
 			return err
 		}
 		if !sameDir(other.Root, cfg.Root) {
-			return fmt.Errorf("%s and %s are in different specval projects; check each project separately",
+			return fmt.Errorf("%s and %s are in different speclint projects; check each project separately",
 				relTo(base, files[0]), relTo(base, f))
 		}
 	}

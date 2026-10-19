@@ -1,4 +1,4 @@
-package specval.lib
+package speclint.lib
 
 import rego.v1
 
@@ -15,7 +15,7 @@ finding(meta, path, msg, fix) := {
 
 # path_key returns the path of key in the mapping at prefix, for a finding.
 # A key with a character other than a letter, a digit, "_", or "-" is in
-# brackets and quotes, for example services["Order.Accessor"]. Thus specval
+# brackets and quotes, for example services["Order.Accessor"]. Thus speclint
 # finds the line of the key. An empty prefix is the top level.
 path_key(prefix, key) := $"{prefix}[{json.marshal(key)}]" if {
 	not regex.match(`^[A-Za-z0-9_-]+$`, key)

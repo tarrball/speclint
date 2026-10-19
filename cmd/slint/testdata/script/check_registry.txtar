@@ -1,0 +1,57 @@
+# Registry rules run one time for each check, against the data file.
+exits 1 slint check
+cmp stdout check.txt
+
+# A registry entry must be a mapping with a layer, not the name of a layer.
+cd strings
+exits 1 slint check
+cmp stdout $WORK/strings.txt
+cd $WORK
+
+# Two data files that define the same top-level key are an error.
+cp extra.yaml .speclint/data/extra.yaml
+exits 2 slint check
+stderr '^slint: two data files define the key "services": .*/extra.yaml and .*/services.yaml$'
+rm .speclint/data/extra.yaml
+
+# A data file must be a mapping.
+cp list.yaml .speclint/data/list.yaml
+exits 2 slint check
+stderr 'list.yaml: a data file must be a mapping'
+
+-- .speclint.yaml --
+-- .speclint/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  PricingThing: { layer: engine }
+  OrderAccessor: { layer: storage }
+  NoLayerEngine: {}
+  MarkupEngine: { layer: "<b>&\u0000" }
+-- specs/.keep --
+-- strings/.speclint.yaml --
+-- strings/.speclint/data/services.yaml --
+services:
+  OrderManager: manager
+  OrderAccessor: accessor
+-- strings/specs/.keep --
+-- strings.txt --
+.speclint/data/services.yaml:2 error SR004 OrderManager is not a mapping (got "manager") (services.OrderManager)
+    fix: Write the entry as OrderManager: { layer: manager }.
+.speclint/data/services.yaml:3 error SR004 OrderAccessor is not a mapping (got "accessor") (services.OrderAccessor)
+    fix: Write the entry as OrderAccessor: { layer: accessor }.
+speclint checked 0 spec(s) and found 2 error(s) and 0 warning(s).
+-- extra.yaml --
+services: {}
+-- list.yaml --
+- a
+- b
+-- check.txt --
+.speclint/data/services.yaml:3 error SR002 PricingThing is in the engine layer but does not end in Engine (services.PricingThing)
+    fix: Change its name so that it ends in Engine, or change its layer.
+.speclint/data/services.yaml:4 error SR001 OrderAccessor has no valid layer (got "storage") (services.OrderAccessor)
+    fix: Set layer to one of: client, manager, engine, accessor, resource, utility.
+.speclint/data/services.yaml:5 error SR001 NoLayerEngine has no valid layer (got "") (services.NoLayerEngine)
+    fix: Set layer to one of: client, manager, engine, accessor, resource, utility.
+.speclint/data/services.yaml:6 error SR001 MarkupEngine has no valid layer (got "<b>&\x00") (services.MarkupEngine)
+    fix: Set layer to one of: client, manager, engine, accessor, resource, utility.
+speclint checked 0 spec(s) and found 4 error(s) and 0 warning(s).

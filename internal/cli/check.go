@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/tarrball/specval/internal/check"
+	"github.com/tarrball/speclint/internal/check"
 )
 
 func cmdCheck(ctx context.Context, env *Env, args []string) (exitCode, error) {
@@ -56,5 +56,5 @@ func printText(w io.Writer, r *check.Report) {
 			fmt.Fprintf(w, "%s note: The other rules run after you fix the format errors (SV000, SV001).\n", fr.File)
 		}
 	}
-	fmt.Fprintf(w, "specval checked %d spec(s) and found %d error(s) and %d warning(s).\n", r.Specs, r.Errors, r.Warnings)
+	fmt.Fprintf(w, "speclint checked %d spec(s) and found %d error(s) and %d warning(s).\n", r.Specs, r.Errors, r.Warnings)
 }

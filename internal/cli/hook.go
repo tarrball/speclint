@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tarrball/specval/internal/check"
-	"github.com/tarrball/specval/internal/claude"
+	"github.com/tarrball/speclint/internal/check"
+	"github.com/tarrball/speclint/internal/claude"
 )
 
-// Exit codes of sv hook. Claude Code gives them these meanings.
+// Exit codes of slint hook. Claude Code gives them these meanings.
 const (
 	hookPass  exitCode = 0 // Claude continues. Claude Code reads stdout as JSON for Claude.
 	hookError exitCode = 1 // Claude Code shows stderr to the user, and Claude continues.
@@ -44,7 +44,7 @@ func readEvent(ctx context.Context, env *Env) (claude.Event, error) {
 func cmdHook(ctx context.Context, env *Env) exitCode {
 	in, err := readEvent(ctx, env)
 	if ctx.Err() != nil {
-		fmt.Fprintln(env.Stderr, "sv: stopped before the hook event was read:", ctx.Err())
+		fmt.Fprintln(env.Stderr, "slint: stopped before the hook event was read:", ctx.Err())
 		return hookError
 	}
 	if err != nil {
@@ -55,7 +55,7 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 		return hookPass
 	}
 	// Claude Code gives cwd in each event. If it does not, use the working
-	// directory of specval. If neither is known, the path cannot be resolved.
+	// directory of speclint. If neither is known, the path cannot be resolved.
 	if in.Cwd == "" {
 		in.Cwd = env.Dir
 	}
@@ -70,7 +70,7 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 	// registry to fix it. check and doctor report the registry.
 	r, err := check.SpecFile(ctx, fp, in.Cwd)
 	if err != nil {
-		fmt.Fprintln(env.Stderr, "sv:", err)
+		fmt.Fprintln(env.Stderr, "slint:", err)
 		return hookError
 	}
 	if r == nil {
@@ -84,8 +84,8 @@ func cmdHook(ctx context.Context, env *Env) exitCode {
 	if r.Warnings > 0 {
 		var b strings.Builder
 		printText(&b, r)
-		if err := claude.WriteContext(env.Stdout, "The spec passes, but specval found warnings. If you can, fix them:\n"+b.String()); err != nil {
-			fmt.Fprintln(env.Stderr, "sv:", err)
+		if err := claude.WriteContext(env.Stdout, "The spec passes, but speclint found warnings. If you can, fix them:\n"+b.String()); err != nil {
+			fmt.Fprintln(env.Stderr, "slint:", err)
 			return hookError
 		}
 	}

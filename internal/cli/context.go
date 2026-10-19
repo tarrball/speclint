@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/describe"
+	"github.com/tarrball/speclint/internal/baseline"
+	"github.com/tarrball/speclint/internal/describe"
 )
 
 func cmdContext(ctx context.Context, env *Env, args []string) error {
@@ -28,7 +28,7 @@ func cmdContext(ctx context.Context, env *Env, args []string) error {
 	arch, registry := p.Architecture, p.Services
 	w := env.Stdout
 
-	fmt.Fprintf(w, "# Spec rules (specval)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `sv new <id>`. To check a spec, run `sv check <file>`. Each finding has a fix.\n\n", p.SpecsDir)
+	fmt.Fprintf(w, "# Spec rules (speclint)\n\nEach change needs a spec at %s/<id>.yaml, and the spec must pass before you write code. To make a new spec, run `slint new <id>`. To check a spec, run `slint check <file>`. Each finding has a fix.\n\n", p.SpecsDir)
 	fmt.Fprintf(w, "## Format\n```yaml\n%s```\n\n", baseline.Format())
 
 	fmt.Fprint(w, "## Layers\nEach layer can call only the layers after its arrow.\n")

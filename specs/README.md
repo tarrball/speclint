@@ -1,4 +1,4 @@
 # Specs
 
-Each spec in this directory describes one change to specval. specval checks
+Each spec in this directory describes one change to speclint. speclint checks
 these specs with its own rules. See [CONTRIBUTING.md](../CONTRIBUTING.md#specs).

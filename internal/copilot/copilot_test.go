@@ -30,7 +30,7 @@ func TestInstructions(t *testing.T) {
 func TestInstructionsFitTheLimitOfCopilot(t *testing.T) {
 	// Copilot code review reads only the first 4,000 characters of an
 	// instructions file.
-	if n := len(Instructions("specs", ".specval/data/services.yaml")); n > 3500 {
+	if n := len(Instructions("specs", ".speclint/data/services.yaml")); n > 3500 {
 		t.Errorf("the instructions have %d characters; keep them below 3500", n)
 	}
 }

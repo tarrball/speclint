@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "sv hook",
+            "command": "slint hook",
             "type": "command"
           }
         ],

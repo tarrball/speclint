@@ -44,9 +44,9 @@ func TestCommandsWithoutAWorkingDirectory(t *testing.T) {
 func TestHookResolvesARelativePathAgainstEnvDir(t *testing.T) {
 	dir := t.TempDir()
 	for name, content := range map[string]string{
-		".specval.yaml":               "",
-		".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  OrderAccessor: { layer: accessor }\n",
-		"specs/bad.yaml": "specval: 1\nid: A\nkind: feature\ntitle: T\nsummary: S\n" +
+		".speclint.yaml":               "",
+		".speclint/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  OrderAccessor: { layer: accessor }\n",
+		"specs/bad.yaml": "speclint: 1\nid: A\nkind: feature\ntitle: T\nsummary: S\n" +
 			"acceptance: [{ id: AC1, text: T }]\ncalls: [{ from: OrderAccessor, to: OrderManager, op: Notify, covers: [AC1] }]\n",
 	} {
 		p := filepath.Join(dir, name)

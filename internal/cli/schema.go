@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/tarrball/specval/internal/baseline"
+	"github.com/tarrball/speclint/internal/baseline"
 )
 
 func cmdSchema(_ context.Context, env *Env, args []string) error {

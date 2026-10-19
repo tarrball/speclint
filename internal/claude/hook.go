@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// Event is the part of a Claude Code PostToolUse event that specval reads.
+// Event is the part of a Claude Code PostToolUse event that speclint reads.
 type Event struct {
 	// Cwd is the working directory of the Claude Code session.
 	Cwd       string `json:"cwd"`

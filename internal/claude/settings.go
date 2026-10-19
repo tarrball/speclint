@@ -1,4 +1,4 @@
-// Package claude reads and changes the Claude Code files that specval uses:
+// Package claude reads and changes the Claude Code files that speclint uses:
 // the settings file that holds the hook, the skill, and the hook event.
 package claude
 
@@ -30,8 +30,8 @@ var (
 	settingsTemplate []byte
 )
 
-// Skill returns the text of the skill that sv init writes. specsDir is
-// the specs directory of the project, as .specval.yaml gives it. Only the
+// Skill returns the text of the skill that slint init writes. specsDir is
+// the specs directory of the project, as .speclint.yaml gives it. Only the
 // Markdown body uses it, so that a name with YAML syntax cannot make the
 // frontmatter invalid.
 func Skill(specsDir string) string {
@@ -48,23 +48,20 @@ type settingsFile struct {
 	} `json:"hooks"`
 }
 
-// HookStatus tells what a settings file contains about the sv hook.
+// HookStatus tells what a settings file contains about the slint hook.
 type HookStatus struct {
 	// Exists is true if the settings file exists.
 	Exists bool
-	// Found is true if a PostToolUse hook runs `sv hook`.
+	// Found is true if a PostToolUse hook runs `slint hook`.
 	Found bool
 	// Disabled is true if the file sets disableAllHooks.
 	Disabled bool
 	// Matcher is the tool matcher of the hook, if Found is true.
 	Matcher string
-	// Old is true if a PostToolUse hook runs `specval hook`. The command had
-	// that name before it was sv.
-	Old bool
 }
 
 // InspectSettings reads a Claude Code settings file and tells whether it runs
-// `sv hook` on PostToolUse. A file that does not exist is not an error.
+// `slint hook` on PostToolUse. A file that does not exist is not an error.
 func InspectSettings(path string) (HookStatus, error) {
 	var st HookStatus
 	b, err := os.ReadFile(path)
@@ -88,19 +85,18 @@ func InspectSettings(path string) (HookStatus, error) {
 		return st, fmt.Errorf("%s is not valid JSON: %w", path, err)
 	}
 	st.Disabled = s.DisableAllHooks
-	// Read each hook, because an old hook can come after the sv hook.
 	for _, entry := range s.Hooks["PostToolUse"] {
 		for _, h := range entry.Hooks {
-			if strings.Contains(h.Command, "sv hook") && !st.Found {
+			if strings.Contains(h.Command, "slint hook") {
 				st.Found, st.Matcher = true, entry.Matcher
+				return st, nil
 			}
-			st.Old = st.Old || strings.Contains(h.Command, "specval hook")
 		}
 	}
 	return st, nil
 }
 
-// AddHook adds the specval PostToolUse hook to a settings file. It keeps the
+// AddHook adds the speclint PostToolUse hook to a settings file. It keeps the
 // other settings, and creates the file if it does not exist. It returns false
 // if the hook was already there.
 //

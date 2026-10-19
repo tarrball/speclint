@@ -1,6 +1,6 @@
-package specval.registry.dpl_test
+package speclint.registry.dpl_test
 
-import data.specval.registry.dpl
+import data.speclint.registry.dpl
 import rego.v1
 
 test_a_valid_registry_has_no_findings if {

@@ -2,18 +2,18 @@
 
 A spec describes one change before anyone writes code for it. It is a YAML
 file in the specs directory (`specs/` if you do not change `specs_dir`). Name
-the file with the ID of the ticket: `specs/ORD-142.yaml`. specval does not
+the file with the ID of the ticket: `specs/ORD-142.yaml`. speclint does not
 check the name of the file.
 
-`sv new <id>` makes a spec from the template. `sv schema` prints the
+`slint new <id>` makes a spec from the template. `slint schema` prints the
 JSON Schema that each spec must match.
 
 ## Example
 
-This spec is `examples/refund/specs/ORD-142.yaml`. It passes `sv check`.
+This spec is `examples/refund/specs/ORD-142.yaml`. It passes `slint check`.
 
 ```yaml
-specval: 1
+speclint: 1
 id: ORD-142
 kind: feature
 title: Customer can request a refund for a delivered order
@@ -45,7 +45,7 @@ out_of_scope:
 
 | Field | Required | Content |
 |---|---|---|
-| `specval` | yes | The version of the spec format. It is always `1`. |
+| `speclint` | yes | The version of the spec format. It is always `1`. |
 | `id` | yes | The ID of the ticket, for example `ORD-142`. Use letters, digits, `.`, `_`, and `-`. |
 | `kind` | yes | `feature`, `bugfix`, or `chore`. |
 | `status` | no | `draft` or `done`. A spec without a status is a draft. See [The life of a spec](#the-life-of-a-spec). |
@@ -61,12 +61,12 @@ out_of_scope:
 
 ## The life of a spec
 
-A spec describes one change at one time. specval checks it against the
+A spec describes one change at one time. speclint checks it against the
 service registry as the registry is now. Thus a spec has two states:
 
-1. `draft`: you plan the change, and then you implement it. specval checks
+1. `draft`: you plan the change, and then you implement it. speclint checks
    the spec with all of the rules.
-2. `done`: the change is implemented. specval checks only the format of the
+2. `done`: the change is implemented. speclint checks only the format of the
    spec (SV000 and SV001).
 
 When you implement a spec, do these steps in the same change:
@@ -84,7 +84,7 @@ SV104 reports each one.
 
 ## Layers
 
-specval checks each call against six layers. A service can call only the
+speclint checks each call against six layers. A service can call only the
 layers in its row.
 
 | Layer | Can call | Suffix of the service name |
@@ -147,7 +147,7 @@ services:
 ```
 
 The registry records each call, also a call that breaks the layer rules. In an
-old project, such calls are normal. specval does not report them until a spec
+old project, such calls are normal. speclint does not report them until a spec
 changes the service:
 
 - For each service in `services.changed`, SV202 checks each call that the
@@ -161,7 +161,7 @@ Thus each change makes the services that it changes follow the layers.
 
 ### Move a service to another layer
 
-specval does not make the architecture. If the registry puts a service in the
+speclint does not make the architecture. If the registry puts a service in the
 wrong layer, the rules make the code follow the wrong design. For example, a
 format that each layer uses is a utility, not an accessor.
 
@@ -191,15 +191,15 @@ removed_calls:
 - A reviewer of the spec sees the move and its `reason`. A move changes the
   architecture, so review it as such.
 
-The service registry, `.specval/data/services.yaml`, gives the layer of each
+The service registry, `.speclint/data/services.yaml`, gives the layer of each
 service that exists. A spec gives the layer of each new service in
 `services.new`. The `package` of a registry entry tells where the code of the
 service is (see [Project data](rules.md#project-data)).
 
 ## Built-in rules
 
-specval runs the schema check first. If the spec does not match the schema,
-specval reports only the schema errors, because the other rules need the
+speclint runs the schema check first. If the spec does not match the schema,
+speclint reports only the schema errors, because the other rules need the
 correct shape. The text output then gives a note for the spec:
 
 ```
@@ -234,7 +234,7 @@ Thus when you fix the format errors, the next check can find new problems.
 | SV202 | warning | Each call that a changed service keeps follows the layer rules and the limits. |
 | SV203 | warning | Each registered call to or from a moved service that the spec keeps follows the layer rules and the limits after the move. |
 
-specval also runs these rules on the service registry, one time for each
+speclint also runs these rules on the service registry, one time for each
 `check`:
 
 | ID | Severity | Rule |
@@ -249,7 +249,7 @@ specval also runs these rules on the service registry, one time for each
 | SR008 | error | `calls` in a registry entry is a list of registered services. |
 | SR009 | error | `package` in a registry entry is text. |
 
-`sv context` prints the spec rules with their full descriptions. To add
+`slint context` prints the spec rules with their full descriptions. To add
 rules for your project, see [rules.md](rules.md).
 
 ## Output
@@ -262,7 +262,7 @@ specs/ORD-143.yaml:14 error SV102 OrderAccessor (accessor) cannot call PricingEn
     fix: Accessors can call only resources. Send the call to PricingEngine through a manager.
 ```
 
-`sv check --format json` gives the same findings as JSON:
+`slint check --format json` gives the same findings as JSON:
 
 ```json
 {

@@ -47,7 +47,7 @@ jobs:
         run: mise run vuln
 
   # Run the install script of this commit against the latest release, as a
-  # user does with curl.
+  # user does with curl. v0.4.0 is the first release with the name slint.
   install:
     strategy:
       matrix:
@@ -59,11 +59,11 @@ jobs:
           persist-credentials: false
       - name: Install a given release
         run: |
-          SV_VERSION=v0.1.0 SV_INSTALL_DIR="$RUNNER_TEMP/bin" sh scripts/install.sh
-          "$RUNNER_TEMP/bin/sv" version | grep '^sv v0.1.0 '
+          SLINT_VERSION=v0.4.0 SLINT_INSTALL_DIR="$RUNNER_TEMP/bin" sh scripts/install.sh
+          "$RUNNER_TEMP/bin/slint" version | grep '^slint v0.4.0 '
       # The second run replaces the binary of the first run, as an update does.
       - name: Update to the latest release
         run: |
-          SV_INSTALL_DIR="$RUNNER_TEMP/bin" sh scripts/install.sh
-          "$RUNNER_TEMP/bin/sv" version | grep '^sv v'
-          test ! -e "$RUNNER_TEMP/bin/.sv.new"
+          SLINT_INSTALL_DIR="$RUNNER_TEMP/bin" sh scripts/install.sh
+          "$RUNNER_TEMP/bin/slint" version | grep '^slint v'
+          test ! -e "$RUNNER_TEMP/bin/.slint.new"

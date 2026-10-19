@@ -1,0 +1,126 @@
+# After init, doctor warns only that the registry is empty.
+cd proj
+exits 0 slint init
+exits 0 slint doctor
+stdout '^✓ config    .*/\.speclint\.yaml$'
+stdout '^✓ specs     specs \(0 spec\(s\)\)$'
+stdout '^✓ rules     22 spec rule\(s\) compile, 0 from this project$'
+stdout '^! registry  no services are registered \(data.project.services is empty\)$'
+stdout '^    fix: Add each service and its layer to .speclint/data/services.yaml. Until you do, each call fails SV101.$'
+stdout '^✓ skill     .claude/skills/spec/SKILL.md$'
+stdout '^✓ hook      .claude/settings.json$'
+stdout '^✓ path      .*/slint \(\S+\)$'
+stdout '^0 failure\(s\), 1 warning\(s\).$'
+
+# The JSON format has the same checks.
+exits 0 slint doctor --format json
+stdout '"ok": true'
+stdout '"name": "registry",\n\s+"detail": "no services are registered'
+
+# An unknown format is a usage error.
+exits 2 slint doctor --format yaml
+stderr '^invalid value "yaml" for flag -format: unknown format "yaml"; use text or json$'
+! stderr '^slint:'
+
+# With services registered, all checks pass.
+cp $WORK/services.yaml .speclint/data/services.yaml
+exits 0 slint doctor
+stdout '^✓ registry  1 service\(s\), .speclint/data/services.yaml$'
+stdout '^The speclint setup has no problems.$'
+
+# A registry rule failure is a doctor failure.
+cp $WORK/badservices.yaml .speclint/data/services.yaml
+exits 1 slint doctor
+stdout '^✗ registry  .speclint/data/services.yaml:2 PricingThing is in the engine layer but does not end in Engine$'
+cp $WORK/services.yaml .speclint/data/services.yaml
+
+# A registered layer that is not a string fails the registry rules, and doctor
+# shows the finding.
+cp $WORK/numberlayer.yaml .speclint/data/services.yaml
+exits 1 slint doctor
+stdout '^✗ registry  .speclint/data/services.yaml:3 NumberEngine has no valid layer'
+
+# A registry that is a list, not a mapping, is a doctor failure.
+cp $WORK/listservices.yaml .speclint/data/services.yaml
+exits 1 slint doctor
+stdout '^✗ registry  data.project.services must be a mapping of service names to layers$'
+exits 1 slint doctor --format json
+stdout '"ok": false'
+cp $WORK/services.yaml .speclint/data/services.yaml
+
+# A policy that does not compile is a doctor failure.
+cp $WORK/broken.rego .speclint/policy/broken.rego
+exits 1 slint doctor
+stdout '^✗ rules     .speclint/policy/broken.rego:4: rego_parse_error: unexpected eof token$'
+stdout '^! registry  speclint cannot check the registry until the rules load$'
+rm .speclint/policy/broken.rego
+
+# A skill that no longer runs slint context is a warning.
+cp $WORK/oldskill.md .claude/skills/spec/SKILL.md
+exits 0 slint doctor
+stdout '^! skill     .claude/skills/spec/SKILL.md no longer tells Claude to run `slint context`$'
+rm .claude/skills/spec/SKILL.md
+exits 0 slint doctor
+stdout '^! skill     .claude/skills/spec/SKILL.md is missing, so Claude '
+
+# A matcher that misses a write tool is a warning.
+cp $WORK/narrow.json .claude/settings.json
+exits 0 slint doctor
+stdout '^! hook      matcher "Write" in .claude/settings.json does not match Edit, MultiEdit$'
+
+# disableAllHooks in any settings file is a failure.
+cp $WORK/disabled.json .claude/settings.local.json
+exits 1 slint doctor
+stdout '^✗ hook      disableAllHooks in .claude/settings.local.json turns off all hooks$'
+rm .claude/settings.local.json
+
+# A settings file that is not valid JSON is a failure.
+cp $WORK/badjson.json .claude/settings.local.json
+exits 1 slint doctor
+stdout '^✗ hook      .claude/settings.local.json is not valid JSON: '
+rm .claude/settings.local.json
+
+# No hook is a failure.
+rm .claude/settings.json
+exits 1 slint doctor
+stdout '^✗ hook      no PostToolUse hook runs `slint hook`, so '
+
+# A missing specs, data, or policy directory is a warning.
+rm specs .speclint/policy
+exits 1 slint doctor
+stdout '^! specs     specs does not exist$'
+stdout '^! policy    .speclint/policy \(listed in .speclint.yaml\) does not exist$'
+
+# Without a .speclint.yaml, doctor fails at once.
+cd $WORK/elsewhere
+exits 1 slint doctor
+stdout '^✗ config    no .speclint.yaml in .* or in a parent directory; run `slint init`$'
+stdout '^    fix: Run `slint init` in the project root.$'
+stdout '^1 failure\(s\), 0 warning\(s\).$'
+
+-- proj/.keep --
+-- elsewhere/.keep --
+-- services.yaml --
+services:
+  OrderManager: { layer: manager }
+-- badservices.yaml --
+services:
+  PricingThing: { layer: engine }
+-- numberlayer.yaml --
+services:
+  OrderManager: { layer: manager }
+  NumberEngine: { layer: 7 }
+-- listservices.yaml --
+services: []
+-- broken.rego --
+package speclint.spec.broken
+
+deny contains f if {
+-- oldskill.md --
+Write the spec. Then write the code.
+-- narrow.json --
+{"hooks": {"PostToolUse": [{"matcher": "Write", "hooks": [{"type": "command", "command": "slint hook"}]}]}}
+-- disabled.json --
+{"disableAllHooks": true}
+-- badjson.json --
+{not json

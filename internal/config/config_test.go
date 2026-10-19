@@ -32,7 +32,7 @@ func TestFindUsesDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	if c.Root != dir || c.SpecsDir != "specs" ||
-		!slices.Equal(c.Policy, []string{".specval/policy"}) || !slices.Equal(c.Data, []string{".specval/data"}) {
+		!slices.Equal(c.Policy, []string{".speclint/policy"}) || !slices.Equal(c.Data, []string{".speclint/data"}) {
 		t.Errorf("Find = %+v, want the defaults with Root %s", c, dir)
 	}
 }
@@ -55,7 +55,7 @@ func TestFindReadsValuesFromAParentDirectory(t *testing.T) {
 
 func TestFindErrors(t *testing.T) {
 	dir := t.TempDir()
-	if _, err := Find(dir); !errors.Is(err, ErrNotFound) || !strings.Contains(err.Error(), "no .specval.yaml in ") {
+	if _, err := Find(dir); !errors.Is(err, ErrNotFound) || !strings.Contains(err.Error(), "no .speclint.yaml in ") {
 		t.Errorf("Find with no config: err = %v, want ErrNotFound", err)
 	}
 	writeFiles(t, dir, map[string]string{FileName: "specs_dir: [unclosed\n"})
@@ -188,10 +188,10 @@ func TestFileListsCleanAbsolutePaths(t *testing.T) {
 func TestReadSources(t *testing.T) {
 	dir := t.TempDir()
 	writeFiles(t, dir, map[string]string{
-		FileName:                      "",
-		".specval/data/services.yaml": "services: {}\n",
-		".specval/policy/a.rego":      "package a\n",
-		".specval/policy/a_test.rego": "package a_test\n",
+		FileName:                       "",
+		".speclint/data/services.yaml": "services: {}\n",
+		".speclint/policy/a.rego":      "package a\n",
+		".speclint/policy/a_test.rego": "package a_test\n",
 	})
 	c, err := Find(dir)
 	if err != nil {
@@ -201,8 +201,8 @@ func TestReadSources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data := filepath.Join(dir, ".specval", "data", "services.yaml")
-	policy := filepath.Join(dir, ".specval", "policy", "a.rego")
+	data := filepath.Join(dir, ".speclint", "data", "services.yaml")
+	policy := filepath.Join(dir, ".speclint", "policy", "a.rego")
 	if len(src.Data) != 1 || string(src.Data[data]) != "services: {}\n" {
 		t.Errorf("Data = %q", src.Data)
 	}

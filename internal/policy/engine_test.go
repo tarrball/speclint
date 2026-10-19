@@ -13,8 +13,8 @@ import (
 	"github.com/open-policy-agent/opa/v1/rego"
 	"github.com/open-policy-agent/opa/v1/topdown"
 
-	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/config"
+	"github.com/tarrball/speclint/internal/baseline"
+	"github.com/tarrball/speclint/internal/config"
 )
 
 const registry = `services:
@@ -23,7 +23,7 @@ const registry = `services:
   OrderAccessor: { layer: accessor }
 `
 
-// project writes a .specval.yaml and the given files to a new directory,
+// project writes a .speclint.yaml and the given files to a new directory,
 // and returns the configuration. The map key is a path relative to the
 // project root, and the value is the content.
 func project(t *testing.T, files map[string]string) *config.Config {
@@ -125,12 +125,12 @@ func TestExampleSpecs(t *testing.T) {
 	}
 }
 
-// The format that `sv context` shows to an agent must itself be a
+// The format that `slint context` shows to an agent must itself be a
 // valid spec.
 func TestFormatExampleIsAValidSpec(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/format.yaml":           baseline.Format(),
+		".speclint/data/services.yaml": registry,
+		"specs/format.yaml":            baseline.Format(),
 	})
 	if found := check(t, cfg, "format.yaml"); len(found) != 0 {
 		t.Errorf("the format example has findings: %+v", found)
@@ -139,8 +139,8 @@ func TestFormatExampleIsAValidSpec(t *testing.T) {
 
 func TestCheckSpecReportsYAMLSyntaxErrors(t *testing.T) {
 	cfg := project(t, map[string]string{
-		"specs/syntax.yaml":    "specval: 1\nid: a: b\n",
-		"specs/duplicate.yaml": "specval: 1\nid: A\nid: B\n",
+		"specs/syntax.yaml":    "speclint: 1\nid: a: b\n",
+		"specs/duplicate.yaml": "speclint: 1\nid: A\nid: B\n",
 	})
 	for name, line := range map[string]int{"syntax.yaml": 2, "duplicate.yaml": 3} {
 		found := check(t, cfg, name)
@@ -154,8 +154,8 @@ func TestSchemaErrorsHideTheOtherRules(t *testing.T) {
 	// The spec has an unknown field, and also a call to a service that is
 	// not registered (SV101). CheckSpec reports only the schema error.
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/a.yaml": `specval: 1
+		".speclint/data/services.yaml": registry,
+		"specs/a.yaml": `speclint: 1
 id: A-1
 kind: feature
 title: T
@@ -174,7 +174,7 @@ func TestDoneSpecsGetOnlyTheSchemaRules(t *testing.T) {
 	// The spec adds PricingEngine, which is now in the registry. A draft
 	// gets SV104 for it. A done spec gets only the schema rules.
 	spec := func(status, extra string) string {
-		return `specval: 1
+		return `speclint: 1
 id: A-1
 kind: feature
 ` + status + `title: T
@@ -186,12 +186,12 @@ calls: [{ from: OrderManager, to: PricingEngine, op: Price, covers: [AC1] }]
 ` + extra
 	}
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/none.yaml":             spec("", ""),
-		"specs/draft.yaml":            spec("status: draft\n", ""),
-		"specs/done.yaml":             spec("status: done\n", ""),
-		"specs/done-bad.yaml":         spec("status: done\n", "extra: true\n"),
-		"specs/unknown.yaml":          spec("status: finished\n", ""),
+		".speclint/data/services.yaml": registry,
+		"specs/none.yaml":              spec("", ""),
+		"specs/draft.yaml":             spec("status: draft\n", ""),
+		"specs/done.yaml":              spec("status: done\n", ""),
+		"specs/done-bad.yaml":          spec("status: done\n", "extra: true\n"),
+		"specs/unknown.yaml":           spec("status: finished\n", ""),
 	})
 	for name, want := range map[string][]string{
 		"none.yaml":     {"SV104"},
@@ -210,7 +210,7 @@ func TestDoneSpecsDoNotRunTheOtherRules(t *testing.T) {
 	// The project rule has a conflict at evaluation time. It stops the check
 	// of a draft, but it must not stop the check of a done spec.
 	spec := func(status string) string {
-		return `specval: 1
+		return `speclint: 1
 id: A-1
 kind: feature
 status: ` + status + `
@@ -221,8 +221,8 @@ calls: [{ from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1] }]
 `
 	}
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		".specval/policy/conflict.rego": `package specval.spec.conflict
+		".speclint/data/services.yaml": registry,
+		".speclint/policy/conflict.rego": `package speclint.spec.conflict
 
 import rego.v1
 
@@ -254,11 +254,11 @@ deny contains f if {
 
 func TestCheckSpecTellsWhenTheFormatStopsTheCheck(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/yaml.yaml":             "specval: [\n",
-		"specs/keys.yaml":             "a: 1\na: 2\n",
-		"specs/draft.yaml":            "specval: 1\nstatus: draft\n",
-		"specs/done.yaml":             "specval: 1\nstatus: done\n",
+		".speclint/data/services.yaml": registry,
+		"specs/yaml.yaml":              "speclint: [\n",
+		"specs/keys.yaml":              "a: 1\na: 2\n",
+		"specs/draft.yaml":             "speclint: 1\nstatus: draft\n",
+		"specs/done.yaml":              "speclint: 1\nstatus: done\n",
 	})
 	eng := newEngine(t, cfg)
 	for spec, want := range map[string]bool{"yaml.yaml": true, "keys.yaml": true, "draft.yaml": true, "done.yaml": false} {
@@ -274,8 +274,8 @@ func TestCheckSpecTellsWhenTheFormatStopsTheCheck(t *testing.T) {
 
 func TestCheckSpecSortsFindingsAndSetsSeverity(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/a.yaml": `specval: 1
+		".speclint/data/services.yaml": registry,
+		"specs/a.yaml": `speclint: 1
 id: A-1
 kind: feature
 title: T
@@ -312,12 +312,12 @@ calls:
 func TestTheEngineReadsNoFiles(t *testing.T) {
 	// The paths do not exist. The engine uses them only in messages.
 	data := map[string][]byte{"/nowhere/services.yaml": []byte(registry)}
-	policies := map[string][]byte{"/nowhere/a.rego": []byte("package specval.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains f if {\n\tinput.id == \"X\"\n\tf := {\"rule\": \"PRJ001\", \"path\": \"id\", \"msg\": \"m\", \"fix\": \"f\"}\n}\n")}
+	policies := map[string][]byte{"/nowhere/a.rego": []byte("package speclint.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains f if {\n\tinput.id == \"X\"\n\tf := {\"rule\": \"PRJ001\", \"path\": \"id\", \"msg\": \"m\", \"fix\": \"f\"}\n}\n")}
 	eng, err := New(context.Background(), data, policies)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := eng.CheckSpec(context.Background(), []byte("specval: 1\nid: X\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: [{ from: OrderManager, to: Nobody, op: Get, covers: [AC1] }]\n"))
+	res, err := eng.CheckSpec(context.Background(), []byte("speclint: 1\nid: X\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: [{ from: OrderManager, to: Nobody, op: Get, covers: [AC1] }]\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,10 +331,10 @@ func TestTheEngineReadsNoFiles(t *testing.T) {
 
 func TestCheckRegistryReportsAgainstTheDataFile(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  PricingThing: { layer: engine }\n",
-		".specval/policy/registry.rego": `package specval.registry.project
+		".speclint/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  PricingThing: { layer: engine }\n",
+		".speclint/policy/registry.rego": `package speclint.registry.project
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
 # METADATA
@@ -348,7 +348,7 @@ warn contains lib.finding(rego.metadata.rule(), "nowhere.x", "msg", "fix") if tr
 	if err != nil {
 		t.Fatal(err)
 	}
-	services := filepath.Join(cfg.Root, ".specval", "data", "services.yaml")
+	services := filepath.Join(cfg.Root, ".speclint", "data", "services.yaml")
 	if f := got[services]; len(f) != 1 || f[0].Rule != "SR002" || f[0].Line != 3 || f[0].Severity != SeverityError {
 		t.Errorf("findings for services.yaml = %+v, want one SR002 error at line 3", f)
 	}
@@ -366,32 +366,32 @@ func TestNewErrors(t *testing.T) {
 	}{
 		{
 			"a data key in two files",
-			map[string]string{".specval/data/a.yaml": "services: {}", ".specval/data/b.json": `{"services": {}}`},
+			map[string]string{".speclint/data/a.yaml": "services: {}", ".speclint/data/b.json": `{"services": {}}`},
 			`two data files define the key "services"`,
 		},
 		{
 			"a data file that is not a mapping",
-			map[string]string{".specval/data/a.yaml": "- a\n"},
+			map[string]string{".speclint/data/a.yaml": "- a\n"},
 			"a data file must be a mapping",
 		},
 		{
 			"a key two times in a data file",
-			map[string]string{".specval/data/a.yaml": "services:\n  OrderManager: { layer: manager }\n  OrderManager: { layer: engine }\n"},
+			map[string]string{".speclint/data/a.yaml": "services:\n  OrderManager: { layer: manager }\n  OrderManager: { layer: engine }\n"},
 			"a.yaml: yaml: unmarshal errors:\n  line 3: mapping key \"OrderManager\" already defined at line 2",
 		},
 		{
 			"a data file that is not valid YAML",
-			map[string]string{".specval/data/a.yaml": "a: [unclosed\n"},
+			map[string]string{".speclint/data/a.yaml": "a: [unclosed\n"},
 			"a.yaml: yaml:",
 		},
 		{
 			"a Rego syntax error",
-			map[string]string{".specval/policy/a.rego": "package specval.spec.a\n\ndeny contains f if {\n"},
+			map[string]string{".speclint/policy/a.rego": "package speclint.spec.a\n\ndeny contains f if {\n"},
 			"rego_parse_error",
 		},
 		{
 			"a warn rule without custom.id",
-			map[string]string{".specval/policy/a.rego": "package specval.registry.a\n\nwarn contains \"x\" if true\n"},
+			map[string]string{".speclint/policy/a.rego": "package speclint.registry.a\n\nwarn contains \"x\" if true\n"},
 			"warn rule needs a METADATA block with custom.id",
 		},
 	} {
@@ -404,9 +404,9 @@ func TestNewErrors(t *testing.T) {
 	}
 }
 
-func TestRulesOutsideTheSpecvalPackagesNeedNoID(t *testing.T) {
+func TestRulesOutsideTheSpeclintPackagesNeedNoID(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/policy/helpers.rego": "package helpers\n\ndeny contains \"x\" if true\n",
+		".speclint/policy/helpers.rego": "package helpers\n\ndeny contains \"x\" if true\n",
 	})
 	if _, err := load(cfg); err != nil {
 		t.Errorf("New = %v, want no error", err)
@@ -420,10 +420,10 @@ func TestAMalformedFindingIsAnError(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			cfg := project(t, map[string]string{
-				".specval/policy/a.rego": "package specval.spec.a\n\nimport rego.v1\n\n" +
+				".speclint/policy/a.rego": "package speclint.spec.a\n\nimport rego.v1\n\n" +
 					"# METADATA\n# title: Returns a bad finding\n# custom:\n#   id: BAD001\n" +
 					"deny contains " + value + " if true\n",
-				"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+				"specs/a.yaml": "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
 			})
 			_, err := newEngine(t, cfg).CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
 			if err == nil || !strings.Contains(err.Error(), "a rule returned a finding that does not have the correct format") {
@@ -435,7 +435,7 @@ func TestAMalformedFindingIsAnError(t *testing.T) {
 
 func TestRuleDocs(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/policy/a.rego": `package specval.spec.a
+		".speclint/policy/a.rego": `package speclint.spec.a
 
 import rego.v1
 
@@ -463,7 +463,7 @@ warn contains "x" if false
 }
 
 func TestArchitectureServicesAndDataFile(t *testing.T) {
-	cfg := project(t, map[string]string{".specval/data/services.yaml": registry})
+	cfg := project(t, map[string]string{".speclint/data/services.yaml": registry})
 	eng := newEngine(t, cfg)
 
 	arch, err := eng.Architecture()
@@ -487,7 +487,7 @@ func TestArchitectureServicesAndDataFile(t *testing.T) {
 		t.Errorf("Services = %+v", services)
 	}
 
-	if got, want := eng.DataFile("services"), filepath.Join(cfg.Root, ".specval", "data", "services.yaml"); got != want {
+	if got, want := eng.DataFile("services"), filepath.Join(cfg.Root, ".speclint", "data", "services.yaml"); got != want {
 		t.Errorf("DataFile(services) = %q, want %q", got, want)
 	}
 	if got := eng.DataFile("nope"); got != "" {
@@ -496,7 +496,7 @@ func TestArchitectureServicesAndDataFile(t *testing.T) {
 }
 
 func TestServicesReadsTheLimits(t *testing.T) {
-	cfg := project(t, map[string]string{".specval/data/services.yaml": `services:
+	cfg := project(t, map[string]string{".speclint/data/services.yaml": `services:
   OrderManager: { layer: manager }
   ConfigUtility: { layer: utility, may_call: [] }
   AuditUtility: { layer: utility, called_by: [manager, 7, OrderManager] }
@@ -524,7 +524,7 @@ func TestServicesReadsTheLimits(t *testing.T) {
 }
 
 func TestLayerBreaks(t *testing.T) {
-	cfg := project(t, map[string]string{".specval/data/services.yaml": `services:
+	cfg := project(t, map[string]string{".speclint/data/services.yaml": `services:
   OrderApi: { layer: client, calls: [OrderManager, OrderAccessor] }
   OrderManager: { layer: manager, calls: [OrderAccessor, Nobody] }
   OrderAccessor: { layer: accessor, calls: [BillingAccessor] }
@@ -544,7 +544,7 @@ func TestLayerBreaks(t *testing.T) {
 }
 
 func TestServicesThatIsNotAMapping(t *testing.T) {
-	cfg := project(t, map[string]string{".specval/data/services.yaml": "services: [OrderManager]\n"})
+	cfg := project(t, map[string]string{".speclint/data/services.yaml": "services: [OrderManager]\n"})
 	_, err := newEngine(t, cfg).Services()
 	if err == nil || err.Error() != "data.project.services must be a mapping of service names to layers" {
 		t.Errorf("err = %v", err)
@@ -576,17 +576,17 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 		src   string
 		lines int
 	}{
-		"parse":   {"package specval.spec.a\n\ndeny contains f if {\n", 1},
-		"compile": {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n", 1},
-		"two":     {"package specval.spec.a\n\nimport rego.v1\n\nx if y\n\nz if w\n", 2},
+		"parse":   {"package speclint.spec.a\n\ndeny contains f if {\n", 1},
+		"compile": {"package speclint.spec.a\n\nimport rego.v1\n\nx if y\n", 1},
+		"two":     {"package speclint.spec.a\n\nimport rego.v1\n\nx if y\n\nz if w\n", 2},
 	} {
-		cfg := project(t, map[string]string{".specval/policy/a.rego": c.src})
+		cfg := project(t, map[string]string{".speclint/policy/a.rego": c.src})
 		_, err := load(cfg)
 		if err == nil {
 			t.Errorf("%s: no error", name)
 			continue
 		}
-		file := filepath.Join(cfg.Root, ".specval", "policy", "a.rego") + ":"
+		file := filepath.Join(cfg.Root, ".speclint", "policy", "a.rego") + ":"
 		var count int
 		for line := range strings.SplitSeq(err.Error(), "\n") {
 			if strings.HasPrefix(line, "\t") {
@@ -605,10 +605,10 @@ func TestRegoErrorsStartWithTheFileAndLine(t *testing.T) {
 
 func TestRuleDocsListEachRuleOnce(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/policy/a.rego": `# METADATA
+		".speclint/policy/a.rego": `# METADATA
 # title: Project rules
 # description: Rules for this project.
-package specval.spec.a
+package speclint.spec.a
 
 import rego.v1
 
@@ -650,7 +650,7 @@ warn contains "c" if false
 
 func TestRuleDocsMarkTheBaselineRules(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/policy/a.rego": "package specval.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains \"a\" if false\n",
+		".speclint/policy/a.rego": "package speclint.spec.a\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: PRJ001\ndeny contains \"a\" if false\n",
 	})
 	for _, d := range newEngine(t, cfg).RuleDocs() {
 		if want := !strings.HasPrefix(d.ID, "PRJ"); d.Baseline != want {
@@ -659,12 +659,12 @@ func TestRuleDocsMarkTheBaselineRules(t *testing.T) {
 	}
 }
 
-// The queries read only the packages one level under specval.spec and
-// specval.registry. A deeper package would load but never run.
+// The queries read only the packages one level under speclint.spec and
+// speclint.registry. A deeper package would load but never run.
 func TestNestedRulePackagesAreRejected(t *testing.T) {
-	for _, pkg := range []string{"specval.spec.team.pricing", "specval.registry.team.owners"} {
+	for _, pkg := range []string{"speclint.spec.team.pricing", "speclint.registry.team.owners"} {
 		cfg := project(t, map[string]string{
-			".specval/policy/a.rego": "package " + pkg + "\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
+			".speclint/policy/a.rego": "package " + pkg + "\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
 		})
 		_, err := load(cfg)
 		if err == nil || !strings.Contains(err.Error(), "package "+pkg+" is too deep") {
@@ -677,9 +677,9 @@ func TestNestedRulePackagesAreRejected(t *testing.T) {
 // spec, with its line. In a data file, the key becomes a string.
 func TestKeysThatAreNotStrings(t *testing.T) {
 	cfg := project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		".specval/data/limits.yaml":   "limits: {1: a}\n",
-		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\n" +
+		".speclint/data/services.yaml": registry,
+		".speclint/data/limits.yaml":   "limits: {1: a}\n",
+		"specs/a.yaml": "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\n" +
 			"acceptance: [{ id: AC1, text: T }]\n" +
 			"calls:\n  - { from: OrderManager, to: OrderAccessor, op: Get, covers: [AC1], 1: x }\n",
 	})
@@ -690,15 +690,15 @@ func TestKeysThatAreNotStrings(t *testing.T) {
 }
 
 // Two keys can be different in YAML but the same as text, for example 0x1
-// and "1". specval must not keep one of them by chance.
+// and "1". speclint must not keep one of them by chance.
 func TestKeysThatAreTheSameAsText(t *testing.T) {
-	cfg := project(t, map[string]string{".specval/data/limits.yaml": "limits: {0x1: a, \"1\": b}\n"})
+	cfg := project(t, map[string]string{".speclint/data/limits.yaml": "limits: {0x1: a, \"1\": b}\n"})
 	if _, err := load(cfg); err == nil || !strings.Contains(err.Error(), `limits.yaml: two keys are "1" as text (limits.1)`) {
 		t.Errorf("data file: err = %v", err)
 	}
 	cfg = project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n" +
+		".speclint/data/services.yaml": registry,
+		"specs/a.yaml": "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n" +
 			"out_of_scope: [{0x1: a, \"1\": b}]\n",
 	})
 	found := check(t, cfg, "a.yaml")
@@ -708,8 +708,8 @@ func TestKeysThatAreTheSameAsText(t *testing.T) {
 	// The other rules never run on a done spec, so the check did not stop
 	// before them.
 	cfg = project(t, map[string]string{
-		".specval/data/services.yaml": registry,
-		"specs/a.yaml":                "specval: 1\nstatus: done\nout_of_scope: [{0x1: a, \"1\": b}]\n",
+		".speclint/data/services.yaml": registry,
+		"specs/a.yaml":                 "speclint: 1\nstatus: done\nout_of_scope: [{0x1: a, \"1\": b}]\n",
 	})
 	res, err := newEngine(t, cfg).CheckSpec(context.Background(), read(t, filepath.Join(cfg.Root, "specs", "a.yaml")))
 	if err != nil || len(res.Findings) != 1 || res.Findings[0].Rule != "SV000" || res.Stopped {
@@ -719,14 +719,14 @@ func TestKeysThatAreTheSameAsText(t *testing.T) {
 
 func TestNestedRulePackagesInBracketNotation(t *testing.T) {
 	nested := project(t, map[string]string{
-		".specval/policy/a.rego": "package specval.spec.team[\"pricing-rules\"]\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
+		".speclint/policy/a.rego": "package speclint.spec.team[\"pricing-rules\"]\n\nimport rego.v1\n\n# METADATA\n# title: T\n# custom:\n#   id: TEAM001\ndeny contains \"x\" if true\n",
 	})
 	if _, err := load(nested); err == nil || !strings.Contains(err.Error(), "is too deep") {
 		t.Errorf("nested: err = %v, want a package depth error", err)
 	}
 	// One level in bracket notation is a rule package, so it needs custom.id.
 	noID := project(t, map[string]string{
-		".specval/policy/a.rego": "package specval.spec[\"pricing-rules\"]\n\nimport rego.v1\n\ndeny contains \"x\" if true\n",
+		".speclint/policy/a.rego": "package speclint.spec[\"pricing-rules\"]\n\nimport rego.v1\n\ndeny contains \"x\" if true\n",
 	})
 	if _, err := load(noID); err == nil || !strings.Contains(err.Error(), "custom.id") {
 		t.Errorf("one level: err = %v, want a custom.id error", err)
@@ -736,12 +736,12 @@ func TestNestedRulePackagesInBracketNotation(t *testing.T) {
 // A registry finding for a key that is not a string has the line of the key,
 // not the line of its parent.
 func TestRegistryLineForAKeyThatIsNotAString(t *testing.T) {
-	cfg := project(t, map[string]string{".specval/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  0x1: manager\n"})
+	cfg := project(t, map[string]string{".speclint/data/services.yaml": "services:\n  OrderManager: { layer: manager }\n  0x1: manager\n"})
 	got, err := newEngine(t, cfg).CheckRegistry(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	found := got[filepath.Join(cfg.Root, ".specval", "data", "services.yaml")]
+	found := got[filepath.Join(cfg.Root, ".speclint", "data", "services.yaml")]
 	if len(found) != 1 || found[0].Rule != "SR004" || found[0].Path != "services.1" || found[0].Line != 3 {
 		t.Errorf("got %+v, want one SR004 at services.1, line 3", found)
 	}
@@ -752,11 +752,11 @@ func TestTheRulesHaveATimeLimit(t *testing.T) {
 	evalTimeout = 50 * time.Millisecond
 	t.Cleanup(func() { evalTimeout = old })
 	cfg := project(t, map[string]string{
-		".specval/policy/slow.rego": "package specval.spec.slow\n\nimport rego.v1\n\n" +
+		".speclint/policy/slow.rego": "package speclint.spec.slow\n\nimport rego.v1\n\n" +
 			"# METADATA\n# title: Slow\n# custom:\n#   id: SLOW001\n" +
 			"deny contains f if {\n\tsome i in numbers.range(1, 5000)\n\tsome j in numbers.range(1, 5000)\n\ti * j < 0\n" +
 			"\tf := {\"rule\": \"SLOW001\", \"path\": \"\", \"msg\": \"m\", \"fix\": \"f\"}\n}\n",
-		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+		"specs/a.yaml": "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
 	})
 	eng := newEngine(t, cfg)
 	start := time.Now()
@@ -771,7 +771,7 @@ func TestTheRulesHaveATimeLimit(t *testing.T) {
 
 func TestACanceledCheckStops(t *testing.T) {
 	cfg := project(t, map[string]string{
-		"specs/a.yaml": "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
+		"specs/a.yaml": "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n",
 	})
 	eng := newEngine(t, cfg)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -799,7 +799,7 @@ func TestEvalDoesNotStartWithACanceledContext(t *testing.T) {
 }
 
 func TestASecondYAMLDocument(t *testing.T) {
-	spec := "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n"
+	spec := "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\ncalls: []\n"
 	cfg := project(t, map[string]string{
 		"specs/two.yaml":  spec + "---\nid: B\n",
 		"specs/dash.yaml": "---\n" + spec,
@@ -817,7 +817,7 @@ func TestASecondYAMLDocument(t *testing.T) {
 		t.Errorf("one document after ---: got %v, want no format errors", got)
 	}
 
-	bad := project(t, map[string]string{".specval/data/services.yaml": registry + "---\nother: 1\n"})
+	bad := project(t, map[string]string{".speclint/data/services.yaml": registry + "---\nother: 1\n"})
 	if _, err := load(bad); err == nil || !strings.Contains(err.Error(), "services.yaml: line ") || !strings.Contains(err.Error(), "a data file must have one YAML document") {
 		t.Errorf("data file: err = %v, want the second document", err)
 	}

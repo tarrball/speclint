@@ -16,8 +16,8 @@
 | `mise run lint` | Checks Go and Rego code. |
 | `mise run fmt` | Formats Go and Rego code. |
 | `mise run cover` | Runs all tests and opens the coverage report. |
-| `mise run build` | Builds `bin/sv`. |
-| `mise run specs` | Checks the specs in `specs/` and the registry with specval itself. |
+| `mise run build` | Builds `bin/slint`. |
+| `mise run specs` | Checks the specs in `specs/` and the registry with speclint itself. |
 | `mise run vuln` | Finds known vulnerabilities in the code and its dependencies. It needs the network. |
 
 CI runs `mise run check` and `mise run vuln` for each pull request and each
@@ -30,7 +30,7 @@ Before you write code, comments, or documentation, read [docs/style.md](docs/sty
 - After each change, `mise run check` must pass.
 - A change in behavior must have a test that fails before the change and passes after it.
 - The end-to-end tests in `testdata/script` hold the exact CLI output.
-  If you change the output, run `UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/sv`.
+  If you change the output, run `UPDATE_SCRIPTS=1 go test -run TestScripts ./cmd/slint`.
   Then examine the diff. Include it in the same commit.
 - A change to the CLI output, a rule, or a configuration file must also update the documentation.
 - If you change the version of `github.com/open-policy-agent/opa` in `go.mod`,
@@ -38,8 +38,8 @@ Before you write code, comments, or documentation, read [docs/style.md](docs/sty
 
 ## Specs
 
-specval checks its own changes (dogfooding). The registry of specval is
-`.specval/data/services.yaml`. It puts each package in a DPL layer.
+speclint checks its own changes (dogfooding). The registry of speclint is
+`.speclint/data/services.yaml`. It puts each package in a DPL layer.
 
 - If a change adds or changes Go code under `cmd/` or `internal/`, write a spec
   first: `specs/<id>.yaml`. Use the topic of the branch as the ID, for example
@@ -50,7 +50,7 @@ specval checks its own changes (dogfooding). The registry of specval is
   life of a spec" in docs/specs.md), and set `status: done` in the spec.
 - A change to only documentation, CI, tests, or Rego rules does not need a spec,
   because it has no calls between services.
-- `TestRegistryAgreesWithTheImports` (cmd/sv) compares the registry with the
+- `TestRegistryAgreesWithTheImports` (cmd/slint) compares the registry with the
   imports of the Go packages. If you add an import between two packages, add
   the call to the registry in the same pull request.
 

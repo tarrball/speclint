@@ -1,0 +1,15 @@
+# version prints the version of slint and of the spec format. It needs no project.
+exits 0 slint version
+stdout '^slint \S+ \(spec format 1\)$'
+! stderr .
+
+exits 2 slint version extra
+stderr '^slint: version takes no arguments; got "extra"$'
+
+# --version is the same as the version command, because many CLIs use it.
+exits 0 slint --version
+stdout '^slint \S+ \(spec format 1\)$'
+! stderr .
+
+exits 2 slint --version extra
+stderr '^slint: version takes no arguments; got "extra"$'

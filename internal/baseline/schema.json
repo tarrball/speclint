@@ -1,11 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "specval spec",
+  "title": "speclint spec",
   "type": "object",
-  "required": ["specval", "id", "kind", "title", "summary", "acceptance", "calls"],
+  "required": ["speclint", "id", "kind", "title", "summary", "acceptance", "calls"],
   "additionalProperties": false,
   "properties": {
-    "specval": { "const": 1, "description": "The version of the spec format. It is always 1." },
+    "speclint": { "const": 1, "description": "The version of the spec format. It is always 1." },
     "id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
@@ -14,7 +14,7 @@
     "kind": { "enum": ["feature", "bugfix", "chore"], "description": "The kind of change: feature, bugfix, or chore." },
     "status": {
       "enum": ["draft", "done"],
-      "description": "draft until the change is implemented. Set done in the change that implements the spec. Then specval checks only the format of the spec."
+      "description": "draft until the change is implemented. Set done in the change that implements the spec. Then speclint checks only the format of the spec."
     },
     "title": { "type": "string", "minLength": 1, "description": "The title of the change, on one line." },
     "summary": { "type": "string", "minLength": 1, "description": "A short paragraph that tells the problem and the new behavior." },

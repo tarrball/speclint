@@ -1,4 +1,4 @@
-specval: 1
+speclint: 1
 id: ORD-142                # the ticket ID; name the spec file <id>.yaml
 kind: feature              # feature, bugfix, or chore
 status: draft              # draft; set done in the change that implements the spec

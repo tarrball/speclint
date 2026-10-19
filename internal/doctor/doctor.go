@@ -1,4 +1,4 @@
-// Package doctor checks that a specval project and its Claude Code setup work.
+// Package doctor checks that a speclint project and its Claude Code setup work.
 package doctor
 
 import (
@@ -14,10 +14,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/tarrball/specval/internal/claude"
-	"github.com/tarrball/specval/internal/config"
-	"github.com/tarrball/specval/internal/copilot"
-	"github.com/tarrball/specval/internal/policy"
+	"github.com/tarrball/speclint/internal/claude"
+	"github.com/tarrball/speclint/internal/config"
+	"github.com/tarrball/speclint/internal/copilot"
+	"github.com/tarrball/speclint/internal/policy"
 )
 
 // Status is the result of a check.
@@ -46,11 +46,11 @@ type Env struct {
 	// Home is the home directory of the user. The checks look there for the
 	// user-level skill and settings. If it is "", they look only in the project.
 	Home string
-	// Executable is the path of the specval binary that runs the checks.
+	// Executable is the path of the speclint binary that runs the checks.
 	Executable string
 }
 
-const repair = "Run `sv init` in the project root. It adds the missing parts and does not change the other files."
+const repair = "Run `slint init` in the project root. It adds the missing parts and does not change the other files."
 
 // Run checks the project that contains env.Dir. It returns the checks in
 // this order: config, specs, data and policy paths, rules, registry, skill,
@@ -58,7 +58,7 @@ const repair = "Run `sv init` in the project root. It adds the missing parts and
 func Run(ctx context.Context, env Env) []Check {
 	cfg, err := config.Find(env.Dir)
 	if err != nil {
-		return []Check{{StatusFail, "config", err.Error(), "Run `sv init` in the project root."}}
+		return []Check{{StatusFail, "config", err.Error(), "Run `slint init` in the project root."}}
 	}
 	c := &checker{env: env, cfg: cfg}
 	c.add(StatusOK, "config", filepath.Join(cfg.Root, config.FileName), "")
@@ -102,7 +102,7 @@ func (c *checker) checkSpecs() {
 	if info, err := os.Stat(c.cfg.Abs(c.cfg.SpecsDir)); err != nil || !info.IsDir() {
 		c.add(StatusWarn, "specs", c.cfg.SpecsDir+" does not exist", repair)
 	} else if specs, err := c.cfg.SpecFiles(); err != nil {
-		c.add(StatusFail, "specs", err.Error(), "Make sure that specval can read each file in "+c.cfg.SpecsDir+".")
+		c.add(StatusFail, "specs", err.Error(), "Make sure that speclint can read each file in "+c.cfg.SpecsDir+".")
 	} else {
 		c.add(StatusOK, "specs", fmt.Sprintf("%s (%d spec(s))", c.cfg.SpecsDir, len(specs)), "")
 	}
@@ -138,7 +138,7 @@ func loadEngine(ctx context.Context, cfg *config.Config) (*policy.Engine, error)
 func (c *checker) checkRules(ctx context.Context) *policy.Engine {
 	eng, err := loadEngine(ctx, c.cfg)
 	if err != nil {
-		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `sv check` fails.")
+		c.add(StatusFail, "rules", c.relText(err.Error()), "Fix the file in the error. Until you fix it, `slint check` fails.")
 		return nil
 	}
 	docs := eng.RuleDocs()
@@ -156,7 +156,7 @@ func (c *checker) checkRules(ctx context.Context) *policy.Engine {
 // the registry rules. If eng is nil, it cannot check the registry.
 func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	if eng == nil {
-		c.add(StatusWarn, "registry", "specval cannot check the registry until the rules load", "")
+		c.add(StatusWarn, "registry", "speclint cannot check the registry until the rules load", "")
 		return
 	}
 	services, err := eng.Services()
@@ -191,12 +191,12 @@ func (c *checker) checkRegistry(ctx context.Context, eng *policy.Engine) {
 	}
 	breaks, err := eng.LayerBreaks()
 	if err != nil {
-		c.add(StatusFail, "registry", c.relText(err.Error()), "Run `sv check` to see the problem in the registry.")
+		c.add(StatusFail, "registry", c.relText(err.Error()), "Run `slint check` to see the problem in the registry.")
 		return
 	}
 	// A registry warning does not fail check, so it does not fail doctor.
 	if len(problems) > 0 {
-		c.add(status, "registry", strings.Join(problems, "; ")+layerBreaks(breaks), "Run `sv check` to see the fix for each problem.")
+		c.add(status, "registry", strings.Join(problems, "; ")+layerBreaks(breaks), "Run `slint check` to see the fix for each problem.")
 		return
 	}
 	c.add(StatusOK, "registry", fmt.Sprintf("%d service(s), %s%s", len(services), c.rel(eng.DataFile("services")), layerBreaks(breaks)), "")
@@ -233,8 +233,8 @@ func (c *checker) registryFile(eng *policy.Engine) string {
 	return "a data file that " + config.FileName + " lists"
 }
 
-// checkSkill makes sure that the project or the user has the specval skill,
-// and that the skill still tells Claude to run `sv context`. Claude Code
+// checkSkill makes sure that the project or the user has the speclint skill,
+// and that the skill still tells Claude to run `slint context`. Claude Code
 // reads the skill from the project first, then from the home directory.
 func (c *checker) checkSkill() {
 	paths := []string{filepath.Join(c.cfg.Root, claude.SkillPath)}
@@ -255,9 +255,9 @@ func (c *checker) checkSkill() {
 	b, err := os.ReadFile(skill)
 	switch {
 	case err != nil:
-		c.add(StatusFail, "skill", c.relText(err.Error()), "Make sure that specval can read the skill.")
-	case !strings.Contains(string(b), "sv context"):
-		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `sv context`", "Delete it, then run `sv init` to write it again from the template.")
+		c.add(StatusFail, "skill", c.relText(err.Error()), "Make sure that speclint can read the skill.")
+	case !strings.Contains(string(b), "slint context"):
+		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `slint context`", "Delete it, then run `slint init` to write it again from the template.")
 	default:
 		c.add(StatusOK, "skill", c.rel(skill), "")
 	}
@@ -266,19 +266,19 @@ func (c *checker) checkSkill() {
 // checkCopilot makes sure that the project has the Copilot review
 // instructions. A project that does not use Copilot can ignore the warning.
 func (c *checker) checkCopilot() {
-	// Read the file, so that a directory or a file that specval cannot read
+	// Read the file, so that a directory or a file that speclint cannot read
 	// is a failure.
 	switch _, err := os.ReadFile(filepath.Join(c.cfg.Root, copilot.InstructionsPath)); {
 	case errors.Is(err, fs.ErrNotExist):
 		c.add(StatusWarn, "copilot", copilot.InstructionsPath+" is missing, so Copilot does not compare a pull request with its spec", repair)
 	case err != nil:
-		c.add(StatusFail, "copilot", c.relText(err.Error()), "Make sure that specval can read the instructions.")
+		c.add(StatusFail, "copilot", c.relText(err.Error()), "Make sure that speclint can read the instructions.")
 	default:
 		c.add(StatusOK, "copilot", copilot.InstructionsPath, "")
 	}
 }
 
-// checkHook makes sure that a settings file runs `sv hook` after each
+// checkHook makes sure that a settings file runs `slint hook` after each
 // file write, and that no settings file turns hooks off. Claude Code reads
 // the project settings, the local project settings, and then the user
 // settings.
@@ -287,7 +287,7 @@ func (c *checker) checkHook() {
 	if c.env.Home != "" {
 		paths = append(paths, filepath.Join(c.env.Home, claude.SettingsPath))
 	}
-	var hookFile, oldFile, disabledIn string
+	var hookFile, disabledIn string
 	var hook claude.HookStatus
 	for _, p := range paths {
 		st, err := claude.InspectSettings(p)
@@ -301,26 +301,13 @@ func (c *checker) checkHook() {
 		if st.Found && hookFile == "" {
 			hookFile, hook = p, st
 		}
-		if st.Old && oldFile == "" {
-			oldFile = p
-		}
 	}
 	switch {
-	case hookFile == "" && oldFile != "":
-		c.add(StatusFail, "hook", "the hook in "+c.rel(oldFile)+" runs `specval hook`, but the command is now `sv hook`",
-			"Change the command of the hook to `sv hook`.")
-		return
 	case hookFile == "":
-		c.add(StatusFail, "hook", "no PostToolUse hook runs `sv hook`, so specval does not check the specs that Claude writes", repair)
+		c.add(StatusFail, "hook", "no PostToolUse hook runs `slint hook`, so speclint does not check the specs that Claude writes", repair)
 		return
 	case disabledIn != "":
 		c.add(StatusFail, "hook", "disableAllHooks in "+c.rel(disabledIn)+" turns off all hooks", "Remove disableAllHooks from that file.")
-		return
-	case oldFile != "":
-		// The sv hook runs, but Claude Code also runs the old command, which
-		// fails after each file write.
-		c.add(StatusWarn, "hook", "the hook in "+c.rel(oldFile)+" runs `specval hook`, which no longer exists",
-			"Remove that hook. The hook in "+c.rel(hookFile)+" runs `sv hook`.")
 		return
 	}
 	var missed []string
@@ -337,23 +324,23 @@ func (c *checker) checkHook() {
 	}
 }
 
-// checkPath makes sure that the hook can run specval. The hook runs the
-// sv that is on PATH, which can be different from the one that runs doctor.
-// Another program can also have the name sv, for example the sv of runit.
+// checkPath makes sure that the hook can run speclint. The hook runs the
+// slint that is on PATH, which can be different from the one that runs doctor.
+// Another program can also have the name slint.
 func (c *checker) checkPath(ctx context.Context) {
-	onPath, err := exec.LookPath("sv")
+	onPath, err := exec.LookPath("slint")
 	if err != nil {
-		c.add(StatusFail, "path", "sv is not on PATH, so Claude Code cannot run `sv hook`",
-			"Put the sv binary in a directory on the PATH that Claude Code uses.")
+		c.add(StatusFail, "path", "slint is not on PATH, so Claude Code cannot run `slint hook`",
+			"Put the slint binary in a directory on the PATH that Claude Code uses.")
 		return
 	}
-	out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput() //nolint:gosec // This check must run the sv binary that is on PATH.
+	out, err := exec.CommandContext(ctx, onPath, "help").CombinedOutput() //nolint:gosec // This check must run the slint binary that is on PATH.
 	switch {
 	case err != nil:
-		c.add(StatusFail, "path", fmt.Sprintf("%s does not run: %v %s", onPath, err, strings.TrimSpace(string(out))), "Install specval again.")
-	case !strings.Contains(string(out), "sv hook"):
-		c.add(StatusFail, "path", onPath+" is not specval; another program has the name sv",
-			"Put the directory of the specval sv binary before the directory of the other sv on PATH.")
+		c.add(StatusFail, "path", fmt.Sprintf("%s does not run: %v %s", onPath, err, strings.TrimSpace(string(out))), "Install speclint again.")
+	case !strings.Contains(string(out), "slint hook"):
+		c.add(StatusFail, "path", onPath+" is not speclint; another program has the name slint",
+			"Put the directory of the speclint binary before the directory of the other slint on PATH.")
 	case !sameFile(c.env.Executable, onPath):
 		c.add(StatusWarn, "path", fmt.Sprintf("the hook will run %s (%s), but you ran %s (%s)",
 			onPath, versionOf(ctx, onPath), c.env.Executable, versionOf(ctx, c.env.Executable)),
@@ -363,11 +350,11 @@ func (c *checker) checkPath(ctx context.Context) {
 	}
 }
 
-// versionOf runs `sv version` and returns the version, for example v0.1.0.
-// An sv from before the version command gives no version. Then versionOf
+// versionOf runs `slint version` and returns the version, for example v0.1.0.
+// A slint from before the version command gives no version. Then versionOf
 // returns "unknown version".
-func versionOf(ctx context.Context, sv string) string {
-	out, err := exec.CommandContext(ctx, sv, "version").Output()
+func versionOf(ctx context.Context, slint string) string {
+	out, err := exec.CommandContext(ctx, slint, "version").Output()
 	m := versionLine.FindStringSubmatch(string(out))
 	if err != nil || m == nil {
 		return "unknown version"
@@ -375,9 +362,9 @@ func versionOf(ctx context.Context, sv string) string {
 	return m[1]
 }
 
-// versionLine is the output of `sv version`, for example
-// "sv v0.1.0 (spec format 1)".
-var versionLine = regexp.MustCompile(`^sv (\S+) \(spec format \d+\)\n$`)
+// versionLine is the output of `slint version`, for example
+// "slint v0.1.0 (spec format 1)".
+var versionLine = regexp.MustCompile(`^slint (\S+) \(spec format \d+\)\n$`)
 
 // sameFile reports whether a and b are the same file.
 func sameFile(a, b string) bool {

@@ -20,7 +20,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 - Use the same word for the same thing each time.
   A *spec* is always a spec, not a "document" in one place and a "file" in another.
 - Use the simplest common word. Write "use", not "utilize". Write "start", not "initiate".
-- Use technical names as they are: `sv check`, `data.project`, `SV101`.
+- Use technical names as they are: `slint check`, `data.project`, `SV101`.
 - Do not use a noun cluster of more than three words.
   Write "the rules for the service registry", not "service registry rule set".
 - Use "a", "an", and "the". Do not leave them out to make a sentence shorter.
@@ -38,7 +38,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 - Keep an instruction to 20 words or fewer. Keep a description to 25 words or fewer.
 - Give one instruction in each sentence.
-- Write instructions in the imperative: "Run `sv init`."
+- Write instructions in the imperative: "Run `slint init`."
 - Put a condition before the instruction: "If the hook does not run, examine the PATH."
 - Keep a paragraph to one topic and six sentences or fewer.
 - Use a vertical list for a sequence of steps or a set of items.
@@ -46,7 +46,7 @@ We apply the rules below. We do not check each word against the STE dictionary.
 ### What to leave out
 
 - Do not tell the reader what a tool does not need.
-  Write what specval does, not which other tools it replaces.
+  Write what speclint does, not which other tools it replaces.
 - Do not repeat what the code or the heading already says.
 - Do not add marketing words such as "simply", "just", "powerful", or "seamless".
 
@@ -54,15 +54,15 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 | Not STE | STE |
 |---|---|
-| A single Go binary with OPA embedded: no conftest, Docker, or runtime to install. | specval is one binary. It contains the policy engine. |
-| Registry rules (SR\*) run once per `check` and report against the registry file. | specval runs the registry rules one time for each `check`. It shows their findings on the registry file. |
+| A single Go binary with OPA embedded: no conftest, Docker, or runtime to install. | speclint is one binary. It contains the policy engine. |
+| Registry rules (SR\*) run once per `check` and report against the registry file. | speclint runs the registry rules one time for each `check`. It shows their findings on the registry file. |
 | `// parseArgs lets flags appear before or after positional arguments.` | `// parseArgs parses flags that come before or after the positional arguments.` |
 
 ## Go
 
 ### Layout
 
-- Put the `main` package in `cmd/sv`. Keep it small: it calls into `internal/`.
+- Put the `main` package in `cmd/slint`. Keep it small: it calls into `internal/`.
 - Put all other code in packages under `internal/`. Give each package one purpose.
 - Do not make a package named `util`, `common`, or `helpers`.
 
@@ -82,10 +82,10 @@ We apply the rules below. We do not check each word against the STE dictionary.
 
 ### Input and output
 
-- Do not use `os.Stdout`, `os.Stderr`, `os.Stdin`, `os.Getwd`, or `os.Exit` outside `cmd/sv`.
+- Do not use `os.Stdout`, `os.Stderr`, `os.Stdin`, `os.Getwd`, or `os.Exit` outside `cmd/slint`.
   Pass an `io.Writer`, an `io.Reader`, or a directory as a parameter.
   This lets a test supply its own values.
-- Use `0o644` for files and `0o755` for directories that specval creates.
+- Use `0o644` for files and `0o755` for directories that speclint creates.
 
 ### Comments
 
@@ -110,14 +110,14 @@ We apply the rules below. We do not check each word against the STE dictionary.
 A `//nolint` directive must name the linter and give a reason:
 
 ```go
-//nolint:gosec // This check must run the sv binary that is on PATH.
+//nolint:gosec // This check must run the slint binary that is on PATH.
 ```
 
 ## Rego
 
 - Use Rego v1 syntax (`import rego.v1`, `contains`, `if`).
 - Give each `deny` or `warn` rule a `METADATA` block with a `title` and a `custom.id`.
-  specval does not load a rule that has no `custom.id`.
+  speclint does not load a rule that has no `custom.id`.
 - Make each finding with `lib.finding(rego.metadata.rule(), path, msg, fix)`.
 - Bind each value that can be undefined before you use it in string interpolation.
   `$"{x}"` writes an undefined `x` as `<undefined>`. It does not make the rule

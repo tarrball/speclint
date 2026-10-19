@@ -1,8 +1,8 @@
-package specval.spec.dpl
+package speclint.spec.dpl
 
 # This file holds the helpers that write the fix texts of the rules in dpl.rego.
 
-import data.specval.lib
+import data.speclint.lib
 import rego.v1
 
 can_call(l) := $"{lib.capitalize(lib.plural(l))} can call only {targets}" if {

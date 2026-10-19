@@ -2,6 +2,9 @@
 
 This file is temporary. Remove it when the plan is complete.
 
+This plan uses the old names. The product specval is now speclint, the
+command sv is now slint, and `.specval` is now `.speclint`.
+
 This plan joins two tasks. specval checks its own specs (dogfooding), and the
 code moves to the DPL layers. specval is a brownfield project: the code exists,
 and it does not fit the layers yet. Each PR moves it nearer to the layers. Thus

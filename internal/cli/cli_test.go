@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tarrball/specval/internal/baseline"
-	"github.com/tarrball/specval/internal/check"
-	"github.com/tarrball/specval/internal/doctor"
-	"github.com/tarrball/specval/internal/policy"
+	"github.com/tarrball/speclint/internal/baseline"
+	"github.com/tarrball/speclint/internal/check"
+	"github.com/tarrball/speclint/internal/doctor"
+	"github.com/tarrball/speclint/internal/policy"
 )
 
-// runCLI runs specval with args in dir and returns the exit code, stdout,
+// runCLI runs speclint with args in dir and returns the exit code, stdout,
 // and stderr.
 func runCLI(t *testing.T, dir, stdin string, args ...string) (code exitCode, stdout, stderr string) {
 	t.Helper()
@@ -57,7 +57,7 @@ func TestRunReportsErrors(t *testing.T) {
 			args = append(args, "X-1")
 		}
 		code, _, errOut := runCLI(t, t.TempDir(), "", args...)
-		if code != exitError || !strings.HasPrefix(errOut, "sv: no .specval.yaml in ") {
+		if code != exitError || !strings.HasPrefix(errOut, "slint: no .speclint.yaml in ") {
 			t.Errorf("%s: code %d, stderr %q", cmd, code, errOut)
 		}
 	}
@@ -97,7 +97,7 @@ func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
 		}
 	}
 	for _, p := range []string{"a", "b"} {
-		if err := os.WriteFile(filepath.Join(dir, p, ".specval.yaml"), nil, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, p, ".speclint.yaml"), nil, 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -107,7 +107,7 @@ func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
 		}
 	}
 	code, out, errOut := runCLI(t, dir, "", "check", "a/specs/x.yaml", "b/specs/y.yaml")
-	if code != exitError || out != "" || !strings.Contains(errOut, "a/specs/x.yaml and b/specs/y.yaml are in different specval projects") {
+	if code != exitError || out != "" || !strings.Contains(errOut, "a/specs/x.yaml and b/specs/y.yaml are in different speclint projects") {
 		t.Errorf("code %d, stdout %q, stderr %q", code, out, errOut)
 	}
 	// check accepts files in two directories of the same project.
@@ -125,7 +125,7 @@ func TestCheckRejectsSpecsFromTwoProjects(t *testing.T) {
 
 func TestSchema(t *testing.T) {
 	code, out, _ := runCLI(t, t.TempDir(), "", "schema")
-	if code != exitOK || !strings.Contains(out, `"title": "specval spec"`) {
+	if code != exitOK || !strings.Contains(out, `"title": "speclint spec"`) {
 		t.Errorf("schema: code %d, stdout %q", code, out)
 	}
 }
@@ -192,7 +192,7 @@ func TestPrintText(t *testing.T) {
     fix: Register X.
 b.yaml:5 warning SV201 Y is unused
     fix: Remove Y.
-specval checked 2 spec(s) and found 1 error(s) and 1 warning(s).
+speclint checked 2 spec(s) and found 1 error(s) and 1 warning(s).
 `
 	if b.String() != want {
 		t.Errorf("printText:\n%s\nwant:\n%s", b.String(), want)
@@ -213,11 +213,11 @@ func TestPrintTextWithoutALine(t *testing.T) {
 func TestPrintChecks(t *testing.T) {
 	var b strings.Builder
 	printChecks(&b, []doctor.Check{
-		{Status: doctor.StatusOK, Name: "config", Detail: "/p/.specval.yaml"},
+		{Status: doctor.StatusOK, Name: "config", Detail: "/p/.speclint.yaml"},
 		{Status: doctor.StatusWarn, Name: "registry", Detail: "empty", Fix: "Add services."},
 		{Status: doctor.StatusFail, Name: "hook", Detail: "missing", Fix: "Run init."},
 	})
-	want := `✓ config    /p/.specval.yaml
+	want := `✓ config    /p/.speclint.yaml
 ! registry  empty
     fix: Add services.
 ✗ hook      missing
@@ -229,7 +229,7 @@ func TestPrintChecks(t *testing.T) {
 	}
 	b.Reset()
 	printChecks(&b, []doctor.Check{{Status: doctor.StatusOK, Name: "config", Detail: "x"}})
-	if !strings.HasSuffix(b.String(), "The specval setup has no problems.\n") {
+	if !strings.HasSuffix(b.String(), "The speclint setup has no problems.\n") {
 		t.Errorf("printChecks with no problems:\n%s", b.String())
 	}
 }
@@ -247,7 +247,7 @@ func TestInitAndNew(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, want)); err != nil {
 		t.Error(err)
 	}
-	if code, _, errOut := runCLI(t, dir, "", "new", "bad id"); code != exitError || !strings.Contains(errOut, "usage: sv new <id>") {
+	if code, _, errOut := runCLI(t, dir, "", "new", "bad id"); code != exitError || !strings.Contains(errOut, "usage: slint new <id>") {
 		t.Errorf("new with a bad id: code %d, stderr %q", code, errOut)
 	}
 }
@@ -262,7 +262,7 @@ func TestCheckJSONOutput(t *testing.T) {
 		t.Errorf("check --format json with no specs:\n%s", out)
 	}
 	// The JSON output does not escape <, >, and & for HTML.
-	spec := "specval: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\n" +
+	spec := "speclint: 1\nid: A\nkind: chore\ntitle: T\nsummary: S\nacceptance: [{ id: AC1, text: T }]\n" +
 		"calls: [{ from: OrderManager, to: \"A<B&C>\", op: Get, covers: [AC1] }]\n"
 	if err := os.WriteFile(filepath.Join(dir, "specs", "a.yaml"), []byte(spec), 0o644); err != nil {
 		t.Fatal(err)
@@ -276,7 +276,7 @@ func TestHelpFlagExitsZeroAndDoesNothing(t *testing.T) {
 	for _, cmd := range []string{"check", "context", "new", "schema", "init", "doctor", "hook"} {
 		dir := t.TempDir()
 		code, out, errOut := runCLI(t, dir, `{"tool_input": {"file_path": "specs/a.yaml"}}`, cmd, "--help")
-		if code != exitOK || errOut != "" || !strings.HasPrefix(out, "Usage: sv "+cmd) {
+		if code != exitOK || errOut != "" || !strings.HasPrefix(out, "Usage: slint "+cmd) {
 			t.Errorf("%s --help: code %d, stdout %q, stderr %q", cmd, code, out, errOut)
 		}
 		if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
@@ -308,7 +308,7 @@ func TestHelpAndUsageComeFromTheCommandTable(t *testing.T) {
 			t.Errorf("%s --help: first line %q, want %q", c.name, first, "Usage: "+c.line())
 		}
 	}
-	// The kinds of sv new come from the schema.
+	// The kinds of slint new come from the schema.
 	if !strings.Contains(find("new").line(), "--kind "+strings.Join(baseline.Kinds(), "|")) {
 		t.Errorf("new: %q does not have the kinds of the schema", find("new").line())
 	}
@@ -348,7 +348,7 @@ func TestHelpCommandIsTheSameAsTheHelpFlag(t *testing.T) {
 
 func TestFlagErrorPointsToHelp(t *testing.T) {
 	code, out, errOut := runCLI(t, t.TempDir(), "", "check", "--nope")
-	want := "flag provided but not defined: -nope\nUsage: " + find("check").line() + "\nRun `sv check --help` for the flags and examples.\n"
+	want := "flag provided but not defined: -nope\nUsage: " + find("check").line() + "\nRun `slint check --help` for the flags and examples.\n"
 	if code != exitError || out != "" || errOut != want {
 		t.Errorf("check --nope: code %d, stdout %q, stderr %q, want %q", code, out, errOut, want)
 	}
@@ -369,10 +369,10 @@ func splitLine(line string) []string {
 }
 
 func TestExamplesHaveNoFlagOrArgumentErrors(t *testing.T) {
-	// The doctor examples run the sv on PATH. A fake sv makes the test
+	// The doctor examples run the slint on PATH. A fake slint makes the test
 	// independent of the software on the machine.
 	bin := t.TempDir()
-	if err := os.WriteFile(filepath.Join(bin, "sv"), []byte("#!/bin/sh\necho '  sv hook'\n"), 0o755); err != nil { // The fake binary must be executable.
+	if err := os.WriteFile(filepath.Join(bin, "slint"), []byte("#!/bin/sh\necho '  slint hook'\n"), 0o755); err != nil { // The fake binary must be executable.
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin)
@@ -383,8 +383,8 @@ func TestExamplesHaveNoFlagOrArgumentErrors(t *testing.T) {
 	for _, c := range commands() {
 		for _, e := range c.examples {
 			args := splitLine(e)
-			if args[0] != "sv" || args[1] != c.name {
-				t.Errorf("example %q does not start with sv %s", e, c.name)
+			if args[0] != "slint" || args[1] != c.name {
+				t.Errorf("example %q does not start with slint %s", e, c.name)
 				continue
 			}
 			_, _, errOut := runCLI(t, dir, "", args[1:]...)

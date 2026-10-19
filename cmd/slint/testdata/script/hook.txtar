@@ -1,0 +1,202 @@
+# The hook reads a Claude Code PostToolUse event from stdin.
+
+# A spec with errors: exit 2, and the findings go to stderr for Claude.
+jsonexpand events/bad.json bad.json
+stdin bad.json
+exits 2 slint hook
+! stdout .
+cmp stderr bad.txt
+
+# A spec with only warnings: exit 0, and the warnings go to stdout as JSON.
+jsonexpand events/warn.json warn.json
+stdin warn.json
+exits 0 slint hook
+cmp stdout warn.out
+! stderr .
+
+# A passing spec: exit 0, and no output.
+jsonexpand events/pass.json pass.json
+stdin pass.json
+exits 0 slint hook
+! stdout .
+! stderr .
+
+# A spec with format errors: the note tells Claude that more rules run after the fix.
+jsonexpand events/shape.json shape.json
+stdin shape.json
+exits 2 slint hook
+stderr '^specs/shape.yaml:1 error SV001 '
+stderr '^specs/shape.yaml note: The other rules run after you fix the format errors \(SV000, SV001\)\.$'
+
+# The hook finds a relative file path from cwd.
+jsonexpand events/relative.json relative.json
+stdin relative.json
+exits 2 slint hook
+stderr '^specs/bad.yaml:'
+
+# A spec whose name starts with ".." is in the specs directory, so the hook checks it.
+jsonexpand events/dotdot.json dotdot.json
+stdin dotdot.json
+exits 2 slint hook
+stderr '^specs/\.\.draft\.yaml:9 error SV102 '
+
+# The hook ignores files that are not specs, and input that it cannot read.
+stdin events/notyaml.json
+exits 0 slint hook
+! stdout .
+! stderr .
+jsonexpand events/outside.json outside.json
+stdin outside.json
+exits 0 slint hook
+! stdout .
+! stderr .
+jsonexpand events/noproject.json noproject.json
+stdin noproject.json
+exits 0 slint hook
+! stdout .
+stdin events/nofile.json
+exits 0 slint hook
+! stdout .
+stdin events/garbage.txt
+exits 0 slint hook
+! stdout .
+! stderr .
+
+# The hook reports only the findings for the spec. A problem in the registry
+# does not stop Claude; check and doctor report it.
+cd $WORK/badregistry
+jsonexpand $WORK/events/badregistry.json $WORK/badregistry.json
+stdin $WORK/badregistry.json
+exits 0 slint hook
+! stdout .
+! stderr .
+cd $WORK
+
+# If the configuration is not valid, the hook exits 1. It does not pass the spec without a check.
+cd $WORK/badconfig
+jsonexpand $WORK/events/badconfig.json $WORK/badconfig.json
+stdin $WORK/badconfig.json
+exits 1 slint hook
+! stdout .
+stderr '^slint: .*badconfig/\.speclint\.yaml: '
+stderr 'field spec_dir not found'
+cd $WORK
+
+# If speclint itself fails, the hook exits 1 so that Claude Code shows the error to the user.
+mkdir .speclint/policy
+cp broken.rego .speclint/policy/broken.rego
+stdin bad.json
+exits 1 slint hook
+stderr '^slint: .*broken.rego:'
+
+-- .speclint.yaml --
+-- .speclint/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+  BillingAccessor: { layer: accessor }
+-- specs/bad.yaml --
+speclint: 1
+id: BAD-1
+kind: feature
+title: Bad
+summary: An accessor calls a manager.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderAccessor, to: OrderManager, op: Notify, covers: [AC1] }
+-- specs/warn.yaml --
+speclint: 1
+id: WARN-1
+kind: feature
+title: Warn
+summary: BillingAccessor is listed as changed, but no call uses it.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+services:
+  changed: [BillingAccessor]
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- specs/pass.yaml --
+speclint: 1
+id: PASS-1
+kind: feature
+title: Pass
+summary: OrderManager reads an order.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- specs/..draft.yaml --
+speclint: 1
+id: DRAFT-1
+kind: feature
+title: Draft
+summary: An accessor calls a manager.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderAccessor, to: OrderManager, op: Notify, covers: [AC1] }
+-- badregistry/.speclint.yaml --
+-- badregistry/.speclint/data/services.yaml --
+services:
+  OrderManager: { layer: manager }
+  OrderAccessor: { layer: accessor }
+  PricingThing: { layer: engine }
+-- badregistry/specs/pass.yaml --
+speclint: 1
+id: PASS-1
+kind: feature
+title: Pass
+summary: OrderManager reads an order.
+acceptance:
+  - { id: AC1, text: "Given an order, when it is read, then it is returned." }
+calls:
+  - { from: OrderManager, to: OrderAccessor, op: GetOrder, covers: [AC1] }
+-- badconfig/.speclint.yaml --
+spec_dir: specs
+-- badconfig/specs/pass.yaml --
+speclint: 1
+-- notspec.yaml --
+a: b
+-- other/.keep --
+-- events/bad.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/bad.yaml"}}
+-- specs/shape.yaml --
+speclint: 1
+id: S-1
+-- events/shape.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/shape.yaml"}}
+-- events/warn.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/warn.yaml"}}
+-- events/pass.json --
+{"cwd": "$WORK", "tool_name": "Edit", "tool_input": {"file_path": "$WORK/specs/pass.yaml"}}
+-- events/dotdot.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/specs/..draft.yaml"}}
+-- events/badregistry.json --
+{"cwd": "$WORK/badregistry", "tool_name": "Write", "tool_input": {"file_path": "$WORK/badregistry/specs/pass.yaml"}}
+-- events/badconfig.json --
+{"cwd": "$WORK/badconfig", "tool_name": "Write", "tool_input": {"file_path": "$WORK/badconfig/specs/pass.yaml"}}
+-- events/relative.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "specs/bad.yaml"}}
+-- events/notyaml.json --
+{"cwd": "/", "tool_name": "Write", "tool_input": {"file_path": "/tmp/main.go"}}
+-- events/outside.json --
+{"cwd": "$WORK", "tool_name": "Write", "tool_input": {"file_path": "$WORK/notspec.yaml"}}
+-- events/noproject.json --
+{"cwd": "/", "tool_name": "Write", "tool_input": {"file_path": "/nonexistent/specs/x.yaml"}}
+-- events/nofile.json --
+{"cwd": "/", "tool_name": "Bash", "tool_input": {"command": "ls"}}
+-- events/garbage.txt --
+not json
+-- broken.rego --
+package speclint.spec.broken
+
+deny contains f if {
+-- bad.txt --
+specs/bad.yaml:9 error SV102 OrderAccessor (accessor) cannot call OrderManager (manager) (calls[0])
+    fix: Accessors can call only resources and utilities. Send the call to OrderManager through a client.
+speclint checked 1 spec(s) and found 1 error(s) and 0 warning(s).
+The spec does not pass. Apply each fix above. Then save the spec again. Do not write code until the spec passes.
+-- warn.out --
+{"hookSpecificOutput":{"additionalContext":"The spec passes, but speclint found warnings. If you can, fix them:\nspecs/warn.yaml:9 warning SV201 BillingAccessor is in services.changed, but no call uses it (services.changed[0])\n    fix: Add the calls that change BillingAccessor, or remove it from services.changed.\nspeclint checked 1 spec(s) and found 0 error(s) and 1 warning(s).\n","hookEventName":"PostToolUse"}}

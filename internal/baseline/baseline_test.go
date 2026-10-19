@@ -14,7 +14,7 @@ func TestSchemaIsJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(Schema()), &s); err != nil {
 		t.Fatal(err)
 	}
-	if s["title"] != "specval spec" {
+	if s["title"] != "speclint spec" {
 		t.Errorf("title = %v", s["title"])
 	}
 }
@@ -36,8 +36,8 @@ func TestFormatIsYAML(t *testing.T) {
 	if err := yaml.Unmarshal([]byte(Format()), &doc); err != nil {
 		t.Fatal(err)
 	}
-	if doc["specval"] != 1 {
-		t.Errorf("specval = %v, want 1", doc["specval"])
+	if doc["speclint"] != 1 {
+		t.Errorf("speclint = %v, want 1", doc["speclint"])
 	}
 }
 
@@ -71,7 +71,7 @@ func TestData(t *testing.T) {
 	}
 	keys := d["schema_keys"].(map[string][]string)
 	for path, want := range map[string][]string{
-		"(root)":         {"acceptance", "calls", "id", "kind", "out_of_scope", "removed_calls", "services", "specval", "status", "summary", "title"},
+		"(root)":         {"acceptance", "calls", "id", "kind", "out_of_scope", "removed_calls", "services", "speclint", "status", "summary", "title"},
 		"services":       {"changed", "new", "relayered"},
 		"services.new.*": {"layer", "name", "purpose"},
 		"calls.*":        {"covers", "from", "op", "to"},
