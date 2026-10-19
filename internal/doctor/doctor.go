@@ -52,9 +52,14 @@ type Env struct {
 
 const repair = "Run `slint init` in the project root. It adds the missing parts and does not change the other files."
 
+// claudeRepair is repair for the Claude Code parts.
+const claudeRepair = "Run `slint init --claude` in the project root. It adds the missing parts and does not change the other files."
+
 // Run checks the project that contains env.Dir. It returns the checks in
-// this order: config, specs, data and policy paths, rules, registry, skill,
-// hook, and path. If there is no configuration, it returns only the config check.
+// this order: config, specs, data and policy paths, rules, registry, copilot,
+// skill, hook, and path. If there is no configuration, it returns only the
+// config check. If the project and the user have no skill and no hook, Run
+// returns one claude check in place of the skill, hook, and path checks.
 func Run(ctx context.Context, env Env) []Check {
 	cfg, err := config.Find(env.Dir)
 	if err != nil {
@@ -65,8 +70,12 @@ func Run(ctx context.Context, env Env) []Check {
 	c.checkSpecs()
 	c.checkPaths()
 	c.checkRegistry(ctx, c.checkRules(ctx))
-	c.checkSkill()
 	c.checkCopilot()
+	if !c.usesClaude() {
+		c.add(StatusOK, "claude", "not set up; to use speclint with Claude Code, run `slint init --claude`", "")
+		return c.checks
+	}
+	c.checkSkill()
 	c.checkHook()
 	c.checkPath(ctx)
 	return c.checks
@@ -233,23 +242,59 @@ func (c *checker) registryFile(eng *policy.Engine) string {
 	return "a data file that " + config.FileName + " lists"
 }
 
-// checkSkill makes sure that the project or the user has the speclint skill,
-// and that the skill still tells Claude to run `slint context`. Claude Code
-// reads the skill from the project first, then from the home directory.
-func (c *checker) checkSkill() {
+// skillPaths returns the paths where Claude Code looks for the skill, in
+// the order that it reads them: the project, then the home directory.
+func (c *checker) skillPaths() []string {
 	paths := []string{filepath.Join(c.cfg.Root, claude.SkillPath)}
 	if c.env.Home != "" {
 		paths = append(paths, filepath.Join(c.env.Home, claude.SkillPath))
 	}
+	return paths
+}
+
+// settingsPaths returns the paths of the Claude Code settings files, in the
+// order that Claude Code reads them: the project settings, the local project
+// settings, and then the user settings.
+func (c *checker) settingsPaths() []string {
+	paths := []string{filepath.Join(c.cfg.Root, claude.SettingsPath), filepath.Join(c.cfg.Root, claude.LocalSettingsPath)}
+	if c.env.Home != "" {
+		paths = append(paths, filepath.Join(c.env.Home, claude.SettingsPath))
+	}
+	return paths
+}
+
+// usesClaude tells whether the project or the user set up speclint for
+// Claude Code: a skill exists, or a settings file runs `slint hook`. A
+// settings file that cannot be read does not count, because slint init
+// without --claude does not read it. If a skill or a hook exists, checkHook
+// reports the file.
+func (c *checker) usesClaude() bool {
+	for _, p := range c.skillPaths() {
+		if _, err := os.Stat(p); err == nil {
+			return true
+		}
+	}
+	for _, p := range c.settingsPaths() {
+		if st, err := claude.InspectSettings(p); err == nil && st.Found {
+			return true
+		}
+	}
+	return false
+}
+
+// checkSkill makes sure that the project or the user has the speclint skill,
+// and that the skill still tells Claude to run `slint context`. Claude Code
+// reads the skill from the project first, then from the home directory.
+func (c *checker) checkSkill() {
 	skill := ""
-	for _, p := range paths {
+	for _, p := range c.skillPaths() {
 		if _, err := os.Stat(p); err == nil {
 			skill = p
 			break
 		}
 	}
 	if skill == "" {
-		c.add(StatusWarn, "skill", claude.SkillPath+" is missing, so Claude does not know that it must read the rules before it plans", repair)
+		c.add(StatusWarn, "skill", claude.SkillPath+" is missing, so Claude does not know that it must read the rules before it plans", claudeRepair)
 		return
 	}
 	b, err := os.ReadFile(skill)
@@ -257,7 +302,7 @@ func (c *checker) checkSkill() {
 	case err != nil:
 		c.add(StatusFail, "skill", c.relText(err.Error()), "Make sure that speclint can read the skill.")
 	case !strings.Contains(string(b), "slint context"):
-		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `slint context`", "Delete it, then run `slint init` to write it again from the template.")
+		c.add(StatusWarn, "skill", c.rel(skill)+" no longer tells Claude to run `slint context`", "Delete it, then run `slint init --claude` to write it again from the template.")
 	default:
 		c.add(StatusOK, "skill", c.rel(skill), "")
 	}
@@ -279,17 +324,11 @@ func (c *checker) checkCopilot() {
 }
 
 // checkHook makes sure that a settings file runs `slint hook` after each
-// file write, and that no settings file turns hooks off. Claude Code reads
-// the project settings, the local project settings, and then the user
-// settings.
+// file write, and that no settings file turns hooks off.
 func (c *checker) checkHook() {
-	paths := []string{filepath.Join(c.cfg.Root, claude.SettingsPath), filepath.Join(c.cfg.Root, claude.LocalSettingsPath)}
-	if c.env.Home != "" {
-		paths = append(paths, filepath.Join(c.env.Home, claude.SettingsPath))
-	}
 	var hookFile, disabledIn string
 	var hook claude.HookStatus
-	for _, p := range paths {
+	for _, p := range c.settingsPaths() {
 		st, err := claude.InspectSettings(p)
 		if err != nil {
 			c.add(StatusFail, "hook", c.relText(err.Error()), "Correct the file. Claude Code ignores a settings file that it cannot read.")
@@ -304,7 +343,7 @@ func (c *checker) checkHook() {
 	}
 	switch {
 	case hookFile == "":
-		c.add(StatusFail, "hook", "no PostToolUse hook runs `slint hook`, so speclint does not check the specs that Claude writes", repair)
+		c.add(StatusFail, "hook", "no PostToolUse hook runs `slint hook`, so speclint does not check the specs that Claude writes", claudeRepair)
 		return
 	case disabledIn != "":
 		c.add(StatusFail, "hook", "disableAllHooks in "+c.rel(disabledIn)+" turns off all hooks", "Remove disableAllHooks from that file.")

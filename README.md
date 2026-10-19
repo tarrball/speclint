@@ -83,13 +83,13 @@ shows the `slint` that the hook runs and its version.
 1. In the root of your repository, set up speclint:
 
    ```
-   slint init
+   slint init --claude
    ```
 
    This writes `.speclint.yaml`, the service registry, a file for project rules,
    the Claude Code skill, the hook, and the Copilot review instructions. If
    your `CLAUDE.md` does not tell about speclint, `init` prints a line to add
-   to it.
+   to it. If you do not use Claude Code, run `slint init` without `--claude`.
 
 2. Add your services and their layers to `.speclint/data/services.yaml`:
 
@@ -134,7 +134,7 @@ breaks the schema.
 | `slint new <id>` | Makes `<specs dir>/<id>.yaml` from the template. Use `--kind` and `--title` to set those fields. |
 | `slint context` | Prints the spec format, the layers, the registry, and the rules. An agent reads this text before it writes a spec. |
 | `slint schema` | Prints the JSON Schema of a spec. |
-| `slint init [--dry-run]` | Sets up speclint, the skill, the hook, and the Copilot review instructions. You can run it again to restore a missing part. With `--dry-run`, it prints the changes and writes nothing. |
+| `slint init [--claude] [--dry-run]` | Sets up speclint and the Copilot review instructions. With `--claude`, it also adds the Claude Code skill and hook. You can run it again to restore a missing part. With `--dry-run`, it prints the changes and writes nothing. |
 | `slint doctor` | Checks the setup, and gives a fix for each failure and warning. Use `--format json` for JSON output. |
 | `slint version` | Prints the version of slint and of the spec format. `slint --version` does the same. |
 | `slint hook` | Claude Code runs this command after each file write. Do not run it yourself. |

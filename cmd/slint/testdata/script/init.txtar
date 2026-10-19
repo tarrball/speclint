@@ -1,14 +1,23 @@
+# Without --claude, init writes no Claude Code part and no line for CLAUDE.md.
+mkdir $WORK/plain
+cd $WORK/plain
+exits 0 slint init
+cmp stdout $WORK/plain.txt
+exists .speclint.yaml .speclint/data/services.yaml .speclint/policy/project.rego specs/.gitkeep .github/instructions/speclint.instructions.md
+! exists .claude
+cd $WORK
+
 # init --dry-run prints the changes and writes nothing.
 mkdir $WORK/dry
 cd $WORK/dry
-exits 0 slint init --dry-run
+exits 0 slint init --claude --dry-run
 cmp stdout $WORK/dry-run.txt
 ! exists .speclint.yaml .claude specs .github
 cd $WORK
 
 # init creates the config, the data and policy files, the skill, the specs
 # directory, and the hook.
-exits 0 slint init
+exits 0 slint init --claude
 cmp stdout created.txt
 exists specs/.gitkeep
 cmp .speclint.yaml want/config.yaml
@@ -22,12 +31,12 @@ exits 0 slint check
 stdout '^speclint checked 0 spec\(s\) and found 0 error\(s\) and 0 warning\(s\).$'
 
 # A second init changes nothing.
-exits 0 slint init
+exits 0 slint init --claude
 cmp stdout exists.txt
 
 # init adds the hook to a settings file and keeps the other settings.
 cd $WORK/merge
-exits 0 slint init
+exits 0 slint init --claude
 stdout '^hooked   .claude/settings.json$'
 cmp .claude/settings.json $WORK/want/merged.json
 
@@ -39,10 +48,15 @@ exists changes
 
 # init stops, and writes nothing, if the settings file is not valid JSON.
 cd $WORK/badjson
-exits 2 slint init
+exits 2 slint init --claude
 ! stdout .
 stderr '^slint: .*/badjson/.claude/settings.json is not valid JSON: '
 ! exists .speclint.yaml
+
+# Without --claude, init does not read the settings file.
+exits 0 slint init
+exists .speclint.yaml
+cmp .claude/settings.json $WORK/badjson.json
 
 -- merge/.claude/settings.json --
 {"model": "opus", "hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}]}}
@@ -50,6 +64,14 @@ stderr '^slint: .*/badjson/.claude/settings.json is not valid JSON: '
 specs_dir: changes
 -- badjson/.claude/settings.json --
 {not json
+-- badjson.json --
+{not json
+-- plain.txt --
+created  .speclint.yaml
+created  .speclint/data/services.yaml
+created  .speclint/policy/project.rego
+created  .github/instructions/speclint.instructions.md
+created  specs/.gitkeep
 -- dry-run.txt --
 create   .speclint.yaml
 create   .speclint/data/services.yaml
