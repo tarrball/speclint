@@ -265,7 +265,9 @@ func (c *checker) settingsPaths() []string {
 
 // usesClaude tells whether the project or the user set up speclint for
 // Claude Code: a skill exists, or a settings file runs `slint hook`. A
-// settings file that cannot be read counts, so that checkHook reports it.
+// settings file that cannot be read does not count, because slint init
+// without --claude does not read it. If a skill or a hook exists, checkHook
+// reports the file.
 func (c *checker) usesClaude() bool {
 	for _, p := range c.skillPaths() {
 		if _, err := os.Stat(p); err == nil {
@@ -273,7 +275,7 @@ func (c *checker) usesClaude() bool {
 		}
 	}
 	for _, p := range c.settingsPaths() {
-		if st, err := claude.InspectSettings(p); err != nil || st.Found {
+		if st, err := claude.InspectSettings(p); err == nil && st.Found {
 			return true
 		}
 	}

@@ -239,6 +239,13 @@ func TestClaudeNotSetUp(t *testing.T) {
 	f.want("claude", StatusOK, "not set up; to use speclint with Claude Code, run `slint init --claude`")
 }
 
+func TestSettingsThatAreNotValidDoNotSetUpClaude(t *testing.T) {
+	f := newFixture(t)
+	f.remove(claude.SkillPath)
+	f.write(claude.SettingsPath, "{not json")
+	f.want("claude", StatusOK, "not set up")
+}
+
 func TestClaudeRepairTellsToUseTheFlag(t *testing.T) {
 	f := newFixture(t)
 	f.remove(claude.SettingsPath)
