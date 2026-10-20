@@ -81,6 +81,16 @@ These are not designed yet. Each one needs a decision before it becomes work.
   Code parts only when you ask for them. The Copilot review instructions are
   still on by default. A `--copilot` flag would make each integration opt-in
   in the same way (a field in `scaffold.Options` and a flag on `init`).
+- **The hook without the skill.** `slint init --claude` adds the hook, the
+  `spec` skill, and the CLAUDE.md hint together. The hook is useful for each
+  user, because it checks a spec after each edit, whichever skill or prompt
+  wrote it. The skill is only one way to write a spec. A user can have a
+  different skill, for example a personal skill that asks questions about the
+  ticket. The hint tells Claude to use the `spec` skill, so the hint goes with
+  the skill. One option: `--claude-hook` adds the hook, and `--claude-skill`
+  adds the skill and the hint. Then doctor must check each part only when the
+  project uses that part. Today it checks all parts when it finds a skill or
+  a hook. We do not plan to put a personal skill in speclint.
 - **Security boundaries.** A call that crosses a security boundary may need
   more than the layer rules. Examples: a client that calls a service that
   uses elevated privileges, or an edge function that uses the Supabase
