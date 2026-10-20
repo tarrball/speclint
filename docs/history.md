@@ -1,16 +1,18 @@
-# Plan: dogfooding and architecture cleanup
+# History
 
-This file is temporary. Remove it when the plan is complete.
+This file records the work that made speclint what it is now, and the results
+of the first experiments. The next work is in [ROADMAP.md](../ROADMAP.md).
 
-This plan uses the old names. The product specval is now speclint, the
-command sv is now slint, and `.specval` is now `.speclint`.
+This file uses the old names. Before v0.4.0, the product was specval, the
+command was sv, and the project directory was `.specval`.
 
-This plan joins two tasks. specval checks its own specs (dogfooding), and the
-code moves to the DPL layers. specval is a brownfield project: the code exists,
-and it does not fit the layers yet. Each PR moves it nearer to the layers. Thus
-specval tests the brownfield features before other projects use them.
+The first plan joined two tasks. specval checked its own specs (dogfooding),
+and its code moved to the DPL layers. specval was a brownfield project: the
+code existed, and it did not fit the layers. Each PR moved it nearer to the
+layers. At the end of phase 4, the registry and the imports agreed, with no
+layer violations.
 
-## Decisions
+## Decisions of the first plan
 
 - **Spec lifecycle.** A spec has an optional `status: draft | done`. A spec
   without a status is a draft. specval runs only SV001 on a `done` spec. The PR
@@ -20,41 +22,6 @@ specval tests the brownfield features before other projects use them.
 - **specval uses the DPL layers itself**, with the client and utility layers.
 - **Suffixes.** The client and utility layers have no suffix. The other suffixes
   do not change.
-
-## The layer model
-
-| Layer | Can call |
-|---|---|
-| client | manager, utility |
-| manager | engine, accessor, utility |
-| engine | accessor, utility |
-| accessor | resource, utility |
-| resource | utility |
-| utility | utility |
-
-A registry entry can make the layer rules stricter. It cannot make them wider.
-
-```yaml
-services:
-  ConfigUtility: { layer: utility, may_call: [] }
-  AuditUtility:  { layer: utility, called_by: [manager] }
-```
-
-A value in `may_call` or `called_by` is a layer or a service. A built-in rule
-checks each call against the layer rules and against the entries of the caller
-and the callee. A registry rule warns if an entry permits a call that the layer
-rules do not permit.
-
-## specval in the layers (the target)
-
-| Layer | specval |
-|---|---|
-| client | the commands: check, hook, doctor, init, new, context, schema |
-| manager | `CheckManager` (new; the `run` function from `cli/check.go`), `DoctorManager`, `SetupManager` |
-| engine | `PolicyEngine` (evaluation only), `ScaffoldEngine` |
-| accessor | `ConfigAccessor`, `ProjectDataAccessor` (new; file reads from `policy`), `ClaudeAccessor`, `BaselineAccessor` |
-| utility | `YamlPathUtility` |
-| resource | the file system, the process |
 
 ## Phases
 
@@ -88,7 +55,7 @@ rules do not permit.
       layers. The services that do not exist yet come in the specs of phase 4.
 - [x] Add rules that read only the spec text: Given/When/Then, size, kind,
       `out_of_scope` for a feature, and STE (word limits, banned words, title).
-- [ ] Each PR from this point has a spec.
+- [x] Each PR from this point has a spec. CONTRIBUTING.md now makes this a rule.
 
 ### 4. Move the code to the target, one spec for each PR
 
@@ -136,46 +103,15 @@ From a review of how well an agent can use sv:
 - [x] The skill: run `sv check` when the hook did not run, and after the
       registry update. `sv new` prints a relative path (specs/skill-text.yaml).
 
-### 5. Brownfield features
+### 4c. Rename and setup options (v0.4.0)
 
-Design these from a real brownfield project: the next repository, a project
-on Supabase with real tickets. Its layers (for example edge functions and
-database functions) and its old code will show what these features must do.
-
-- [ ] A project file that changes the layers. It has the shape of `dpl.yaml`, and the rules see it as `data.dpl`.
-- [ ] Turn a rule off, or change its severity, in `.specval.yaml`.
-- [ ] A `legacy` layer for a strangler migration:
-  - Only an accessor can call a legacy service.
-  - A legacy service can call only a manager.
-  - A spec cannot add a legacy service.
-  - specval warns about a new call between two legacy services.
-- [ ] Schema extensions. Then a rule that finds a change to a contract.
-- [ ] An `app` field in a registry entry, for a monorepo with more than one
-  app, for example `SomeAccessor: { layer: accessor, app: cli }`. In the
-  brownfield trial, the repository had the apps `mcp`, `web`, and `cli`, and
-  Claude added the app name as a prefix to each service name
-  (`CLISomeAccessor`). That works, but each agent must find its own
-  convention, and nothing checks it. With the field:
-  - A service without `app` is shared, for example the database.
-  - Names stay unique in one registry, so a spec can show a call from one app
-    to a shared service.
-  - A rule can refuse a call from one app to a service of another app.
-  - `sv context` can show the services of each app.
-  - Two services of different apps that do the same work are easier to see.
-
-Decision (2026-10-18): a database trigger that stays in one database is
-internal behavior of that resource, not a call between two resources. A spec
-that adds or changes such a trigger puts the resource in `services.changed`,
-with `calls: []`. Thus the resource -> resource rule does not need an override
-for triggers. A trigger that goes out of the database, for example to an edge
-function or a webhook, is different. The spec format cannot show it yet. That
-is an input for the design of the features above.
+- [x] Rename the product to speclint, the command to slint, and the repository
+      to tarrball/speclint, with no migration path for the old names (#70).
+- [x] `slint init` adds the Claude Code skill and hook only with `--claude`.
+      doctor checks them only if the project or the user has one of them
+      (#71, #72).
 
 ## Experiments
-
-We test specval with agents. We record each result, also a bad result, and we
-change specval because of it. One run is one sample, so a small difference can
-be noise.
 
 ### Experiment 1: does a valid spec give a better pull request?
 
@@ -270,59 +206,3 @@ Changes because of experiment 1b:
       rename, reason }]`. specval checks the spec with the registry after the
       move (SV113 to SV117, SV203). The fix of SV202 offers the move, which a
       reviewer sees in the spec (specs/relayered.yaml).
-
-### The next experiments
-
-The experiments in this repository have two problems:
-
-- The agents are not blind: the task is about specval, and the code and
-  CLAUDE.md tell about specs and layers.
-- specval is a CLI in the DPL layers. The DPL layers are for services.
-
-Copilot is also not a controlled measure: it reads the whole repository, and
-its result can change from one run to the next.
-
-When specval works well for its own code, we move the experiments:
-
-- [ ] Make a separate repository with a small DPL service: HTTP endpoints as
-      clients, managers, engines, accessors, and a database as a resource. Later,
-      add an old version with layer violations for the brownfield features.
-- [ ] Measure with our own checks: the tests pass, the imports agree with the
-      registry after the change, and the code has each call of the spec and no
-      other calls. Also record the time, tokens, tool calls, and diff size.
-- [ ] Use a reviewer agent with a fixed list of checks. It sees only the diff and
-      the target architecture. Copilot is a second opinion only.
-- [ ] Run each arm 3 or more times.
-
-## Ideas for later
-
-- Warn when a client calls more than one manager. This can show a problem in
-  the decomposition, because a manager does the orchestration.
-- A built-in rule: the file name of a spec is its `id`. Today `sv new` writes
-  `<id>.yaml`, but nothing finds a file name and an `id` that do not agree.
-  The rules see only the content of the spec. With this rule, a project rule on
-  `input.id` also controls the file names, so specval needs no other feature
-  for a naming convention. The convention is the choice of each project, for
-  example a ticket key (`PROJ-123-short-name`) or a date.
-- A fix for a comma in a flow mapping: `{ purpose: A, B, and C }` makes YAML
-  read `B` and `and C` as keys, and SV001 says "Remove `and`". If a key has
-  a space, the fix can tell to quote the value.
-- For the specs of specval: a number prefix (`0003-extract-check-manager`),
-  because the specs build on each other, and the number gives their order.
-- Authorization in a spec. The brownfield trial (2026-10-18) showed that a
-  spec gives the calls of a change, but not who can do the change. An
-  acceptance criterion such as "an admin can do this" or "the manager of the
-  team can do this" is only text. Nothing connects it to a call, a layer, or
-  a check in the code. Questions to answer before a design:
-  - The shape. One option: each acceptance criterion or call names an actor
-    and a scope, for example `{ actor: team-manager, scope: team }`. The
-    actors come from project data (`data.project.roles`), so a spec can use
-    only known actors.
-  - The layer that does the check. In DPL, the manager can check access, or a
-    security utility can do it. In a Supabase project, row level security
-    does the check in the resource. A rule can then make sure that each
-    change that has an actor goes through the service that checks access.
-  - Baseline or project. Each project has different roles. Maybe this is a
-    schema extension (phase 5), not a built-in field.
-  - Review. The Copilot instructions can compare the access checks in the
-    code with the actors of the spec.

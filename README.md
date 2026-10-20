@@ -160,3 +160,4 @@ not finish in that time, the command fails with exit status 2.
 - [docs/claude-code.md](docs/claude-code.md): the skill, the hook, the Copilot review, and `slint doctor`.
 - [docs/architecture.md](docs/architecture.md): how speclint works inside.
 - [CONTRIBUTING.md](CONTRIBUTING.md): how to build, test, and change speclint.
+- [ROADMAP.md](ROADMAP.md): the next work and the ideas. [docs/history.md](docs/history.md) has the work that is done.
