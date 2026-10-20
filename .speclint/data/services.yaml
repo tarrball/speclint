@@ -2,10 +2,8 @@
 # services in the DPL layers. `package` is the Go package of the service.
 # `calls` lists the services that the service calls today, from the Go imports.
 #
-# The code does not follow these layers yet. For example, the commands in
-# internal/cli call accessors and the policy engine, which only a manager must
-# do. speclint reports such a call (SV202) when a spec changes the service. Each
-# spec moves the code nearer to the layers. See plan.md.
+# The code follows these layers. TestRegistryAgreesWithTheImports (cmd/slint)
+# fails if the calls here and the imports of the packages do not agree.
 services:
   # The commands. Each command is an entry point.
   CheckCommand: { layer: client, package: internal/cli, calls: [CheckManager] }
