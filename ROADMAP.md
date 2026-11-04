@@ -25,13 +25,16 @@ old code show what these features must do.
 
 - [ ] A project file that changes the layers. It has the shape of `dpl.yaml`,
       and the rules see it as `data.dpl`.
-- [ ] Turn a rule off, or change its severity, in `.speclint.yaml`.
+- [ ] Turn a rule off, or change its severity, in `.speclint.yaml`. Maybe
+      also turn off a group of rules, for example `contracts`. This is the one
+      way to configure the rules. We do not add a switch for each feature.
 - [ ] A `legacy` layer for a strangler migration:
   - Only an accessor can call a legacy service.
   - A legacy service can call only a manager.
   - A spec cannot add a legacy service.
   - speclint warns about a new call between two legacy services.
-- [ ] Schema extensions. Then a rule that finds a change to a contract.
+- [ ] Schema extensions, for the fields that only one project uses. The
+      contracts of calls are built in (see "Next: the graph and the contracts").
 - [ ] An `app` field in a registry entry, for a monorepo with more than one
   app, for example `SomeAccessor: { layer: accessor, app: cli }`. In the
   first brownfield trial, the repository had the apps `mcp`, `web`, and `cli`,
@@ -52,6 +55,69 @@ with `calls: []`. Thus the resource -> resource rule does not need an override
 for triggers. A trigger that goes out of the database, for example to an edge
 function or a webhook, is different. The spec format cannot show it yet. That
 is an input for the design of the features above.
+
+## Next: the graph and the contracts
+
+These come from a spec in a real project (2026-11-03). The project has a good
+structure and uses polymorphism. Each operation is Load, Store, Assemble,
+Evaluate, or Decide, and the real contract is the criteria type. The change
+added no call: it used ten calls that were in the registry. The spec had a
+comment, "No interface gets a new operation", and no rule checked it.
+
+The call graph seldom changes in such a project. That is the point of
+speclint: it makes sure that a plan does not change the graph by accident.
+Thus a spec gives each call that the change uses, also a call that is in the
+registry. Later, slint can make a diagram from the registry and a verified
+spec. Do not add a feature that makes this diagram less exact.
+
+Do these steps in this order.
+
+1. [ ] **The graph is the plan.**
+   - A name in the registry is a contract (an interface), not a class. In
+     most projects, one class implements each interface, so this is a
+     convention. Tell it in the docs, the examples, and the `spec` skill.
+   - The project data gives the pattern of a name, for example an `I` prefix
+     in C#. SV103 checks only the suffix of the layer today.
+   - Each registry entry gives its operations, for example
+     `IFlowAccessor: { layer: accessor, ops: [Load, Store] }`.
+   - A new operation must be nearly as deliberate as a new service. The spec
+     declares it in `ops.new`, with a service, an op, and a purpose.
+   - Rules for the operations, the same as the rules for a new service:
+     - A call uses an op that is registered or in `ops.new`. If not, error.
+     - An op in `ops.new` is not registered already.
+     - Each op in `ops.new` is in one or more calls.
+     - The service of an op in `ops.new` is registered or in `services.new`.
+     - Optional, from the project data: the ops that each layer permits.
+   - `calls` gives each call that the change uses. The output of `check`
+     tells which calls are new and which are in the registry.
+   - `covers` becomes optional. A map from each call to the acceptance
+     criteria was not accurate, and a diagram does not need it. This changes
+     SV107, so the pull request needs a migration note.
+2. [ ] **Contracts.**
+   - A call can give its `criteria` and `result` types, for example
+     `criteria: FileCriteria, result: FileResult`. The registry gives them
+     for each op.
+   - A rule for the names of these types, from the project data. Example: a
+     call to `IPromptEngine.Assemble` takes an `Assemble*Criteria` and
+     returns an `Assemble*Result`.
+   - If a spec changes a contract, a rule shows each registered caller that
+     the spec does not give.
+   - The contract rules check only the calls that give a contract. A project
+     that wants a contract on each call turns on a rule that requires it.
+   - Question: is a change to the schema of a resource, for example a new
+     column, a change to a contract? The spec format cannot show it today.
+3. [ ] **Diagrams.** slint writes a Mermaid diagram of the registry, or of a
+   verified spec. A diagram of a spec marks the new, changed, and removed
+   calls, and shows the op and the contract of each call. A pull request
+   description or the Copilot review can show it. It can be a new command or
+   a `--format mermaid` option.
+4. [ ] **The spec and the diff.** slint compares a spec with the diff of a
+   branch. It finds the contract of each changed file from the `package` of
+   the registry entries. It reports each contract that the code changed and
+   the spec does not give. In the real project, `FileUtility` got a new
+   criteria field, the spec did not give `FileUtility`, and no rule found it.
+   Only this check can find that. One package can hold more than one
+   service, so the map from a file to a contract is not always exact.
 
 ## Next: experiments
 
@@ -99,11 +165,11 @@ These are not designed yet. Each one needs a decision before it becomes work.
   the registry mark a boundary (for example a `zone` or `trust` field on a
   service), and what does a crossing trigger? See also the authorization
   idea below.
-- **Generated Mermaid diagrams.** slint can write a Mermaid diagram of the
-  registry (the services by layer, with their calls), or of a spec (the
-  calls of the change, with the new, changed, and removed calls marked). A
-  pull request description or the Copilot review can show the diagram. It
-  could be a new command or a `--format mermaid` option.
+- **The classes of a contract.** An optional `implementations` field in a
+  registry entry, for a contract with more than one class, for example a
+  logger that a project can replace. Callers see only the interface, so the
+  graph has one node. A diagram can show the classes, and the check of the
+  diff can find the contract of a changed class.
 - **Authorization in a spec.** The first brownfield trial (2026-10-18) showed
   that a spec gives the calls of a change, but not who can do the change. An
   acceptance criterion such as "an admin can do this" or "the manager of the
